@@ -15,10 +15,11 @@ header, footer {
 nav ul {
     list-style-type: none;
     padding: 0;
+    margin: 0;
 }
 
 nav ul li {
-    display: inline;
+    display: inline-block;
     margin-right: 15px;
     position: relative;
 }
@@ -26,6 +27,13 @@ nav ul li {
 nav ul li a {
     color: #fff;
     text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+nav ul li a:focus, nav ul li a:hover {
+    background-color: #444;
+    outline: none;
 }
 
 nav ul li ul {
@@ -34,9 +42,11 @@ nav ul li ul {
     background-color: #333;
     padding: 10px;
     min-width: 100px;
+    z-index: 10;
 }
 
-nav ul li:hover ul {
+nav ul li:hover ul,
+nav ul li:focus-within ul {
     display: block;
 }
 
@@ -72,10 +82,13 @@ form button {
     color: #fff;
     border: none;
     cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s;
 }
 
-form button:hover {
+form button:hover, form button:focus {
     background-color: #0056b3;
+    outline: none;
 }
 
 .canvas-container {
@@ -93,11 +106,13 @@ canvas {
     display: block;
     border: 1px solid #ccc;
     max-width: 100%;
-    cursor: move; /* Indicates drag-ability */
+    cursor: move;
+    background: #fff;
 }
 
-canvas:hover {
-    border-color: #007bff; /* Visual feedback on hover */
+canvas:hover, canvas:focus {
+    border-color: #007bff;
+    outline: none;
 }
 
 h4 {
