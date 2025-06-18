@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Website</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/kissfft-js/0.0.2/kissfft.min.js"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#education">Education</a>
+                    <ul>
+                        <li><a href="#signal">Signal</a></li>
+                    </ul>
+                </li>
+                <li><a href="#health">Health</a></li>
+                <li><a href="#ict">ICT</a></li>
+                <li><a href="#ai">AI</a></li>
+                <li><a href="#science">Science</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="home">
+            <h1>Welcome to My Website</h1>
+            <p>Explore topics in signal processing, health, ICT, AI, and science.</p>
+        </section>
+        <section id="education">
+            <h2>Education</h2>
+            <section id="signal">
+                <h3>Signal Processing</h3>
+                <form id="signalForm">
+                    <label for="frequency">Frequency (Hz, 0.1–100):</label>
+                    <input type="number" id="frequency" name="frequency" min="0.1" max="100" step="0.1" required><br>
+                    <label for="points">Points (power of 2, 64–8192):</label>
+                    <input type="number" id="points" name="points" min="64" max="8192" step="64" required><br>
+                    <label for="noise">Noise Level (0–1):</label>
+                    <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" required><br>
+                    <button type="button" onclick="generateSignal()">Generate Signal</button>
+                    <button type="button" onclick="resetZoom()">Reset Zoom/Pan</button>
+                </form>
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <h4>Time Domain</h4>
+                        <canvas id="signalCanvas"></canvas>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <h4>Frequency Domain (FFT)</h4>
+                        <canvas id="fftCanvas"></canvas>
+                    </div>
+                </div>
+            </section>
+        </section>
+        <section id="health">
+            <h2>Health</h2>
+            <p>Placeholder for health-related content.</p>
+        </section>
+        <section id="ict">
+            <h2>ICT</h2>
+            <p>Placeholder for ICT-related content.</p>
+        </section>
+        <section id="ai">
+            <h2>AI</h2>
+            <p>Placeholder for AI-related content.</p>
+        </section>
+        <section id="science">
+            <h2>Science</h2>
+            <p>Placeholder for science-related content.</p>
+        </section>
+    </main>
+    <footer>
+        <p>© 2025 My Website</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
