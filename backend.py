@@ -17,14 +17,18 @@ def generate_signal():
     t = np.arange(points) / points
     signal = np.sin(2 * np.pi * frequency * t) + (np.random.rand(points) - 0.5) * noise
 
-    window = np.hanning(points)
+    window = np.hamming(points)
     windowed_signal = signal * window
 
-    fft = np.fft.fft(windowed_signal)
-    fft_magnitude = np.abs(fft)[:points // 2]
+    # Zero-fill to twice the length
+    zero_filled = np.zeros(2 * points)
+    zero_filled[:points] = windowed_signal
+
+    fft = np.fft.fft(zero_filled)
+    fft_magnitude = np.abs(fft)[:points]  # Only first half (since now 2*points)
     fft_magnitude /= np.max(fft_magnitude) if np.max(fft_magnitude) != 0 else 1
 
-    freq_axis = np.fft.fftfreq(points, d=1/points)[:points // 2]
+    freq_axis = np.fft.fftfreq(2 * points, d=1/points)[:points]
 
     return jsonify({
         'signal': signal.tolist(),
