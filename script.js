@@ -11,6 +11,11 @@ let boxZoomStart = null;
 let boxZoomEnd = null;
 let boxZoomTarget = null; // "signal" or "fft"
 
+let timeZoom = 1;
+let timePan = 0;
+let fftZoom = 1;
+let fftPan = 0;
+
 function generateSignal() {
     const frequency = parseFloat(document.getElementById('frequency').value);
     const points = parseInt(document.getElementById('points').value);
@@ -36,106 +41,149 @@ function generateSignal() {
 }
 
 function plotAll() {
-    const signalCanvas = document.getElementById('signalCanvas');
-    const fftCanvas = document.getElementById('fftCanvas');
-    const signalCtx = signalCanvas.getContext('2d');
-    const fftCtx = fftCanvas.getContext('2d');
+    const combinedCanvas = document.getElementById('combinedCanvas');
+    const ctx = combinedCanvas.getContext('2d');
+    ctx.clearRect(0, 0, combinedCanvas.width, combinedCanvas.height);
 
-    // Time domain zoom region
-    let tMin = 0, tMax = 1;
-    if (signalState.zoomRegion) {
-        tMin = signalState.zoomRegion.min;
-        tMax = signalState.zoomRegion.max;
-    }
+    // Define subplot regions
+    const totalHeight = combinedCanvas.height;
+    const width = combinedCanvas.width;
+    const subplotHeight = totalHeight / 2;
 
-    plotSignal(signalCtx, signalCanvas, signalData, signalState, 'Time (s)', 'Amplitude', tMin, tMax);
-
-    // FFT zoom region
+    // Time domain plot (top half)
+    plotSignalCombined(ctx, width, subplotHeight, signalData, 'Time (s)', 'Amplitude', timeZoom, timePan, 0);
+    // FFT plot (bottom half)
     const frequency = parseFloat(document.getElementById('frequency').value);
-    let freqWindow = 10;
-    let freqCenter = frequency;
-    let fMin = Math.max(0, freqCenter - freqWindow), fMax = freqCenter + freqWindow;
-    if (fftState.zoomRegion) {
-        fMin = fftState.zoomRegion.min;
-        fMax = fftState.zoomRegion.max;
-    }
-    plotFFT(fftCtx, fftCanvas, fftMagnitudes, fftFreqAxis, fftState, fMin, fMax);
-
-    // Draw box zoom rectangle if active
-    if (isBoxZooming && boxZoomStart && boxZoomEnd) {
-        if (boxZoomTarget === "signal") drawZoomRect(signalCanvas, boxZoomStart, boxZoomEnd);
-        if (boxZoomTarget === "fft") drawZoomRect(fftCanvas, boxZoomStart, boxZoomEnd);
-    }
+    const fMin = Math.max(0, frequency - 10 * fftZoom + fftPan);
+    const fMax = frequency + 10 * fftZoom + fftPan;
+    plotFFTCombined(ctx, width, subplotHeight, fftMagnitudes, fftFreqAxis, fMin, fMax, subplotHeight);
 }
 
-function plotSignal(ctx, canvas, data, state, xLabel, yLabel, tMin, tMax) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+function plotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan, yOffset) {
+    const margin = 50;
+    const yLabelOffset = 45; // Further increased offset for y-axis label
+    const tickLabelOffset = 20; // Further increased offset for tick values
+    const plotWidth = width - 2 * margin;
+    const plotHeight = height - 2 * margin;
     let minVal = Math.min(...data, -1);
     let maxVal = Math.max(...data, 1);
     let range = maxVal - minVal || 1;
 
+    // Axes
+    ctx.save();
+    ctx.translate(0, yOffset);
     ctx.beginPath();
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
-    const margin = 50;
-    const plotWidth = canvas.width - 2 * margin;
-    const plotHeight = canvas.height - 2 * margin;
     ctx.moveTo(margin, margin);
-    ctx.lineTo(margin, canvas.height - margin);
-    ctx.lineTo(canvas.width - margin, canvas.height - margin);
+    ctx.lineTo(margin, height - margin);
+    ctx.lineTo(width - margin, height - margin);
     ctx.stroke();
 
     ctx.fillStyle = '#000';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(xLabel, canvas.width / 2, canvas.height - 10);
     ctx.save();
+    ctx.translate(margin - yLabelOffset, height / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText(yLabel, -canvas.height / 2, 20);
+    ctx.fillText(yLabel, 0, 0);
     ctx.restore();
+    ctx.fillText(xLabel, width / 2, height - 10);
 
     // X ticks (time)
     for (let i = 0; i <= 5; i++) {
+        const t = (i / 5 - 0.5) * zoom + 0.5 + pan;
         const x = margin + i * plotWidth / 5;
-        const t = tMin + (i * (tMax - tMin) / 5);
         ctx.beginPath();
-        ctx.moveTo(x, canvas.height - margin);
-        ctx.lineTo(x, canvas.height - margin + 5);
+        ctx.moveTo(x, height - margin);
+        ctx.lineTo(x, height - margin + 5);
         ctx.stroke();
-        ctx.fillText(t.toFixed(2), x, canvas.height - margin + 20);
+        ctx.fillText(t.toFixed(2), x, height - margin + 20);
     }
-    // Y ticks
+    // Y ticks (amplitude)
+    ctx.textAlign = 'right';
     for (let i = 0; i <= 5; i++) {
-        const yVal = minVal + (i * range / 5);
-        const y = canvas.height - margin - (yVal - minVal) / range * plotHeight;
+        const yVal = minVal + (i * (range) / 5);
+        const y = height - margin - ((yVal - minVal) / range * plotHeight);
         ctx.beginPath();
         ctx.moveTo(margin - 5, y);
         ctx.lineTo(margin, y);
         ctx.stroke();
-        ctx.fillText(yVal.toFixed(1), margin - 20, y + 4);
+        ctx.fillText(yVal.toFixed(2), margin - tickLabelOffset, y + 4);
     }
 
-    // Plot data in zoomed region
+    // Plot data
     ctx.beginPath();
     ctx.strokeStyle = '#007bff';
     ctx.lineWidth = 2;
     const N = data.length;
     for (let i = 0; i < N; i++) {
         const t = i / N;
-        if (t < tMin || t > tMax) continue;
-        const x = margin + ((t - tMin) / (tMax - tMin)) * plotWidth;
-        const y = canvas.height - margin - ((data[i] - minVal) / range * plotHeight);
-        if (i === 0 || t < tMin) ctx.moveTo(x, y);
+        const tView = (t - 0.5 - pan) / zoom + 0.5;
+        if (tView < 0 || tView > 1) continue;
+        const x = margin + tView * plotWidth;
+        const y = height - margin - ((data[i] - minVal) / range * plotHeight);
+        if (i === 0 || tView < 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    ctx.restore();
 }
 
-function plotFFT(ctx, canvas, magnitudes, freqAxis, state, fMin, fMax) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function plotFFTCombined(ctx, width, height, magnitudes, freqAxis, fMin, fMax, yOffset) {
+    const margin = 50;
+    const yLabelOffset = 45; // Further increased offset for y-axis label
+    const tickLabelOffset = 20; // Further increased offset for tick values
+    const plotWidth = width - 2 * margin;
+    const plotHeight = height - 2 * margin;
+    // Axes
+    ctx.save();
+    ctx.translate(0, yOffset);
+    ctx.beginPath();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.moveTo(margin, margin);
+    ctx.lineTo(margin, height - margin);
+    ctx.lineTo(width - margin, height - margin);
+    ctx.stroke();
 
-    // Find indices within the desired frequency window
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.translate(margin - yLabelOffset, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Magnitude', 0, 0);
+    ctx.restore();
+    ctx.fillText('Frequency (Hz)', width / 2, height - 10);
+
+    // X ticks (frequency)
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= 5; i++) {
+        const freq = fMin + (i * (fMax - fMin) / 5);
+        const x = margin + i * plotWidth / 5;
+        ctx.beginPath();
+        ctx.moveTo(x, height - margin);
+        ctx.lineTo(x, height - margin + 5);
+        ctx.stroke();
+        ctx.fillText(freq.toFixed(1) + ' Hz', x, height - margin + 20);
+    }
+    // Y ticks (magnitude)
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+        const yVal = i / 5;
+        const y = height - margin - yVal * plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(margin - 5, y);
+        ctx.lineTo(margin, y);
+        ctx.stroke();
+        ctx.fillText(yVal.toFixed(2), margin - tickLabelOffset, y + 4);
+    }
+
+    // Plot FFT data
+    ctx.beginPath();
+    ctx.strokeStyle = '#007bff';
+    ctx.lineWidth = 2;
     let startIdx = 0, endIdx = freqAxis.length;
     for (let i = 0; i < freqAxis.length; i++) {
         if (freqAxis[i] >= fMin) { startIdx = i; break; }
@@ -143,61 +191,15 @@ function plotFFT(ctx, canvas, magnitudes, freqAxis, state, fMin, fMax) {
     for (let i = freqAxis.length - 1; i >= 0; i--) {
         if (freqAxis[i] <= fMax) { endIdx = i + 1; break; }
     }
-
-    // Axes
-    ctx.beginPath();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    const margin = 50;
-    const plotWidth = canvas.width - 2 * margin;
-    const plotHeight = canvas.height - 2 * margin;
-    ctx.moveTo(margin, margin);
-    ctx.lineTo(margin, canvas.height - margin);
-    ctx.lineTo(canvas.width - margin, canvas.height - margin);
-    ctx.stroke();
-
-    ctx.fillStyle = '#000';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Frequency (Hz)', canvas.width / 2, canvas.height - 10);
-    ctx.save();
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Magnitude', -canvas.height / 2, 20);
-    ctx.restore();
-
-    // X ticks (frequency)
-    for (let i = 0; i <= 5; i++) {
-        const x = margin + i * plotWidth / 5;
-        const freq = fMin + (i * (fMax - fMin) / 5);
-        ctx.beginPath();
-        ctx.moveTo(x, canvas.height - margin);
-        ctx.lineTo(x, canvas.height - margin + 5);
-        ctx.stroke();
-        ctx.fillText(freq.toFixed(1), x, canvas.height - margin + 20);
-    }
-    // Y ticks
-    for (let i = 0; i <= 5; i++) {
-        const yVal = i / 5;
-        const y = canvas.height - margin - yVal * plotHeight;
-        ctx.beginPath();
-        ctx.moveTo(margin - 5, y);
-        ctx.lineTo(margin, y);
-        ctx.stroke();
-        ctx.fillText(yVal.toFixed(1), margin - 20, y + 4);
-    }
-
-    // Plot FFT data in the window
-    ctx.beginPath();
-    ctx.strokeStyle = '#007bff';
-    ctx.lineWidth = 2;
     for (let i = startIdx; i < endIdx; i++) {
         const freq = freqAxis[i];
         const x = margin + ((freq - fMin) / (fMax - fMin)) * plotWidth;
-        const y = canvas.height - margin - (magnitudes[i] * plotHeight);
+        const y = height - margin - (magnitudes[i] * plotHeight);
         if (i === startIdx) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    ctx.restore();
 }
 
 function drawZoomRect(canvas, start, end) {
@@ -255,7 +257,7 @@ function applyBoxZoomFFT(start, end) {
     plotAll();
 }
 
-function handleZoom(event, canvas, state) {
+function handleZoom(event, canvas, signalState, fftState) {
     event.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const mouseX = (event.clientX - rect.left - 50) / (canvas.width - 100);
@@ -263,18 +265,18 @@ function handleZoom(event, canvas, state) {
     const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
 
     // Adjust zoom
-    const oldZoomX = state.zoomX;
-    const oldZoomY = state.zoomY;
-    state.zoomX = Math.max(1, Math.min(state.zoomX * zoomFactor, 20));
-    state.zoomY = Math.max(1, Math.min(state.zoomY * zoomFactor, 20));
+    const oldZoomX = signalState.zoomX;
+    const oldZoomY = signalState.zoomY;
+    signalState.zoomX = Math.max(1, Math.min(signalState.zoomX * zoomFactor, 20));
+    signalState.zoomY = Math.max(1, Math.min(signalState.zoomY * zoomFactor, 20));
 
     // Adjust offsets to keep mouse position centered
-    state.offsetX += mouseX * (oldZoomX - state.zoomX) * canvas.width / state.zoomX;
-    state.offsetY += mouseY * (oldZoomY - state.zoomY) * (canvas.height - 100) / state.zoomY;
+    signalState.offsetX += mouseX * (oldZoomX - signalState.zoomX) * canvas.width / signalState.zoomX;
+    signalState.offsetY += mouseY * (oldZoomY - signalState.zoomY) * (canvas.height - 100) / signalState.zoomY;
 
     // Clamp offsets so plot stays in view
-    state.offsetX = Math.max(0, Math.min(state.offsetX, (state.zoomX - 1) * (canvas.width - 100)));
-    state.offsetY = Math.max(0, Math.min(state.offsetY, (state.zoomY - 1) * (canvas.height - 100)));
+    signalState.offsetX = Math.max(0, Math.min(signalState.offsetX, (signalState.zoomX - 1) * (canvas.width - 100)));
+    signalState.offsetY = Math.max(0, Math.min(signalState.offsetY, (signalState.zoomY - 1) * (canvas.height - 100)));
 
     plotAll();
 }
@@ -312,99 +314,75 @@ function resetZoom() {
 }
 
 function setupCanvasEvents() {
-    const signalCanvas = document.getElementById('signalCanvas');
-    const fftCanvas = document.getElementById('fftCanvas');
-    signalCanvas.onwheel = (e) => handleZoom(e, signalCanvas, signalState);
-    fftCanvas.onwheel = (e) => handleZoom(e, fftCanvas, fftState);
+    const combinedCanvas = document.getElementById('combinedCanvas');
+    if (!combinedCanvas) return;
 
-    // Time domain box zoom
-    signalCanvas.onmousedown = function(e) {
-        if (e.ctrlKey) {
-            isBoxZooming = true;
-            boxZoomTarget = "signal";
-            const rect = signalCanvas.getBoundingClientRect();
-            boxZoomStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            boxZoomEnd = null;
-        } else {
-            startDrag(e, signalState);
-        }
-    };
-    signalCanvas.onmousemove = function(e) {
-        if (isBoxZooming && boxZoomTarget === "signal") {
-            const rect = signalCanvas.getBoundingClientRect();
-            boxZoomEnd = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            plotAll();
-        } else {
-            drag(e, signalCanvas, signalState);
-        }
-    };
-    signalCanvas.onmouseup = function(e) {
-        if (isBoxZooming && boxZoomTarget === "signal" && boxZoomStart && boxZoomEnd) {
-            isBoxZooming = false;
-            applyBoxZoomSignal(boxZoomStart, boxZoomEnd);
-            boxZoomStart = null;
-            boxZoomEnd = null;
-            boxZoomTarget = null;
-        } else {
-            stopDrag(signalState);
-        }
-    };
-    signalCanvas.onmouseleave = function() {
-        if (isBoxZooming && boxZoomTarget === "signal") {
-            isBoxZooming = false;
-            boxZoomStart = null;
-            boxZoomEnd = null;
-            boxZoomTarget = null;
-            plotAll();
-        }
-        stopDrag(signalState);
-    };
+    combinedCanvas.onwheel = (e) => handleZoom(e, combinedCanvas, signalState, fftState);
+    combinedCanvas.onmousedown = function(e) { handleMouseDown(e, combinedCanvas); };
+    combinedCanvas.onmousemove = function(e) { handleMouseMove(e, combinedCanvas); };
+    combinedCanvas.onmouseup = function(e) { handleMouseUp(e, combinedCanvas); };
+    combinedCanvas.onmouseleave = function() { handleMouseLeave(combinedCanvas); };
+}
 
-    // FFT box zoom
-    fftCanvas.onmousedown = function(e) {
-        if (e.ctrlKey) {
-            isBoxZooming = true;
-            boxZoomTarget = "fft";
-            const rect = fftCanvas.getBoundingClientRect();
-            boxZoomStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            boxZoomEnd = null;
-        } else {
-            startDrag(e, fftState);
-        }
-    };
-    fftCanvas.onmousemove = function(e) {
-        if (isBoxZooming && boxZoomTarget === "fft") {
-            const rect = fftCanvas.getBoundingClientRect();
-            boxZoomEnd = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            plotAll();
-        } else {
-            drag(e, fftCanvas, fftState);
-        }
-    };
-    fftCanvas.onmouseup = function(e) {
-        if (isBoxZooming && boxZoomTarget === "fft" && boxZoomStart && boxZoomEnd) {
-            isBoxZooming = false;
-            applyBoxZoomFFT(boxZoomStart, boxZoomEnd);
-            boxZoomStart = null;
-            boxZoomEnd = null;
-            boxZoomTarget = null;
-        } else {
-            stopDrag(fftState);
-        }
-    };
-    fftCanvas.onmouseleave = function() {
-        if (isBoxZooming && boxZoomTarget === "fft") {
-            isBoxZooming = false;
-            boxZoomStart = null;
-            boxZoomEnd = null;
-            boxZoomTarget = null;
-            plotAll();
-        }
-        stopDrag(fftState);
-    };
+// Update or stub out the event handler functions as needed
+function handleZoom(e, canvas, signalState, fftState) {
+    // Implement zoom logic for both subplots if needed
+}
+function handleMouseDown(e, canvas) {
+    // Implement mouse down logic for both subplots if needed
+}
+function handleMouseMove(e, canvas) {
+    // Implement mouse move logic for both subplots if needed
+}
+function handleMouseUp(e, canvas) {
+    // Implement mouse up logic for both subplots if needed
+}
+function handleMouseLeave(canvas) {
+    // Implement mouse leave logic for both subplots if needed
 }
 
 // Generate a default signal on page load
 window.addEventListener('DOMContentLoaded', () => {
     generateSignal();
+});
+
+// --- ZOOM & PAN ---
+document.getElementById('combinedCanvas').addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const rect = this.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y < this.height / 2) {
+        // Time domain zoom
+        timeZoom += e.deltaY > 0 ? 0.1 : -0.1;
+        timeZoom = Math.max(0.5, Math.min(timeZoom, 5));
+    } else {
+        // FFT zoom
+        fftZoom += e.deltaY > 0 ? 0.1 : -0.1;
+        fftZoom = Math.max(0.5, Math.min(fftZoom, 5));
+    }
+    plotAll();
+});
+document.getElementById('combinedCanvas').addEventListener('mousedown', function(e) {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+    const rect = this.getBoundingClientRect();
+    this.dragSubplot = (e.clientY - rect.top) < this.height / 2 ? 'time' : 'fft';
+});
+document.getElementById('combinedCanvas').addEventListener('mousemove', function(e) {
+    if (this.isDragging) {
+        const dx = (e.clientX - this.lastX) / 100;
+        if (this.dragSubplot === 'time') {
+            timePan += dx * timeZoom;
+        } else {
+            fftPan += dx * fftZoom * 2; // more sensitive for FFT
+        }
+        this.lastX = e.clientX;
+        plotAll();
+    }
+});
+document.getElementById('combinedCanvas').addEventListener('mouseup', function(e) {
+    this.isDragging = false;
+});
+document.getElementById('combinedCanvas').addEventListener('mouseleave', function(e) {
+    this.isDragging = false;
 });
