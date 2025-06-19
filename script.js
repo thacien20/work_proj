@@ -21,11 +21,12 @@ function generateSignal() {
     const points = parseInt(document.getElementById('points').value);
     const noise = parseFloat(document.getElementById('noise').value);
     const signalType = document.getElementById('signalType').value;
+    const customFormula = document.getElementById('customFormula').value;
 
     fetch('/api/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frequency, points, noise, signalType })
+        body: JSON.stringify({ frequency, points, noise, signalType, customFormula })
     })
     .then(response => response.json())
     .then(data => {
@@ -60,7 +61,7 @@ function plotAll() {
     plotFFTCombined(ctx, width, subplotHeight, fftMagnitudes, fftFreqAxis, fMin, fMax, subplotHeight);
 }
 
-function plotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan, yOffset) {
+function plotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan, yOffset, color) {
     const margin = 50;
     const yLabelOffset = 45; // Further increased offset for y-axis label
     const tickLabelOffset = 20; // Further increased offset for tick values
@@ -115,7 +116,7 @@ function plotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan,
 
     // Plot data
     ctx.beginPath();
-    ctx.strokeStyle = '#007bff';
+    ctx.strokeStyle = color || '#007bff';
     ctx.lineWidth = 2;
     const N = data.length;
     for (let i = 0; i < N; i++) {
@@ -131,7 +132,7 @@ function plotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan,
     ctx.restore();
 }
 
-function plotFFTCombined(ctx, width, height, magnitudes, freqAxis, fMin, fMax, yOffset) {
+function plotFFTCombined(ctx, width, height, magnitudes, freqAxis, fMin, fMax, yOffset, color) {
     const margin = 50;
     const yLabelOffset = 45; // Further increased offset for y-axis label
     const tickLabelOffset = 20; // Further increased offset for tick values
@@ -183,7 +184,409 @@ function plotFFTCombined(ctx, width, height, magnitudes, freqAxis, fMin, fMax, y
 
     // Plot FFT data
     ctx.beginPath();
-    ctx.strokeStyle = '#007bff';
+    ctx.strokeStyle = color || '#007bff';
+    ctx.lineWidth = 2;
+    let startIdx = 0, endIdx = freqAxis.length;
+    for (let i = 0; i < freqAxis.length; i++) {
+        if (freqAxis[i] >= fMin) { startIdx = i; break; }
+    }
+    for (let i = freqAxis.length - 1; i >= 0; i--) {
+        if (freqAxis[i] <= fMax) { endIdx = i + 1; break; }
+    }
+    for (let i = startIdx; i < endIdx; i++) {
+        const freq = freqAxis[i];
+        const x = margin + ((freq - fMin) / (fMax - fMin)) * plotWidth;
+        const y = height - margin - (magnitudes[i] * plotHeight);
+        if (i === startIdx) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+}
+
+function drawZoomRect(canvas, start, end) {
+    if (!start || !end) return;
+    const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,123,255,0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6]);
+    ctx.strokeRect(
+        Math.min(start.x, end.x),
+        Math.min(start.y, end.y),
+        Math.abs(end.x - start.x),
+        Math.abs(end.y - start.y)
+    );
+    ctx.restore();
+}
+
+function applyBoxZoomSignal(start, end) {
+    const signalCanvas = document.getElementById('signalCanvas');
+    const margin = 50;
+    const plotWidth = signalCanvas.width - 2 * margin;
+    const tMin0 = 0, tMax0 = 1;
+
+    const minX = Math.max(margin, Math.min(start.x, end.x));
+    const maxX = Math.min(signalCanvas.width - margin, Math.max(start.x, end.x));
+    const t1 = tMin0 + ((minX - margin) / plotWidth) * (tMax0 - tMin0);
+    const t2 = tMin0 + ((maxX - margin) / plotWidth) * (tMax0 - tMin0);
+
+    signalState.zoomRegion = {
+        min: Math.max(0, Math.min(t1, t2)),
+        max: Math.max(0, Math.max(t1, t2))
+    };
+    plotAll();
+}
+
+function applyBoxZoomFFT(start, end) {
+    const fftCanvas = document.getElementById('fftCanvas');
+    const margin = 50;
+    const plotWidth = fftCanvas.width - 2 * margin;
+    const frequency = parseFloat(document.getElementById('frequency').value);
+    const freqWindow = 10;
+    const minFreq0 = Math.max(0, frequency - freqWindow);
+    const maxFreq0 = frequency + freqWindow;
+
+    const minX = Math.max(margin, Math.min(start.x, end.x));
+    const maxX = Math.min(fftCanvas.width - margin, Math.max(start.x, end.x));
+    const f1 = minFreq0 + ((minX - margin) / plotWidth) * (maxFreq0 - minFreq0);
+    const f2 = minFreq0 + ((maxX - margin) / plotWidth) * (maxFreq0 - minFreq0);
+
+    fftState.zoomRegion = {
+        min: Math.max(0, Math.min(f1, f2)),
+        max: Math.max(0, Math.max(f1, f2))
+    };
+    plotAll();
+}
+
+function handleZoom(event, canvas, signalState, fftState) {
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (event.clientX - rect.left - 50) / (canvas.width - 100);
+    const mouseY = (event.clientY - rect.top - 50) / (canvas.height - 100);
+    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+
+    // Adjust zoom
+    const oldZoomX = signalState.zoomX;
+    const oldZoomY = signalState.zoomY;
+    signalState.zoomX = Math.max(1, Math.min(signalState.zoomX * zoomFactor, 20));
+    signalState.zoomY = Math.max(1, Math.min(signalState.zoomY * zoomFactor, 20));
+
+    // Adjust offsets to keep mouse position centered
+    signalState.offsetX += mouseX * (oldZoomX - signalState.zoomX) * canvas.width / signalState.zoomX;
+    signalState.offsetY += mouseY * (oldZoomY - signalState.zoomY) * (canvas.height - 100) / signalState.zoomY;
+
+    // Clamp offsets so plot stays in view
+    signalState.offsetX = Math.max(0, Math.min(signalState.offsetX, (signalState.zoomX - 1) * (canvas.width - 100)));
+    signalState.offsetY = Math.max(0, Math.min(signalState.offsetY, (signalState.zoomY - 1) * (canvas.height - 100)));
+
+    plotAll();
+}
+
+function startDrag(event, state) {
+    state.isDragging = true;
+    state.lastX = event.clientX;
+    state.lastY = event.clientY;
+}
+
+function drag(event, canvas, state) {
+    if (!state.isDragging) return;
+    const dx = (event.clientX - state.lastX) / state.zoomX;
+    const dy = (event.clientY - state.lastY) / state.zoomY;
+    state.offsetX -= dx / (canvas.width - 100) * canvas.width;
+    state.offsetY += dy / (canvas.height - 100) * (canvas.height - 100);
+
+    // Clamp offsets so plot stays in view
+    state.offsetX = Math.max(0, Math.min(state.offsetX, (state.zoomX - 1) * (canvas.width - 100)));
+    state.offsetY = Math.max(0, Math.min(state.offsetY, (state.zoomY - 1) * (canvas.height - 100)));
+
+    state.lastX = event.clientX;
+    state.lastY = event.clientY;
+    plotAll();
+}
+
+function stopDrag(state) {
+    state.isDragging = false;
+}
+
+function resetZoom() {
+    signalState = { zoomX: 1, zoomY: 1, offsetX: 0, offsetY: 0, isDragging: false, lastX: 0, lastY: 0, zoomRegion: null };
+    fftState = { zoomX: 1, zoomY: 1, offsetX: 0, offsetY: 0, isDragging: false, lastX: 0, lastY: 0, zoomRegion: null };
+    plotAll();
+}
+
+function setupCanvasEvents() {
+    const combinedCanvas = document.getElementById('combinedCanvas');
+    if (!combinedCanvas) return;
+
+    combinedCanvas.onwheel = (e) => handleZoom(e, combinedCanvas, signalState, fftState);
+    combinedCanvas.onmousedown = function(e) { handleMouseDown(e, combinedCanvas); };
+    combinedCanvas.onmousemove = function(e) { handleMouseMove(e, combinedCanvas); };
+    combinedCanvas.onmouseup = function(e) { handleMouseUp(e, combinedCanvas); };
+    combinedCanvas.onmouseleave = function() { handleMouseLeave(combinedCanvas); };
+}
+
+// Update or stub out the event handler functions as needed
+function handleZoom(e, canvas, signalState, fftState) {
+    // Implement zoom logic for both subplots if needed
+}
+function handleMouseDown(e, canvas) {
+    // Implement mouse down logic for both subplots if needed
+}
+function handleMouseMove(e, canvas) {
+    // Implement mouse move logic for both subplots if needed
+}
+function handleMouseUp(e, canvas) {
+    // Implement mouse up logic for both subplots if needed
+}
+function handleMouseLeave(canvas) {
+    // Implement mouse leave logic for both subplots if needed
+}
+
+// Generate a default signal on page load
+window.addEventListener('DOMContentLoaded', () => {
+    generateSignal();
+});
+
+// --- ZOOM & PAN ---
+document.getElementById('combinedCanvas').addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const rect = this.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y < this.height / 2) {
+        // Time domain zoom
+        timeZoom += e.deltaY > 0 ? 0.1 : -0.1;
+        timeZoom = Math.max(0.5, Math.min(timeZoom, 5));
+    } else {
+        // FFT zoom
+        fftZoom += e.deltaY > 0 ? 0.1 : -0.1;
+        fftZoom = Math.max(0.5, Math.min(fftZoom, 5));
+    }
+    plotAll();
+});
+document.getElementById('combinedCanvas').addEventListener('mousedown', function(e) {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+    const rect = this.getBoundingClientRect();
+    this.dragSubplot = (e.clientY - rect.top) < this.height / 2 ? 'time' : 'fft';
+});
+document.getElementById('combinedCanvas').addEventListener('mousemove', function(e) {
+    if (this.isDragging) {
+        const dx = (e.clientX - this.lastX) / 100;
+        if (this.dragSubplot === 'time') {
+            timePan += dx * timeZoom;
+        } else {
+            fftPan += dx * fftZoom * 2; // more sensitive for FFT
+        }
+        this.lastX = e.clientX;
+        plotAll();
+    }
+});
+document.getElementById('combinedCanvas').addEventListener('mouseup', function(e) {
+    this.isDragging = false;
+});
+document.getElementById('combinedCanvas').addEventListener('mouseleave', function(e) {
+    this.isDragging = false;
+});
+
+// --- Export CSV ---
+function exportCSV() {
+    if (!signalData || !fftMagnitudes || !fftFreqAxis) return;
+    let csv = 'Time,Signal,Frequency,FFT\n';
+    const N = signalData.length;
+    for (let i = 0; i < N; i++) {
+        const t = i / N;
+        const freq = fftFreqAxis[i] !== undefined ? fftFreqAxis[i] : '';
+        const fft = fftMagnitudes[i] !== undefined ? fftMagnitudes[i] : '';
+        csv += `${t},${signalData[i]},${freq},${fft}\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'signal_fft.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// --- Import CSV ---
+function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const lines = e.target.result.split(/\r?\n/);
+        let sig = [], fft = [], freq = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length >= 4) {
+                sig.push(parseFloat(cols[1]));
+                freq.push(parseFloat(cols[2]));
+                fft.push(parseFloat(cols[3]));
+            }
+        }
+        signalData = new Float32Array(sig);
+        fftMagnitudes = new Float32Array(fft);
+        fftFreqAxis = new Float32Array(freq);
+        plotAll();
+    };
+    reader.readAsText(file);
+}
+
+// --- Overlay ---
+let overlays = [];
+function addOverlay() {
+    if (!signalData || !fftMagnitudes || !fftFreqAxis) return;
+    overlays.push({
+        signal: new Float32Array(signalData),
+        fft: new Float32Array(fftMagnitudes),
+        freq: new Float32Array(fftFreqAxis)
+    });
+    alert('Overlay added! Generate a new signal to compare.');
+}
+
+// Modify plotAll to draw overlays
+const origPlotSignalCombined = plotSignalCombined;
+const origPlotFFTCombined = plotFFTCombined;
+plotSignalCombined = function(ctx, width, height, data, xLabel, yLabel, zoom, pan, yOffset) {
+    // Draw overlays first
+    overlays.forEach(ov => {
+        origPlotSignalCombined(ctx, width, height, ov.signal, '', '', zoom, pan, yOffset, '#ff8800');
+    });
+    origPlotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan, yOffset, '#007bff');
+};
+plotFFTCombined = function(ctx, width, height, magnitudes, freqAxis, fMin, fMax, yOffset) {
+    overlays.forEach(ov => {
+        origPlotFFTCombined(ctx, width, height, ov.fft, ov.freq, fMin, fMax, yOffset, '#ff8800');
+    });
+    origPlotFFTCombined(ctx, width, height, magnitudes, freqAxis, fMin, fMax, yOffset, '#007bff');
+};
+// Update plot functions to accept color
+function origPlotSignalCombined(ctx, width, height, data, xLabel, yLabel, zoom, pan, yOffset, color) {
+    const margin = 50;
+    const yLabelOffset = 45; // Further increased offset for y-axis label
+    const tickLabelOffset = 20; // Further increased offset for tick values
+    const plotWidth = width - 2 * margin;
+    const plotHeight = height - 2 * margin;
+    let minVal = Math.min(...data, -1);
+    let maxVal = Math.max(...data, 1);
+    let range = maxVal - minVal || 1;
+
+    // Axes
+    ctx.save();
+    ctx.translate(0, yOffset);
+    ctx.beginPath();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.moveTo(margin, margin);
+    ctx.lineTo(margin, height - margin);
+    ctx.lineTo(width - margin, height - margin);
+    ctx.stroke();
+
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.translate(margin - yLabelOffset, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+    ctx.fillText(xLabel, width / 2, height - 10);
+
+    // X ticks (time)
+    for (let i = 0; i <= 5; i++) {
+        const t = (i / 5 - 0.5) * zoom + 0.5 + pan;
+        const x = margin + i * plotWidth / 5;
+        ctx.beginPath();
+        ctx.moveTo(x, height - margin);
+        ctx.lineTo(x, height - margin + 5);
+        ctx.stroke();
+        ctx.fillText(t.toFixed(2), x, height - margin + 20);
+    }
+    // Y ticks (amplitude)
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+        const yVal = minVal + (i * (range) / 5);
+        const y = height - margin - ((yVal - minVal) / range * plotHeight);
+        ctx.beginPath();
+        ctx.moveTo(margin - 5, y);
+        ctx.lineTo(margin, y);
+        ctx.stroke();
+        ctx.fillText(yVal.toFixed(2), margin - tickLabelOffset, y + 4);
+    }
+
+    // Plot data
+    ctx.beginPath();
+    ctx.strokeStyle = color || '#007bff';
+    ctx.lineWidth = 2;
+    const N = data.length;
+    for (let i = 0; i < N; i++) {
+        const t = i / N;
+        const tView = (t - 0.5 - pan) / zoom + 0.5;
+        if (tView < 0 || tView > 1) continue;
+        const x = margin + tView * plotWidth;
+        const y = height - margin - ((data[i] - minVal) / range * plotHeight);
+        if (i === 0 || tView < 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+}
+function origPlotFFTCombined(ctx, width, height, magnitudes, freqAxis, fMin, fMax, yOffset, color) {
+    const margin = 50;
+    const yLabelOffset = 45; // Further increased offset for y-axis label
+    const tickLabelOffset = 20; // Further increased offset for tick values
+    const plotWidth = width - 2 * margin;
+    const plotHeight = height - 2 * margin;
+    // Axes
+    ctx.save();
+    ctx.translate(0, yOffset);
+    ctx.beginPath();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.moveTo(margin, margin);
+    ctx.lineTo(margin, height - margin);
+    ctx.lineTo(width - margin, height - margin);
+    ctx.stroke();
+
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.translate(margin - yLabelOffset, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Magnitude', 0, 0);
+    ctx.restore();
+    ctx.fillText('Frequency (Hz)', width / 2, height - 10);
+
+    // X ticks (frequency)
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= 5; i++) {
+        const freq = fMin + (i * (fMax - fMin) / 5);
+        const x = margin + i * plotWidth / 5;
+        ctx.beginPath();
+        ctx.moveTo(x, height - margin);
+        ctx.lineTo(x, height - margin + 5);
+        ctx.stroke();
+        ctx.fillText(freq.toFixed(1) + ' Hz', x, height - margin + 20);
+    }
+    // Y ticks (magnitude)
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+        const yVal = i / 5;
+        const y = height - margin - yVal * plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(margin - 5, y);
+        ctx.lineTo(margin, y);
+        ctx.stroke();
+        ctx.fillText(yVal.toFixed(2), margin - tickLabelOffset, y + 4);
+    }
+
+    // Plot FFT data
+    ctx.beginPath();
+    ctx.strokeStyle = color || '#007bff';
     ctx.lineWidth = 2;
     let startIdx = 0, endIdx = freqAxis.length;
     for (let i = 0; i < freqAxis.length; i++) {

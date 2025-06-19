@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signal FFT Demo</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <header>
@@ -54,10 +54,10 @@
                     <button type="button" onclick="document.getElementById('importFile').click()">Import CSV</button>
                     <button type="button" onclick="addOverlay()">Add Overlay</button>
                 </form>
-                <div class="canvas-container" style="justify-content: flex-start;">
-                    <div class="canvas-wrapper" style="margin-left: 0;">
-                        <h4 style="text-align:center;">Time & Frequency Domain</h4>
-                        <canvas id="combinedCanvas" width="400" height="600" style="display:block;"></canvas>
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <h4>Time & Frequency Domain</h4>
+                        <canvas id="combinedCanvas" width="400" height="600"></canvas>
                     </div>
                 </div>
             </section>
@@ -66,6 +66,6 @@
     <footer>
         <p>© 2025 My Website</p>
     </footer>
-    <script src="script.js"></script>
+    <script src="/static/script.js"></script>
 </body>
 </html>
