@@ -13,9 +13,21 @@ def generate_signal():
     frequency = float(data['frequency'])
     points = int(data['points'])
     noise = float(data['noise'])
+    signal_type = data.get('signalType', 'sine')
 
     t = np.arange(points) / points
-    signal = np.sin(2 * np.pi * frequency * t) + (np.random.rand(points) - 0.5) * noise
+    if signal_type == 'sine':
+        signal = np.sin(2 * np.pi * frequency * t)
+    elif signal_type == 'square':
+        signal = np.sign(np.sin(2 * np.pi * frequency * t))
+    elif signal_type == 'triangle':
+        signal = 2 * np.abs(2 * (t * frequency - np.floor(t * frequency + 0.5))) - 1
+    elif signal_type == 'custom':
+        # Example: custom = sine + 0.5 * square
+        signal = np.sin(2 * np.pi * frequency * t) + 0.5 * np.sign(np.sin(2 * np.pi * frequency * t))
+    else:
+        signal = np.sin(2 * np.pi * frequency * t)
+    signal += (np.random.rand(points) - 0.5) * noise
 
     window = np.hamming(points)
     windowed_signal = signal * window

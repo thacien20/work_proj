@@ -39,6 +39,13 @@
                     <input type="number" id="points" name="points" min="64" max="8192" step="64" value="1024" required><br>
                     <label for="noise">Noise Level (0–1):</label>
                     <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required><br>
+                    <label for="signalType">Signal Type:</label>
+                    <select id="signalType" name="signalType">
+                        <option value="sine">Sine</option>
+                        <option value="square">Square</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="custom">Custom</option>
+                    </select><br>
                     <button type="button" onclick="generateSignal()">Generate Signal</button>
                     <button type="button" onclick="resetZoom()">Reset Zoom/Pan</button>
                 </form>
@@ -49,22 +56,6 @@
                     </div>
                 </div>
             </section>
-        </section>
-        <section id="health">
-            <h2>Health</h2>
-            <p>Placeholder for health-related content.</p>
-        </section>
-        <section id="ict">
-            <h2>ICT</h2>
-            <p>Placeholder for ICT-related content.</p>
-        </section>
-        <section id="ai">
-            <h2>AI</h2>
-            <p>Placeholder for AI-related content.</p>
-        </section>
-        <section id="science">
-            <h2>Science</h2>
-            <p>Placeholder for science-related content.</p>
         </section>
     </main>
     <footer>

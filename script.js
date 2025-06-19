@@ -20,11 +20,12 @@ function generateSignal() {
     const frequency = parseFloat(document.getElementById('frequency').value);
     const points = parseInt(document.getElementById('points').value);
     const noise = parseFloat(document.getElementById('noise').value);
+    const signalType = document.getElementById('signalType').value;
 
     fetch('/api/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frequency, points, noise })
+        body: JSON.stringify({ frequency, points, noise, signalType })
     })
     .then(response => response.json())
     .then(data => {
