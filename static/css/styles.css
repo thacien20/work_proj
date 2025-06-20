@@ -95,7 +95,7 @@ form button:hover, form button:focus {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 .canvas-wrapper {
@@ -108,6 +108,7 @@ canvas {
     max-width: 100%;
     cursor: move;
     background: #fff;
+    margin-left:0
 }
 
 canvas:hover, canvas:focus {

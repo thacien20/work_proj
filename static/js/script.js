@@ -100,12 +100,30 @@ function plotAll() {
     // Plot the main signal (using current zoom/pan, or default if reset)
     drawSignal(ctx, signalData, width, halfHeight, 0, timeZoom, timePan, '#007bff'); // Blue for main signal
     drawFFT(ctx, fftMagnitudes, fftFreqAxis, width, halfHeight, halfHeight, fftZoom, fftPan, '#007bff');
+
+    // X axis label (Frequency)
+    ctx.save();
+    ctx.font = "16px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#000";
+    ctx.fillText("Frequency (Hz)", width / 2, height - 10);
+    ctx.restore();
+
+    // Y axis label (Magnitude)
+    ctx.save();
+    ctx.translate(15, height / 2-160); // Position for vertical label
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = "16px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#000";
+    ctx.fillText("Magnitude", 0, 0);
+    ctx.restore();
 }
 
 function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color) {
     if (!data || data.length === 0) return; // Ensure data exists and is not empty
 
-    const margin = 50;
+    const margin = 40;
     const plotWidth = width - 2 * margin;
     const plotHeight = height - 2 * margin;
 
