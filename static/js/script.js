@@ -102,22 +102,53 @@ function plotAll() {
     drawFFT(ctx, fftMagnitudes, fftFreqAxis, width, halfHeight, halfHeight, fftZoom, fftPan, '#007bff');
 
     // X axis label (Frequency)
-    ctx.save();
-    ctx.font = "16px Arial";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#000";
-    ctx.fillText("Frequency (Hz)", width / 2, height - 10);
-    ctx.restore();
 
-    // Y axis label (Magnitude)
-    ctx.save();
-    ctx.translate(15, height / 2-160); // Position for vertical label
-    ctx.rotate(-Math.PI / 2);
-    ctx.font = "16px Arial";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#000";
-    ctx.fillText("Magnitude", 0, 0);
-    ctx.restore();
+
+
+
+// Time domain: X-axis label (Time)
+ctx.save();
+ctx.font = "16px Arial";
+ctx.textAlign = "center";
+ctx.fillStyle = "#000";
+ctx.fillText("Time (s)", width / 2, height / 2 - 10); // Below time domain (top half)
+ctx.restore();
+
+
+
+// Time domain: Y-axis label (Intensity)
+ctx.save();
+ctx.translate(15, height / 4); // Left side, centered in top half
+ctx.rotate(-Math.PI / 2);
+ctx.font = "16px Arial";
+ctx.textAlign = "center";
+ctx.fillStyle = "#000";
+ctx.fillText("Intensity", 0, 0);
+ctx.restore();
+
+    
+
+// FFT: X-axis label (Frequency)
+ctx.save();
+ctx.font = "16px Arial";
+ctx.textAlign = "center";
+ctx.fillStyle = "#000";
+ctx.fillText("Frequency (Hz)", width / 2, height - 10); // Bottom of canvas (FFT)
+ctx.restore();
+
+
+// FFT: Y-axis label (Magnitude)
+ctx.save();
+ctx.translate(15, height * 3 / 4); // Left side, centered in bottom half
+ctx.rotate(-Math.PI / 2);
+ctx.font = "16px Arial";
+ctx.textAlign = "center";
+ctx.fillStyle = "#000";
+ctx.fillText("Magnitude", 0, 0);
+ctx.restore();
+
+
+
 }
 
 function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color) {
