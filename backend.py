@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 class Config:
     STATIC_FOLDER = 'static'
     DEFAULT_FREQUENCY = 10.30
-    DEFAULT_POINTS = 1024
+    DEFAULT_POINTS = 2048
     DEFAULT_NOISE = 0.1
     MAX_POINTS = 100000
     ALLOWED_EXTENSIONS = {'csv', 'txt'}

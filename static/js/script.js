@@ -248,6 +248,10 @@ function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, color) 
     ctx.save(); // Save current canvas state
     ctx.translate(0, yOffset); // Translate for FFT plot (bottom half)
 
+
+
+
+
     // Draw X and Y axes
     ctx.beginPath();
     ctx.strokeStyle = '#000';
