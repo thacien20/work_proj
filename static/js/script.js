@@ -13,6 +13,15 @@ let fftPan = 0;
 window.addEventListener('DOMContentLoaded', () => {
     generateSignal(); // Initial signal generation on page load
     setupCanvasEvents();
+
+    // Attach Generate Signal button
+    document.getElementById('generateBtn').onclick = generateSignal;
+
+    // Attach Add Overlay button
+    document.getElementById('addOverlayBtn').onclick = addOverlay;
+
+    // Attach Reset Zoom button if you have one (add this button to your HTML if needed)
+    // document.getElementById('resetZoomBtn').onclick = resetZoom;
 });
 
 function generateSignal() {
