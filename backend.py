@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 # --- Configuration ---
 class Config:
     STATIC_FOLDER = 'static'
-    DEFAULT_FREQUENCY = 10.30
+    DEFAULT_FREQUENCY = 20.30
     DEFAULT_POINTS = 2048
     DEFAULT_NOISE = 0.1
     MAX_POINTS = 100000
@@ -168,10 +168,7 @@ def _compute_fft(signal):
     fft = np.fft.rfft(zero_filled)
     fft_magnitude = np.abs(fft)
     
-    # Normalize
-    max_magnitude = np.max(fft_magnitude)
-    if max_magnitude > 0:
-        fft_magnitude /= max_magnitude
+
     
     freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/points)
     return fft_magnitude, freq_axis
