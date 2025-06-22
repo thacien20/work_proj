@@ -128,8 +128,9 @@ def _compute_fft(signal):
     """Helper function to compute FFT with windowing and zero-padding."""
     points = len(signal)
     window = np.hamming(points)
+
     windowed_signal = signal * window
-    
+
     next_pow2 = 2 ** np.ceil(np.log2(points))
     zero_filled = np.zeros(int(next_pow2))
     zero_filled[:points] = windowed_signal
