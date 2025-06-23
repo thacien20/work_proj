@@ -250,3 +250,51 @@ h4 {
 .const-op-dropdown:focus-within .const-op-content {
     display: flex;
 }
+.sidebar .dropdown {
+    position: relative;
+    width: 170px;
+}
+
+.sidebar .dropbtn {
+    background-color: #0056b3;
+    color: #fff;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+.sidebar .dropdown-content {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: #f9f9f9;
+    min-width: 170px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+    z-index: 1;
+    flex-direction: column;
+}
+
+.sidebar .dropdown-content button {
+    background: none;
+    border: none;
+    color: #333;
+    padding: 10px 18px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.sidebar .dropdown-content button:hover {
+    background-color: #e0e0e0;
+}
+
+/* Show dropdown on click (JS will toggle .show) */
+.sidebar .dropdown-content.show {
+    display: flex;
+}

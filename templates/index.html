@@ -1,77 +1,90 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signal FFT Demo</title>
-    <!-- Fixed CSS path -->
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
+
 <body>
     <header>
         <h1>Signal Processing Demo</h1>
     </header>
     <main>
         <div class="sidebar">
-            <button class="main-btn">Processing</button>
-            <div class="dropdown">
+            <button class="main-btn" style="margin-bottom: 10px;" id="processingBtn">Processing</button>
+
+            <div class="dropdown" style="margin-bottom: 10px;">
                 <button class="dropbtn">Filter ▼</button>
                 <div class="dropdown-content">
-                    <button type="button">Low Pass</button>
-                    <button type="button">High Pass</button>
-                    <button type="button">Band Pass</button>
-                    <button type="button">Band Stop</button>
+                    <button type="button" id="filterBtn_lowPass">Low Pass</button>
+                    <button type="button" id="filterBtn_highPass">High Pass</button>
+                    <button type="button" id="filterBtn_bandPass">Band Pass</button>
+                    <button type="button" id="filterBtn_bandStop">Band Stop</button>
                 </div>
             </div>
-            <div class="dropdown">
+
+            <div class="dropdown" style="margin-bottom: 10px;">
+                <button class="dropbtn" id="analyzeBtn">Analyze ▼</button>
+                <div class="dropdown-content" id="analyzeDropdown">
+                    <button type="button" id="analyzeBtn_convolution">Convolution</button>
+                    <button type="button" id="analyzeBtn_deconvolution">Deconvolution</button>
+                    <button type="button" id="analyzeBtn_correlation">Correlation</button>
+                </div>
+            </div>
+
+            <div class="dropdown" style="margin-bottom: 10px;">
                 <button class="dropbtn">Operations ▼</button>
                 <div class="dropdown-content">
-                    <button type="button">Add</button>
-                    <button type="button">Subtract</button>
-                    <button type="button">Multiply</button>
-                    <button type="button">Divide</button>
+                    <button type="button" id="opsBtn_add">Add</button>
+                    <button type="button" id="opsBtn_subtract">Subtract</button>
+                    <button type="button" id="opsBtn_multiply">Multiply</button>
+                    <button type="button" id="opsBtn_divide">Divide</button>
                 </div>
             </div>
-            
-            <div class="const-op-dropdown">
-    <button class="main-btn" id="constOpBtn">Const. Op. ▼</button>
-    <div class="const-op-content">
-        <div class="const-op-row">
-            <button type="button" class="const-op-action" data-op="add">Add</button>
-            <input type="number" class="const-op-input" placeholder="Value">
+
+            <div class="const-op-dropdown" style="margin-bottom: 10px;">
+                <button class="main-btn" id="constOpBtn">Const. Op. ▼</button>
+                <div class="const-op-content">
+                    <div class="const-op-row">
+                        <button type="button" class="const-op-action" data-op="add" id="constOpBtn_add">Add</button>
+                        <input type="number" class="const-op-input" placeholder="Value">
+                    </div>
+                    <div class="const-op-row">
+                        <button type="button" class="const-op-action" data-op="subtract" id="constOpBtn_subtract">Subtract</button>
+                        <input type="number" class="const-op-input" placeholder="Value">
+                    </div>
+                    <div class="const-op-row">
+                        <button type="button" class="const-op-action" data-op="multiply" id="constOpBtn_multiply">Multiply</button>
+                        <input type="number" class="const-op-input" placeholder="Value">
+                    </div>
+                    <div class="const-op-row">
+                        <button type="button" class="const-op-action" data-op="divide" id="constOpBtn_divide">Divide</button>
+                        <input type="number" class="const-op-input" placeholder="Value">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="const-op-row">
-            <button type="button" class="const-op-action" data-op="subtract">Subtract</button>
-            <input type="number" class="const-op-input" placeholder="Value">
-        </div>
-        <div class="const-op-row">
-            <button type="button" class="const-op-action" data-op="multiply">Multiply</button>
-            <input type="number" class="const-op-input" placeholder="Value">
-        </div>
-        <div class="const-op-row">
-            <button type="button" class="const-op-action" data-op="divide">Divide</button>
-            <input type="number" class="const-op-input" placeholder="Value">
-        </div>
-    </div>
-</div>
-        </div>
+
         <section id="signal-section" style="margin-left: 220px;">
             <form id="signalForm">
                 <div class="form-group">
                     <label for="frequency">Frequency (Hz, 0.1–1000):</label>
                     <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="0.1" value="10" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="points">Points (power of 2, 1024–8192):</label>
                     <input type="number" id="points" name="points" min="1024" max="8192" step="64" value="1024" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="noise">Noise Level (0–1):</label>
                     <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="signalType">Signal Type:</label>
                     <select id="signalType" name="signalType">
@@ -81,13 +94,13 @@
                         <option value="custom">Custom</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group" id="customFormulaGroup" style="display:none;">
                     <label for="customFormula">Custom Formula:</label>
-                    <input type="text" id="customFormula" name="customFormula" 
-                           placeholder="e.g., sin(2*pi*frequency*t) + 0.5*sin(4*pi*frequency*t)">
+                    <input type="text" id="customFormula" name="customFormula"
+                        placeholder="e.g., sin(2*pi*frequency*t) + 0.5*sin(4*pi*frequency*t)">
                 </div>
-                
+
                 <div class="button-group">
                     <button type="button" id="generateBtn">Generate Signal</button>
                     <button type="button" id="exportBtn">Export CSV</button>
@@ -96,17 +109,14 @@
                     <button type="button" id="addOverlayBtn">Add Overlay</button>
                 </div>
             </form>
-            
+
             <div class="canvas-container">
                 <canvas id="combinedCanvas" width="800" height="600"></canvas>
             </div>
         </section>
+    </main>
 
-        
-    </main> 
-    
-    <!-- Fixed JS path -->
-    <!--<script src="/static/js/script.js"></script>-->
     <script type="module" src="/static/js/ui.js"></script>
 </body>
+
 </html>

@@ -94,3 +94,26 @@ function setupConstOpDropdown() {
         });
     }
 }
+function setupAnalyzeDropdown() {
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const analyzeDropdown = document.getElementById('analyzeDropdown');
+
+    if (analyzeBtn && analyzeDropdown) {
+        analyzeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            analyzeDropdown.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!analyzeDropdown.contains(e.target) && e.target !== analyzeBtn) {
+                analyzeDropdown.classList.remove('show');
+            }
+        });
+    }
+}
+
+// Call this in your DOMContentLoaded handler:
+window.addEventListener('DOMContentLoaded', () => {
+    // ...existing code...
+    setupAnalyzeDropdown();
+});
