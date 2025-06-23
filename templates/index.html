@@ -12,7 +12,50 @@
         <h1>Signal Processing Demo</h1>
     </header>
     <main>
-        <section id="signal-section">
+        <div class="sidebar">
+            <button class="main-btn">Processing</button>
+            <div class="dropdown">
+                <button class="dropbtn">Filter ▼</button>
+                <div class="dropdown-content">
+                    <button type="button">Low Pass</button>
+                    <button type="button">High Pass</button>
+                    <button type="button">Band Pass</button>
+                    <button type="button">Band Stop</button>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="dropbtn">Operations ▼</button>
+                <div class="dropdown-content">
+                    <button type="button">Add</button>
+                    <button type="button">Subtract</button>
+                    <button type="button">Multiply</button>
+                    <button type="button">Divide</button>
+                </div>
+            </div>
+            
+            <div class="const-op-dropdown">
+    <button class="main-btn" id="constOpBtn">Const. Op. ▼</button>
+    <div class="const-op-content">
+        <div class="const-op-row">
+            <button type="button" class="const-op-action" data-op="add">Add</button>
+            <input type="number" class="const-op-input" placeholder="Value">
+        </div>
+        <div class="const-op-row">
+            <button type="button" class="const-op-action" data-op="subtract">Subtract</button>
+            <input type="number" class="const-op-input" placeholder="Value">
+        </div>
+        <div class="const-op-row">
+            <button type="button" class="const-op-action" data-op="multiply">Multiply</button>
+            <input type="number" class="const-op-input" placeholder="Value">
+        </div>
+        <div class="const-op-row">
+            <button type="button" class="const-op-action" data-op="divide">Divide</button>
+            <input type="number" class="const-op-input" placeholder="Value">
+        </div>
+    </div>
+</div>
+        </div>
+        <section id="signal-section" style="margin-left: 220px;">
             <form id="signalForm">
                 <div class="form-group">
                     <label for="frequency">Frequency (Hz, 0.1–1000):</label>
@@ -58,7 +101,9 @@
                 <canvas id="combinedCanvas" width="800" height="600"></canvas>
             </div>
         </section>
-    </main>
+
+        
+    </main> 
     
     <!-- Fixed JS path -->
     <!--<script src="/static/js/script.js"></script>-->

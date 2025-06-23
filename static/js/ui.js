@@ -1,5 +1,5 @@
 // ui.js
-import { state } from './state.js'; // Update to named import
+import { state } from './state.js';
 import { generateSignal } from './signal.js';
 import { plotAll } from './plotting.js';
 
@@ -10,6 +10,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('addOverlayBtn').onclick = addOverlay;
     // Uncomment if a reset zoom button exists in HTML
     // document.getElementById('resetZoomBtn').onclick = resetZoom;
+    setupConstOpDropdown();
 });
 
 function setupCanvasEvents() {
@@ -74,4 +75,22 @@ function resetZoom() {
     state.fftZoom = 1;
     state.fftPan = 0;
     plotAll();
+}
+
+function setupConstOpDropdown() {
+    const constOpBtn = document.getElementById('constOpBtn');
+    const constOpContent = document.querySelector('.const-op-content');
+
+    if (constOpBtn && constOpContent) {
+        constOpBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            constOpContent.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!constOpContent.contains(e.target) && e.target !== constOpBtn) {
+                constOpContent.classList.remove('show');
+            }
+        });
+    }
 }
