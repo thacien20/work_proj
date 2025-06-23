@@ -48,60 +48,85 @@ def generate_signal():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    # Get parameters (no defaults, rely on frontend)
-    frequency = float(data['frequency'])  # Require frequency
-    points = int(data['points'])          # Require points
-    noise = float(data.get('noise', 0.0)) # Optional, default to 0 if not provided
-    signal_type = data.get('signalType', 'sine')  # Optional, default to 'sine'
-    custom_formula = data.get('customFormula', '') # Optional, default to empty
-    fs = float(data['samplingFrequency'])  # Require samplingFrequency
+    # Get parameters
+    frequency = float(data['frequency'])
+    points = int(data['points'])
+    noise = float(data.get('noise', 0.0))
+    signal_type = data.get('signalType', 'sine')
+    custom_formula = data.get('customFormula', '')
+    fs = float(data['samplingFrequency'])
 
-    # Minimal input validation
+    # Validation
     if points <= 0 or points > Config.MAX_POINTS:
         return jsonify({'error': f'Points must be between 1 and {Config.MAX_POINTS}'}), 400
     if frequency <= 0 or noise < 0 or noise > 1 or fs <= 0:
         return jsonify({'error': 'Invalid parameter values'}), 400
 
-    # Generate signal based on type (without pre-computing t)
+    # Generate time array
+    t = np.arange(points) / fs
+
+    # Generate signal
     if signal_type == 'sine':
-        signal = np.sin(2 * np.pi * frequency * np.arange(points) / fs)  # Compute signal with t inline
+        signal = np.sin(2 * np.pi * frequency * t)
     elif signal_type == 'square':
-        signal = np.sign(np.sin(2 * np.pi * frequency * np.arange(points) / fs))
+        signal = np.sign(np.sin(2 * np.pi * frequency * t))
     elif signal_type == 'triangle':
-        t = np.arange(points) / fs
         signal = 2 * np.abs(2 * (t * frequency - np.floor(t * frequency + 0.5))) - 1
     elif signal_type == 'custom' and custom_formula.strip():
         try:
-            t = np.arange(points) / fs
             local_dict = {'t': t, 'frequency': frequency, 'pi': np.pi}
             signal = numexpr.evaluate(custom_formula, local_dict=local_dict)
         except Exception as e:
             return jsonify({'error': f'Custom formula error: {str(e)}'}), 400
     else:
-        signal = np.sin(2 * np.pi * frequency * np.arange(points) / fs)
+        signal = np.sin(2 * np.pi * frequency * t)
 
     # Add noise
     if noise > 0:
         signal += (np.random.rand(points) - 0.5) * noise
 
-    # Apply window
-    window = np.hamming(points)
+    # Apply Gaussian window
+    sigma = points / (fs * 10)  # Adjust for desired width
+    window = np.exp(-0.5 * ((t - t[-1]/2) / sigma)**2)
     windowed_signal = signal * window
 
-    # Compute FFT
-    fft = np.fft.rfft(windowed_signal)
-    fft_magnitude = np.abs(fft)
-    
-   
+    # Zero-padding
+    next_pow2 = 2 ** np.ceil(np.log2(points))
+    zero_filled = np.zeros(int(next_pow2 * 2))  # Extra padding for smoothness
+    zero_filled[:points] = windowed_signal
 
-    # Generate frequency axis
-    freq_axis = np.fft.rfftfreq(points, d=1/fs)
+    # Compute FFT
+    fft = np.fft.rfft(zero_filled)
+    fft_magnitude = np.abs(fft) / points  # Normalize
+    freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/fs)
 
     return jsonify({
         'signal': signal.tolist(),
         'fft': fft_magnitude.tolist(),
         'freq_axis': freq_axis.tolist()
     })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def _generate_signal(t, frequency, signal_type, custom_formula=None):
     """Helper function to generate different types of signals."""
@@ -127,7 +152,13 @@ def _generate_signal(t, frequency, signal_type, custom_formula=None):
 def _compute_fft(signal):
     """Helper function to compute FFT with windowing and zero-padding."""
     points = len(signal)
-    window = np.hamming(points)
+
+    sigma = 0.005;
+
+    window = np.exp(-0.5 * ((np.arange(points) - points/2) / sigma)**2)
+    windowed_signal = signal * window
+
+
 
     windowed_signal = signal * window
 
@@ -137,7 +168,7 @@ def _compute_fft(signal):
     
     fft = np.fft.rfft(zero_filled)
     fft_magnitude = np.abs(fft)
-    freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/points)
+    freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/fs)
     return fft_magnitude, freq_axis
 
 @app.route('/api/upload', methods=['POST'])
