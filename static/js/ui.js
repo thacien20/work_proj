@@ -7,10 +7,8 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('ui.js loaded');
     const canvas = document.getElementById('combinedCanvas');
     
-    // Initialize zoom functionality
     initZoom(canvas);
     
-    // Set up canvas resizing
     function resizeCanvas() {
         const container = document.querySelector('.canvas-container');
         canvas.width = container.clientWidth;
@@ -20,10 +18,7 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Generate initial signal
     generateSignal();
-
-    // Set up UI elements
     setupConstOpDropdown();
     setupAnalyzeDropdown();
     setupOperationsDropdown();
@@ -37,6 +32,8 @@ function resetZoom() {
     state.timePan = null;
     state.fftZoom = 1;
     state.fftPan = null;
+    state.intensityZoom = 1; // Reset vertical zoom
+    state.magnitudeZoom = 1; // Reset vertical zoom
     plotAll();
 }
 

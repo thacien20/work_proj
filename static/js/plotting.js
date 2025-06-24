@@ -1,11 +1,12 @@
 // plotting.js
 import { state } from './state.js';
 
-// Add zoom state variables
+// Zoom state variables
 let isDrawing = false;
 let startX, startY, endX, endY;
-const maxZoom = 100; // Maximum zoom level (adjust as needed)
-let zoomRectColor = 'rgba(0, 128, 255, 0.3)';
+const maxZoom = 100; // Maximum horizontal zoom level
+const maxVerticalZoom = 100; // Maximum vertical zoom level
+const zoomRectColor = 'rgba(0, 128, 255, 0.3)';
 
 export function plotAll() {
     const canvas = document.getElementById('combinedCanvas');
@@ -71,7 +72,6 @@ export function plotAll() {
     ctx.restore();
 }
 
-// Initialize zoom functionality
 export function initZoom(canvas) {
     if (!canvas) return;
 
@@ -87,7 +87,7 @@ export function initZoom(canvas) {
         const rect = canvas.getBoundingClientRect();
         endX = e.clientX - rect.left;
         endY = e.clientY - rect.top;
-        plotAll(); // Redraw to update zoom rectangle
+        plotAll();
     });
 
     canvas.addEventListener('mouseup', (e) => {
@@ -96,18 +96,37 @@ export function initZoom(canvas) {
         const rect = canvas.getBoundingClientRect();
         endX = e.clientX - rect.left;
         endY = e.clientY - rect.top;
-
-        // Process zoom
         handleZoom(canvas, startX, startY, endX, endY);
         plotAll();
     });
 
-    // Add reset zoom on double-click
+    // Add mouse wheel listener for vertical zoom
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault(); // Prevent page scrolling
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const halfHeight = canvas.height / 2;
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9; // Zoom in (up) or out (down)
+
+        if (y < halfHeight) {
+            // Time domain (intensity zoom)
+            state.intensityZoom = Math.min(Math.max(state.intensityZoom * zoomFactor, 1), maxVerticalZoom);
+        } else {
+            // Frequency domain (magnitude zoom)
+            state.magnitudeZoom = Math.min(Math.max(state.magnitudeZoom * zoomFactor, 1), maxVerticalZoom);
+        }
+        plotAll();
+    });
+
+    // Reset zoom on double-click
     canvas.addEventListener('dblclick', () => {
         state.timeZoom = 1;
         state.timePan = null;
         state.fftZoom = 1;
         state.fftPan = null;
+        state.intensityZoom = 1;
+        state.magnitudeZoom = 1;
         plotAll();
     });
 }
@@ -123,66 +142,48 @@ function handleZoom(canvas, x1, y1, x2, y2) {
     const plotWidth = width - leftMargin - rightMargin;
     const plotHeight = halfHeight - topMargin - bottomMargin;
 
-    // Determine which plot was selected (time or frequency)
     const isTimeDomain = y1 < halfHeight && y2 < halfHeight;
     const isFreqDomain = y1 > halfHeight && y2 > halfHeight;
 
-    if (!isTimeDomain && !isFreqDomain) return; // Ignore if rectangle spans both domains
+    if (!isTimeDomain && !isFreqDomain) return;
 
-    // Normalize coordinates
     const minX = Math.max(Math.min(x1, x2), leftMargin);
     const maxX = Math.min(Math.max(x1, x2), width - rightMargin);
-    if (maxX <= minX) return; // Ignore invalid rectangle
+    if (maxX <= minX) return;
 
     const normalizedStartX = (minX - leftMargin) / plotWidth;
     const normalizedEndX = (maxX - leftMargin) / plotWidth;
 
     if (isTimeDomain) {
-        // Time domain zoom
         const timeAxis = state.time_axis;
         const minTime = timeAxis[0];
         const maxTime = timeAxis[timeAxis.length - 1];
         const timeRange = maxTime - minTime;
-
-        // Current visible range
         const currentVisibleRange = timeRange / state.timeZoom;
         const currentCenter = state.timePan || (minTime + maxTime) / 2;
         const currentTStart = currentCenter - currentVisibleRange / 2;
         const currentTEnd = currentCenter + currentVisibleRange / 2;
-
-        // New time range based on rectangle
         const newTStart = currentTStart + normalizedStartX * currentVisibleRange;
         const newTEnd = currentTStart + normalizedEndX * currentVisibleRange;
         const newVisibleRange = newTEnd - newTStart;
-
-        // Calculate new zoom and pan
         const newZoom = Math.min(timeRange / newVisibleRange, maxZoom);
         const newPan = newTStart + newVisibleRange / 2;
-
         state.timeZoom = newZoom;
         state.timePan = newPan;
     } else {
-        // Frequency domain zoom
         const freqAxis = state.fftFreqAxis;
         const minFreq = freqAxis[0];
         const maxFreq = freqAxis[freqAxis.length - 1];
         const freqRange = maxFreq - minFreq;
-
-        // Current visible range
         const currentVisibleRange = freqRange / state.fftZoom;
         const currentCenter = state.fftPan || (minFreq + maxFreq) / 2;
         const currentFStart = currentCenter - currentVisibleRange / 2;
         const currentFEnd = currentCenter + currentVisibleRange / 2;
-
-        // New frequency range based on rectangle
         const newFStart = currentFStart + normalizedStartX * currentVisibleRange;
         const newFEnd = currentFStart + normalizedEndX * currentVisibleRange;
         const newVisibleRange = newFEnd - newFStart;
-
-        // Calculate new zoom and pan
         const newZoom = Math.min(freqRange / newVisibleRange, maxZoom);
         const newPan = newFStart + newVisibleRange / 2;
-
         state.fftZoom = newZoom;
         state.fftPan = newPan;
     }
@@ -200,6 +201,8 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     let maxVal = Math.max(...data);
     let range = maxVal - minVal || 1;
     if (range === 0) { minVal -= 0.5; maxVal += 0.5; range = 1; }
+    // Apply vertical zoom
+    range /= state.intensityZoom;
 
     ctx.save();
     ctx.translate(0, yOffset);
@@ -270,6 +273,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
 
     ctx.restore();
 }
+
 export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, color, leftMargin=80, rightMargin=40, topMargin=40, bottomMargin=40) {
     if (!data || !freqAxis || data.length === 0) {
         console.warn('Invalid data or freqAxis in drawFFT');
@@ -293,6 +297,8 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
         maxMag = data[visibleIndices[0]];
     }
     if (maxMag === 0) maxMag = 1;
+    // Apply vertical zoom
+    maxMag /= state.magnitudeZoom;
 
     ctx.save();
     ctx.translate(0, yOffset);
@@ -332,7 +338,7 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
     const numFreqTicks = 5;
     for (let k = 0; k <= numFreqTicks; k++) {
         const f = fStart + (k / numFreqTicks) * visibleRange;
-        const x = leftMargin + (k / numFreqTicks) * plotWidth; // Fixed: Replaced numTicks with numFreqTicks
+        const x = leftMargin + (k / numFreqTicks) * plotWidth;
         if (x >= leftMargin && x <= width - rightMargin) {
             ctx.beginPath();
             ctx.moveTo(x, height - bottomMargin);
