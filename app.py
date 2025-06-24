@@ -106,5 +106,29 @@ def upload_signal():
 def waveforms_endpoint():
     return jsonify(get_waveforms())
 
+@app.route('/api/signal_operation', methods=['POST'])
+def signal_operation():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        signal1 = np.array(data['signal1'])
+        signal2 = np.array(data['signal2'])
+        operation = data['operation']
+        fs = float(data['fs'])
+    except (KeyError, ValueError):
+        return jsonify({'error': 'Invalid or missing parameters'}), 400
+    try:
+        from signal_processing import signal_to_signal_operation, compute_fft
+        result_signal = signal_to_signal_operation(signal1, signal2, operation)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    fft_magnitude, freq_axis = compute_fft(result_signal, fs)
+    return jsonify({
+        'signal': result_signal.tolist(),
+        'fft': fft_magnitude.tolist(),
+        'freq_axis': freq_axis.tolist()
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

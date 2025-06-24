@@ -73,3 +73,21 @@ export function generateSignal() {
         console.error('Fetch error:', err);
     });
 }
+
+export async function signalToSignalOperation(signal1, signal2, operation, fs) {
+    const response = await fetch('/api/signal_operation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            signal1: Array.from(signal1),
+            signal2: Array.from(signal2),
+            operation,
+            fs
+        })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Operation failed');
+    return result;
+}
+
+window.signalToSignalOperation = signalToSignalOperation;

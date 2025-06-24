@@ -1,59 +1,43 @@
 // ui.js
 import { state } from './state.js';
 import { generateSignal } from './signal.js';
-import { plotAll } from './plotting.js';
+import { plotAll, initZoom } from './plotting.js';
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('ui.js loaded'); // Debug log
+    console.log('ui.js loaded');
+    const canvas = document.getElementById('combinedCanvas');
+    
+    // Initialize zoom functionality
+    initZoom(canvas);
+    
+    // Set up canvas resizing
+    function resizeCanvas() {
+        const container = document.querySelector('.canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight || 600;
+        plotAll();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Generate initial signal
     generateSignal();
-    setupCanvasEvents();
+
+    // Set up UI elements
     setupConstOpDropdown();
     setupAnalyzeDropdown();
     setupOperationsDropdown();
     document.getElementById('generateBtn').onclick = generateSignal;
     document.getElementById('addOverlayBtn').onclick = addOverlay;
+    document.getElementById('resetZoomBtn').onclick = resetZoom;
 });
 
-function setupCanvasEvents() {
-    const canvas = document.getElementById('combinedCanvas');
-    let isDragging = false;
-    let lastX = 0;
-    let dragRegion = null;
-
-    canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const y = e.offsetY;
-        if (y < canvas.height / 2) {
-            state.timeZoom += e.deltaY > 0 ? 0.1 : -0.1;
-            state.timeZoom = Math.max(0.5, Math.min(state.timeZoom, 10));
-        } else {
-            state.fftZoom += e.deltaY > 0 ? 0.1 : -0.1;
-            state.fftZoom = Math.max(0.5, Math.min(state.fftZoom, 10));
-        }
-        plotAll();
-    });
-
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        lastX = e.clientX;
-        dragRegion = e.offsetY < canvas.height / 2 ? 'time' : 'fft';
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            const dx = (e.clientX - lastX) / 100;
-            if (dragRegion === 'time') {
-                state.timePan += dx * state.timeZoom;
-            } else {
-                state.fftPan += dx * state.fftZoom * 2;
-            }
-            lastX = e.clientX;
-            plotAll();
-        }
-    });
-
-    canvas.addEventListener('mouseup', () => { isDragging = false; });
-    canvas.addEventListener('mouseleave', () => { isDragging = false; });
+function resetZoom() {
+    state.timeZoom = 1;
+    state.timePan = null;
+    state.fftZoom = 1;
+    state.fftPan = null;
+    plotAll();
 }
 
 function addOverlay() {
@@ -74,11 +58,11 @@ function addOverlay() {
 function setupConstOpDropdown() {
     const constOpBtn = document.getElementById('constOpBtn');
     const constOpContent = document.querySelector('.const-op-content');
-    console.log('Setting up constOpDropdown', { constOpBtn, constOpContent }); // Debug log
+    console.log('Setting up constOpDropdown', { constOpBtn, constOpContent });
     if (constOpBtn && constOpContent) {
         constOpBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            console.log('Toggling constOpContent'); // Debug log
+            console.log('Toggling constOpContent');
             constOpContent.classList.toggle('show');
         });
         document.addEventListener('click', function(e) {
@@ -94,7 +78,7 @@ function setupConstOpDropdown() {
         ];
         operationButtons.forEach(({ id, op }) => {
             const button = document.getElementById(id);
-            console.log(`Setting up ${id}`, { button }); // Debug log
+            console.log(`Setting up ${id}`, { button });
             button.addEventListener('click', async () => {
                 if (!state.signalData.length || !state.fs) {
                     alert('Please generate a signal first');
@@ -159,8 +143,8 @@ function setupAnalyzeDropdown() {
 }
 
 function setupOperationsDropdown() {
-    const operationsBtn = document.querySelector('.dropbtn:not(#constOpBtn):not(#analyzeBtn)');
-    const operationsContent = document.querySelector('.dropdown-content:not(#analyzeDropdown):not(.const-op-content)');
+    const operationsBtn = document.getElementById('operationsBtn');
+    const operationsContent = document.getElementById('operationsDropdown');
     if (operationsBtn && operationsContent) {
         operationsBtn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -180,24 +164,15 @@ function setupOperationsDropdown() {
         operationButtons.forEach(({ id, op }) => {
             const button = document.getElementById(id);
             button.addEventListener('click', async () => {
-                if (!state.signalData.length || !state.fs) {
-                    alert('Please generate a signal first');
-                    return;
-                }
-                const data = {
-                    signal: Array.from(state.signalData),
-                    operation: op,
-                    constant: 1,
-                    fs: state.fs
-                };
-                try {
-                    const response = await fetch('/api/apply_operation', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    const result = await response.json();
-                    if (response.ok) {
+                if (state.overlays.length > 0) {
+                    const overlay = state.overlays[state.overlays.length - 1];
+                    try {
+                        const result = await window.signalToSignalOperation(
+                            state.signalData,
+                            overlay.signal,
+                            op,
+                            state.fs
+                        );
                         state.signalData = new Float32Array(result.signal);
                         state.fftMagnitudes = new Float32Array(result.fft);
                         state.fftFreqAxis = new Float32Array(result.freq_axis);
@@ -207,12 +182,11 @@ function setupOperationsDropdown() {
                             state.time_axis[i] = i / state.fs;
                         }
                         plotAll();
-                    } else {
-                        alert(result.error);
+                    } catch (error) {
+                        alert(error.message);
                     }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Failed to apply operation');
+                } else {
+                    alert('You must add an overlay before using Operations.');
                 }
             });
         });
