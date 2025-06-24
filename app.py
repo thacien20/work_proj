@@ -5,19 +5,17 @@ import os
 from werkzeug.utils import secure_filename
 
 from config import Config
-from signal_processing import generate_signal, compute_fft
+from signal_processing import generate_signal, compute_fft, operations
 from file_utils import allowed_file
 from waveforms import get_waveforms
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
 
-# Ensure the static folder exists
 os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def serve_index():
-    """Serves the main HTML page."""
     return render_template('index.html')
 
 @app.route('/api/signal', methods=['POST'])
@@ -26,7 +24,6 @@ def generate_signal_endpoint():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    # Get parameters
     try:
         frequency = float(data['frequency'])
         points = int(data['points'])
@@ -37,26 +34,21 @@ def generate_signal_endpoint():
     except (KeyError, ValueError):
         return jsonify({'error': 'Invalid or missing parameters'}), 400
 
-    # Validation
     if points <= 0 or points > Config.MAX_POINTS:
         return jsonify({'error': f'Points must be between 1 and {Config.MAX_POINTS}'}), 400
     if frequency <= 0 or noise < 0 or noise > 1 or fs <= 0:
         return jsonify({'error': 'Invalid parameter values'}), 400
 
-    # Generate time array
     t = np.arange(points) / fs
 
-    # Generate signal
     try:
         signal = generate_signal(t, frequency, signal_type, custom_formula)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
-    # Add noise
     if noise > 0:
         signal += (np.random.rand(points) - 0.5) * noise
 
-    # Compute FFT
     fft_magnitude, freq_axis = compute_fft(signal, fs)
 
     return jsonify({
@@ -65,9 +57,35 @@ def generate_signal_endpoint():
         'freq_axis': freq_axis.tolist()
     })
 
+@app.route('/api/apply_operation', methods=['POST'])
+def apply_operation():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        signal = np.array(data['signal'])
+        operation = data['operation']
+        constant = float(data['constant'])
+        fs = float(data['fs'])
+    except (KeyError, ValueError):
+        return jsonify({'error': 'Invalid or missing parameters'}), 400
+
+    try:
+        modified_signal = operations(signal, operation, constant)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    fft_magnitude, freq_axis = compute_fft(modified_signal, fs)
+
+    return jsonify({
+        'signal': modified_signal.tolist(),
+        'fft': fft_magnitude.tolist(),
+        'freq_axis': freq_axis.tolist()
+    })
+
 @app.route('/api/upload', methods=['POST'])
 def upload_signal():
-    """Endpoint for uploading signal data files."""
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     
@@ -86,7 +104,6 @@ def upload_signal():
 @app.route('/api/waveforms', methods=['GET'])
 @lru_cache(maxsize=32)
 def waveforms_endpoint():
-    """Returns available waveform types with descriptions."""
     return jsonify(get_waveforms())
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 import numpy as np
 import numexpr
 
-# Safe functions for custom formula evaluation
+# Existing SAFE_FUNCTIONS (unchanged)
 SAFE_FUNCTIONS = {
     'pi': np.pi,
     'sin': np.sin,
@@ -40,21 +40,39 @@ def generate_signal(t, frequency, signal_type, custom_formula=None):
         except Exception as e:
             raise ValueError(f"Invalid custom formula: {str(e)}")
     else:
-        return np.sin(2 * np.pi * frequency * t)  # Default to sine wave
+        return np.sin(2 * np.pi * frequency * t)
 
 def compute_fft(signal, fs):
     """Compute FFT with windowing and zero-padding."""
     points = len(signal)
-    sigma = points / (fs * 10)  # Adjust sigma based on fs
+    sigma = points / (fs * 10)
     t = np.arange(points) / fs
     window = np.exp(-0.5 * ((t - t[-1]/2) / sigma)**2)
     windowed_signal = signal * window
 
     next_pow2 = 2 ** np.ceil(np.log2(points))
-    zero_filled = np.zeros(int(next_pow2 * 2))  # Extra padding
+    zero_filled = np.zeros(int(next_pow2 * 2))
     zero_filled[:points] = windowed_signal
 
     fft = np.fft.rfft(zero_filled)
-    fft_magnitude = np.abs(fft) / points  # Normalize
+    fft_magnitude = np.abs(fft) / points
     freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/fs)
     return fft_magnitude, freq_axis
+
+def operations(signal, operation, constant):
+    """Apply mathematical operation to the signal with a constant."""
+    if not isinstance(signal, np.ndarray):
+        signal = np.array(signal)
+    
+    if operation == 'add':
+        return signal + constant
+    elif operation == 'subtract':
+        return signal - constant
+    elif operation == 'multiply':
+        return signal * constant
+    elif operation == 'divide':
+        if constant == 0:
+            raise ValueError("Cannot divide by zero")
+        return signal / constant
+    else:
+        raise ValueError(f"Invalid operation: {operation}")

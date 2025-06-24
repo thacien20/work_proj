@@ -1,3 +1,4 @@
+// plotting.js
 import { state } from './state.js';
 
 export function plotAll() {
@@ -18,7 +19,7 @@ export function plotAll() {
         drawFFT(ctx, ov.fft, ov.freq, width, halfHeight, halfHeight, state.fftZoom, state.fftPan, '#ff8800');
     });
 
-    // Draw main signal and FFT (corrected parameter order)
+    // Draw main signal and FFT
     drawSignal(ctx, state.signalData, width, halfHeight, 0, state.timeZoom, state.timePan, '#007bff', state.time_axis);
     drawFFT(ctx, state.fftMagnitudes, state.fftFreqAxis, width, halfHeight, halfHeight, state.fftZoom, state.fftPan, '#007bff');
 
@@ -63,8 +64,8 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     const plotWidth = width - 2 * margin;
     const plotHeight = height - 2 * margin;
 
-    let minVal = Math.min(...data); // More accurate min
-    let maxVal = Math.max(...data); // More accurate max
+    let minVal = Math.min(...data);
+    let maxVal = Math.max(...data);
     let range = maxVal - minVal || 1;
     if (range === 0) { minVal -= 0.5; maxVal += 0.5; range = 1; }
 
@@ -100,7 +101,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     }
     ctx.stroke();
 
-    // Add x-axis tick marks (Time) with dynamic range
+    // Add x-axis tick marks (Time)
     ctx.font = "12px Arial";
     ctx.fillStyle = "#000";
     ctx.textAlign = "center";
@@ -143,16 +144,19 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
     const plotWidth = width - 2 * margin;
     const plotHeight = height - 2 * margin;
 
-    let fCenter = parseFloat(document.getElementById('frequency').value) || 0;
+    // Use input frequency, fallback to stored frequency or state.fs / 4
+    let fCenter = parseFloat(document.getElementById('frequency')?.value) || state.frequency || (state.fs ? state.fs / 4 : 0);
+    if (isNaN(fCenter) && state.fs) fCenter = state.fs / 4; // Fallback only if no valid input
     let fMin = Math.max(0, fCenter - 10 * zoom + pan);
     let fMax = fCenter + 10 * zoom + pan;
-    let freqRange = fMax - fMin || (fCenter ? 2 : 1);
-    if (freqRange <= 0) freqRange = 2; // Avoid division by zero
-    if (freqRange === 2 || freqRange === 1) {
-        fMin = fCenter - 1;
-        fMax = fCenter + 1;
+    let freqRange = fMax - fMin || 1;
+    if (freqRange <= 0) freqRange = 1;
+    if (freqRange === 1) {
+        fMin = fCenter - 0.5;
+        fMax = fCenter + 0.5;
     }
 
+    console.log('FFT range:', fMin.toFixed(2), 'to', fMax.toFixed(2), 'Center:', fCenter.toFixed(2));
     // Calculate maximum magnitude in visible range
     const visibleIndices = freqAxis.map((f, i) => f >= fMin && f <= fMax ? i : -1).filter(i => i !== -1);
     const maxMag = visibleIndices.length ? Math.max(...visibleIndices.map(i => data[i])) : 1;
