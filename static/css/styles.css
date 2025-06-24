@@ -247,3 +247,47 @@ canvas:not(:supported) + .canvas-fallback {
         margin: 5px 0;
     }
 }
+.file-dropdown {
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    z-index: 201;
+    width: 80px
+}
+
+.file-dropdown .file-button {
+    width: 100%;
+    text-align: left;
+}
+
+.file-dropdown-content {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+    z-index: 202;
+    flex-direction: column;
+    padding: 6px 0;
+}
+
+.file-dropdown-content button {
+    background: none;
+    border: none;
+    color: hsl(0, 0%, 20%);
+    padding: 10px 18px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.file-dropdown-content button:hover {
+    background-color: #e0e0e0;
+}
+
+.file-dropdown.show .file-dropdown-content {
+    display: flex;
+}

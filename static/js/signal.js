@@ -14,8 +14,8 @@ export function generateSignal() {
         alert('Please enter a valid frequency between 0.1 and 1000 Hz.');
         return;
     }
-    if (!points || points < 1024 || points > 8192) {
-        alert('Please enter a valid number of points between 1024 and 8192.');
+    if (!points || points < 1024 || points > 65000) {
+        alert('Please enter a valid number of points between 1024 and 65000.');
         return;
     }
     if (signalType === 'custom' && !customFormula.trim()) {

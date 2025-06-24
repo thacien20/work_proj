@@ -189,3 +189,21 @@ function setupOperationsDropdown() {
         });
     }
 }
+document.addEventListener('DOMContentLoaded', function() {
+    const filesBtn = document.getElementById('filesBtn');
+    const fileDropdown = document.querySelector('.file-dropdown');
+    const fileDropdownContent = document.querySelector('.file-dropdown-content');
+
+    if (filesBtn && fileDropdownContent) {
+        filesBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            fileDropdown.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!fileDropdownContent.contains(e.target) && e.target !== filesBtn) {
+                fileDropdown.classList.remove('show');
+            }
+        });
+    }
+});
