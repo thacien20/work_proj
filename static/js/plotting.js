@@ -1,13 +1,14 @@
 // plotting.js
 import { state } from './state.js';
 
-// Zoom state variables
-let isDrawing = false;
-let startX, startY, endX, endY;
+// --- Zoom state variables and constants ---
+let isDrawing = false; // Whether the user is currently drawing a zoom rectangle
+let startX, startY, endX, endY; // Coordinates for zoom rectangle
 const maxZoom = 100; // Maximum horizontal zoom level
 const maxVerticalZoom = 100; // Maximum vertical zoom level
-const zoomRectColor = 'rgba(0, 128, 255, 0.3)';
+const zoomRectColor = 'rgba(0, 128, 255, 0.3)'; // Color for zoom rectangle overlay
 
+// --- Main function to plot all data (signal and FFT, overlays, axes, labels) ---
 export function plotAll() {
     const canvas = document.getElementById('combinedCanvas');
     if (!canvas) {
@@ -16,6 +17,8 @@ export function plotAll() {
     }
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Layout constants
     const width = canvas.width;
     const height = canvas.height;
     const halfHeight = height / 2;
@@ -24,17 +27,17 @@ export function plotAll() {
     const topMargin = 40;
     const bottomMargin = 40;
 
-    // Draw overlays
+    // --- Draw overlays (if any) ---
     state.overlays.forEach(ov => {
         drawSignal(ctx, ov.signal, width, halfHeight, 0, state.timeZoom, state.timePan, '#ff8800', ov.time_axis || state.time_axis, leftMargin, rightMargin, topMargin, bottomMargin);
         drawFFT(ctx, ov.fft, ov.freq, width, halfHeight, halfHeight, state.fftZoom, state.fftPan, '#ff8800', leftMargin, rightMargin, topMargin, bottomMargin);
     });
 
-    // Draw main signal and FFT
+    // --- Draw main signal and FFT ---
     drawSignal(ctx, state.signalData, width, halfHeight, 0, state.timeZoom, state.timePan, '#007bff', state.time_axis, leftMargin, rightMargin, topMargin, bottomMargin);
     drawFFT(ctx, state.fftMagnitudes, state.fftFreqAxis, width, halfHeight, halfHeight, state.fftZoom, state.fftPan, '#007bff', leftMargin, rightMargin, topMargin, bottomMargin);
 
-    // Draw zoom rectangle if active
+    // --- Draw zoom rectangle if user is selecting a zoom area ---
     if (isDrawing) {
         ctx.fillStyle = zoomRectColor;
         const rectX = Math.min(startX, endX);
@@ -44,7 +47,8 @@ export function plotAll() {
         ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
     }
 
-    // Add axis labels
+    // --- Draw axis labels for both plots ---
+    // Time domain X and Y labels
     ctx.save();
     ctx.font = "16px Arial";
     ctx.textAlign = "center";
@@ -58,6 +62,7 @@ export function plotAll() {
     ctx.fillText("Intensity", 0, 0);
     ctx.restore();
 
+    // Frequency domain X and Y labels
     ctx.save();
     ctx.font = "16px Arial";
     ctx.textAlign = "center";
@@ -72,9 +77,11 @@ export function plotAll() {
     ctx.restore();
 }
 
+// --- Initialize zoom and pan event listeners for the canvas ---
 export function initZoom(canvas) {
     if (!canvas) return;
 
+    // Mouse down: start drawing zoom rectangle
     canvas.addEventListener('mousedown', (e) => {
         const rect = canvas.getBoundingClientRect();
         startX = e.clientX - rect.left;
@@ -82,6 +89,7 @@ export function initZoom(canvas) {
         isDrawing = true;
     });
 
+    // Mouse move: update zoom rectangle
     canvas.addEventListener('mousemove', (e) => {
         if (!isDrawing) return;
         const rect = canvas.getBoundingClientRect();
@@ -90,6 +98,7 @@ export function initZoom(canvas) {
         plotAll();
     });
 
+    // Mouse up: finish zoom rectangle and apply zoom
     canvas.addEventListener('mouseup', (e) => {
         if (!isDrawing) return;
         isDrawing = false;
@@ -100,7 +109,7 @@ export function initZoom(canvas) {
         plotAll();
     });
 
-    // Add mouse wheel listener for vertical zoom
+    // Mouse wheel: vertical zoom for time or frequency domain
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault(); // Prevent page scrolling
         const rect = canvas.getBoundingClientRect();
@@ -119,7 +128,7 @@ export function initZoom(canvas) {
         plotAll();
     });
 
-    // Reset zoom on double-click
+    // Double click: reset all zoom and pan
     canvas.addEventListener('dblclick', () => {
         state.timeZoom = 1;
         state.timePan = null;
@@ -131,6 +140,7 @@ export function initZoom(canvas) {
     });
 }
 
+// --- Handle zooming based on the selected rectangle ---
 function handleZoom(canvas, x1, y1, x2, y2) {
     const width = canvas.width;
     const height = canvas.height;
@@ -142,11 +152,13 @@ function handleZoom(canvas, x1, y1, x2, y2) {
     const plotWidth = width - leftMargin - rightMargin;
     const plotHeight = halfHeight - topMargin - bottomMargin;
 
+    // Determine if zoom is for time or frequency domain
     const isTimeDomain = y1 < halfHeight && y2 < halfHeight;
     const isFreqDomain = y1 > halfHeight && y2 > halfHeight;
 
     if (!isTimeDomain && !isFreqDomain) return;
 
+    // Calculate normalized coordinates within plot area
     const minX = Math.max(Math.min(x1, x2), leftMargin);
     const maxX = Math.min(Math.max(x1, x2), width - rightMargin);
     if (maxX <= minX) return;
@@ -155,6 +167,7 @@ function handleZoom(canvas, x1, y1, x2, y2) {
     const normalizedEndX = (maxX - leftMargin) / plotWidth;
 
     if (isTimeDomain) {
+        // --- Time domain zoom ---
         const timeAxis = state.time_axis;
         const minTime = timeAxis[0];
         const maxTime = timeAxis[timeAxis.length - 1];
@@ -171,6 +184,7 @@ function handleZoom(canvas, x1, y1, x2, y2) {
         state.timeZoom = newZoom;
         state.timePan = newPan;
     } else {
+        // --- Frequency domain zoom ---
         const freqAxis = state.fftFreqAxis;
         const minFreq = freqAxis[0];
         const maxFreq = freqAxis[freqAxis.length - 1];
@@ -189,6 +203,7 @@ function handleZoom(canvas, x1, y1, x2, y2) {
     }
 }
 
+// --- Draw the time-domain signal plot ---
 export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, time_axis, leftMargin=80, rightMargin=40, topMargin=40, bottomMargin=40) {
     if (!data || data.length === 0 || !time_axis || time_axis.length !== data.length) {
         console.warn('Invalid data or time_axis in drawSignal');
@@ -197,6 +212,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     const plotWidth = width - leftMargin - rightMargin;
     const plotHeight = height - topMargin - bottomMargin;
 
+    // Find min/max for scaling
     let minVal = Math.min(...data);
     let maxVal = Math.max(...data);
     let range = maxVal - minVal || 1;
@@ -206,6 +222,8 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
 
     ctx.save();
     ctx.translate(0, yOffset);
+
+    // Draw axes
     ctx.beginPath();
     ctx.strokeStyle = '#000';
     ctx.moveTo(leftMargin, topMargin);
@@ -213,6 +231,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     ctx.lineTo(width - rightMargin, height - bottomMargin);
     ctx.stroke();
 
+    // Draw signal line
     ctx.beginPath();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
@@ -229,6 +248,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     const tStart = center - visibleRange / 2;
     const tEnd = center + visibleRange / 2;
 
+    // Draw the visible portion of the signal
     for (let i = 0; i < N; i++) {
         const t = time_axis[i];
         if (t < tStart || t > tEnd) continue;
@@ -240,7 +260,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     }
     ctx.stroke();
 
-    // X-axis ticks (Time)
+    // --- Draw X-axis ticks (Time) ---
     ctx.font = "12px Arial";
     ctx.fillStyle = "#000";
     ctx.textAlign = "center";
@@ -257,7 +277,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
         }
     }
 
-    // Y-axis ticks (Intensity)
+    // --- Draw Y-axis ticks (Intensity) ---
     ctx.textAlign = "right";
     for (let j = 0; j <= numTicks; j++) {
         const y = height - bottomMargin - (j / numTicks) * plotHeight;
@@ -274,6 +294,7 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     ctx.restore();
 }
 
+// --- Draw the frequency-domain (FFT) plot ---
 export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, color, leftMargin=80, rightMargin=40, topMargin=40, bottomMargin=40) {
     if (!data || !freqAxis || data.length === 0) {
         console.warn('Invalid data or freqAxis in drawFFT');
@@ -302,6 +323,8 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
 
     ctx.save();
     ctx.translate(0, yOffset);
+
+    // Draw axes
     ctx.beginPath();
     ctx.strokeStyle = '#000';
     let minY = height - bottomMargin;
@@ -317,6 +340,7 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
     ctx.lineTo(width - rightMargin, minY);
     ctx.stroke();
 
+    // Draw FFT line
     ctx.beginPath();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
@@ -331,7 +355,7 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
     }
     ctx.stroke();
 
-    // X-axis ticks (Frequency)
+    // --- Draw X-axis ticks (Frequency) ---
     ctx.font = "12px Arial";
     ctx.fillStyle = "#000";
     ctx.textAlign = "center";
@@ -348,7 +372,7 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
         }
     }
 
-    // Y-axis ticks (Magnitude)
+    // --- Draw Y-axis ticks (Magnitude) ---
     ctx.textAlign = "right";
     for (let j = 0; j <= numFreqTicks; j++) {
         const y = height - bottomMargin - (j / numFreqTicks) * plotHeight;
