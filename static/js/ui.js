@@ -6,9 +6,8 @@ import { plotAll, initZoom } from './plotting.js';
 window.addEventListener('DOMContentLoaded', () => {
     console.log('ui.js loaded');
     const canvas = document.getElementById('combinedCanvas');
-    
     initZoom(canvas);
-    
+
     function resizeCanvas() {
         const container = document.querySelector('.canvas-container');
         canvas.width = container.clientWidth;
@@ -22,9 +21,27 @@ window.addEventListener('DOMContentLoaded', () => {
     setupConstOpDropdown();
     setupAnalyzeDropdown();
     setupOperationsDropdown();
+    setupFilterDropdown();
+
     document.getElementById('generateBtn').onclick = generateSignal;
     document.getElementById('addOverlayBtn').onclick = addOverlay;
     document.getElementById('resetZoomBtn').onclick = resetZoom;
+
+    // Files dropdown setup
+    const filesBtn = document.getElementById('filesBtn');
+    const fileDropdown = document.querySelector('.file-dropdown');
+    const fileDropdownContent = document.querySelector('.file-dropdown-content');
+    if (filesBtn && fileDropdownContent) {
+        filesBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            fileDropdown.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+            if (!fileDropdownContent.contains(e.target) && e.target !== filesBtn) {
+                fileDropdown.classList.remove('show');
+            }
+        });
+    }
 });
 
 function resetZoom() {
@@ -55,11 +72,9 @@ function addOverlay() {
 function setupConstOpDropdown() {
     const constOpBtn = document.getElementById('constOpBtn');
     const constOpContent = document.querySelector('.const-op-content');
-    console.log('Setting up constOpDropdown', { constOpBtn, constOpContent });
     if (constOpBtn && constOpContent) {
         constOpBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            console.log('Toggling constOpContent');
             constOpContent.classList.toggle('show');
         });
         document.addEventListener('click', function(e) {
@@ -75,7 +90,6 @@ function setupConstOpDropdown() {
         ];
         operationButtons.forEach(({ id, op }) => {
             const button = document.getElementById(id);
-            console.log(`Setting up ${id}`, { button });
             button.addEventListener('click', async () => {
                 if (!state.signalData.length || !state.fs) {
                     alert('Please generate a signal first');
@@ -189,21 +203,19 @@ function setupOperationsDropdown() {
         });
     }
 }
-document.addEventListener('DOMContentLoaded', function() {
-    const filesBtn = document.getElementById('filesBtn');
-    const fileDropdown = document.querySelector('.file-dropdown');
-    const fileDropdownContent = document.querySelector('.file-dropdown-content');
 
-    if (filesBtn && fileDropdownContent) {
-        filesBtn.addEventListener('click', function(e) {
+function setupFilterDropdown() {
+    const filterBtn = document.getElementById('filterBtn');
+    const filterDropdown = filterBtn?.nextElementSibling;
+    if (filterBtn && filterDropdown) {
+        filterBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            fileDropdown.classList.toggle('show');
+            filterDropdown.classList.toggle('show');
         });
-
         document.addEventListener('click', function(e) {
-            if (!fileDropdownContent.contains(e.target) && e.target !== filesBtn) {
-                fileDropdown.classList.remove('show');
+            if (!filterDropdown.contains(e.target) && e.target !== filterBtn) {
+                filterDropdown.classList.remove('show');
             }
         });
     }
-});
+}

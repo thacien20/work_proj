@@ -24,7 +24,7 @@ export function generateSignal() {
     }
 
     // Derive samplingFrequency
-    const samplingFrequency = Math.max(4 * frequency, 1000); // Ensure at least 1000 Hz or 4x frequency
+    const samplingFrequency = Math.max(4 * frequency, 10000); // Ensure at least 10000 Hz or 4x frequency
     console.log(`Derived samplingFrequency: ${samplingFrequency} Hz`);
 
     fetch('/api/signal', {
@@ -60,7 +60,24 @@ export function generateSignal() {
     }
     state.fftMagnitudes = new Float32Array(data.fft);
     state.fftFreqAxis = new Float32Array(data.freq_axis);
-    console.log("Signal/FFT loaded", state.signalData.length, "Time axis range:", [state.time_axis[0], state.time_axis[state.time_axis.length - 1]]);
+
+    console.log("Signal/FFT loaded", state.signalData.length);
+        // Log the lengths of both arrays
+
+    console.log('signalData length:', state.signalData.length, 'time_axis length:', 
+        state.time_axis.length);
+
+    // N is the number of points
+    const N = points;
+    console.log(
+        'signalData length:', state.signalData.length,
+        'time_axis length:', state.time_axis.length,
+        'N:', N
+    );
+
+    
+    state.timeZoom = 1;
+
     state.timeZoom = 1;
     state.timePan = 0;
     state.fftZoom = 1;

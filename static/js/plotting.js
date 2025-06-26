@@ -26,16 +26,43 @@ export function plotAll() {
     const rightMargin = 40;
     const topMargin = 40;
     const bottomMargin = 40;
+    
 
     // --- Draw overlays (if any) ---
     state.overlays.forEach(ov => {
-        drawSignal(ctx, ov.signal, width, halfHeight, 0, state.timeZoom, state.timePan, '#ff8800', ov.time_axis || state.time_axis, leftMargin, rightMargin, topMargin, bottomMargin);
-        drawFFT(ctx, ov.fft, ov.freq, width, halfHeight, halfHeight, state.fftZoom, state.fftPan, '#ff8800', leftMargin, rightMargin, topMargin, bottomMargin);
+        drawSignal(ctx, ov.signal, width, halfHeight, 0, state.timeZoom, 
+            state.timePan, '#ff8800', ov.time_axis || state.time_axis, leftMargin, 
+            rightMargin, topMargin, bottomMargin);
+        drawFFT(ctx, ov.fft, ov.freq, width, halfHeight, halfHeight, state.fftZoom, 
+            state.fftPan, '#ff8800', leftMargin, rightMargin, topMargin, bottomMargin);
     });
 
-    // --- Draw main signal and FFT ---
-    drawSignal(ctx, state.signalData, width, halfHeight, 0, state.timeZoom, state.timePan, '#007bff', state.time_axis, leftMargin, rightMargin, topMargin, bottomMargin);
-    drawFFT(ctx, state.fftMagnitudes, state.fftFreqAxis, width, halfHeight, halfHeight, state.fftZoom, state.fftPan, '#007bff', leftMargin, rightMargin, topMargin, bottomMargin);
+        // --- Draw main signal and FFT only if data is ready to a void unnecessary warning 
+    if (
+        state.signalData && state.signalData.length > 0 &&
+        state.time_axis && state.time_axis.length === state.signalData.length
+    ) {
+        drawSignal(ctx, state.signalData, width, halfHeight, 0, state.timeZoom, 
+            state.timePan, '#007bff', state.time_axis, leftMargin, rightMargin, topMargin, bottomMargin);
+    }
+    if (
+        state.fftMagnitudes && state.fftMagnitudes.length > 0 &&
+        state.fftFreqAxis && state.fftFreqAxis.length === state.fftMagnitudes.length
+    ) {
+        drawFFT(ctx, state.fftMagnitudes, state.fftFreqAxis, width, halfHeight, halfHeight, 
+            state.fftZoom, state.fftPan, '#007bff', leftMargin, rightMargin, topMargin, bottomMargin);
+    }
+
+
+
+    
+
+
+
+
+
+
+
 
     // --- Draw zoom rectangle if user is selecting a zoom area ---
     if (isDrawing) {
@@ -260,14 +287,31 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
     }
     ctx.stroke();
 
-    // --- Draw X-axis ticks (Time) ---
-    ctx.font = "12px Arial";
-    ctx.fillStyle = "#000";
-    ctx.textAlign = "center";
-    const numTicks = 5;
-    for (let k = 0; k <= numTicks; k++) {
-        const t = tStart + (k / numTicks) * visibleRange;
-        const x = leftMargin + (k / numTicks) * plotWidth;
+
+
+
+        // Assume you have access to state.fs and state.signalData.length
+    const fs = state.fs;
+   // const N = state.signalData.length;
+    const duration = N / fs;
+    
+    // Choose a "nice" tick interval (e.g., 0.1s, 0.2s, 0.5s, 1s, etc.)
+    function getNiceTickInterval(visibleRange) {
+        const rough = visibleRange / 5; // Aim for ~5 ticks
+        const pow10 = Math.pow(10, Math.floor(Math.log10(rough)));
+        const nice = [1, 2, 5, 10];
+        for (let mult of nice) {
+            if (rough <= mult * pow10) return mult * pow10;
+        }
+        return pow10;
+    }
+    
+    const tickInterval = getNiceTickInterval(visibleRange);
+    const firstTick = Math.ceil(tStart / tickInterval) * tickInterval;
+    
+    for (let t = firstTick; t <= tEnd; t += tickInterval) {
+        const normalizedT = (t - tStart) / visibleRange;
+        const x = leftMargin + normalizedT * plotWidth;
         if (x >= leftMargin && x <= width - rightMargin) {
             ctx.beginPath();
             ctx.moveTo(x, height - bottomMargin);
@@ -277,22 +321,51 @@ export function drawSignal(ctx, data, width, height, yOffset, zoom, pan, color, 
         }
     }
 
-    // --- Draw Y-axis ticks (Intensity) ---
+
+
+
+
+
+
+
+
+        // --- Draw Y-axis ticks (Intensity) ---
     ctx.textAlign = "right";
-    for (let j = 0; j <= numTicks; j++) {
-        const y = height - bottomMargin - (j / numTicks) * plotHeight;
-        const intensity = minVal + (j / numTicks) * range;
+    
+    // Helper for "nice" Y tick intervals
+    function getNiceTickIntervalY(yRange) {
+        const rough = yRange / 5; // Aim for ~5 ticks
+        const pow10 = Math.pow(10, Math.floor(Math.log10(rough)));
+        const nice = [1, 2, 5, 10];
+        for (let mult of nice) {
+            if (rough <= mult * pow10) return mult * pow10;
+        }
+        return pow10;
+    }
+    
+    const yTickInterval = getNiceTickIntervalY(range);
+    const firstYTick = Math.ceil(minVal / yTickInterval) * yTickInterval;
+    
+    for (let yTick = firstYTick; yTick <= maxVal; yTick += yTickInterval) {
+        const y = height - bottomMargin - ((yTick - minVal) / range * plotHeight);
         if (y >= topMargin && y <= height - bottomMargin) {
             ctx.beginPath();
             ctx.moveTo(leftMargin - 5, y);
             ctx.lineTo(leftMargin, y);
             ctx.stroke();
-            ctx.fillText(intensity.toFixed(2), leftMargin - 10, y + 4);
+            ctx.fillText(yTick.toFixed(2), leftMargin - 10, y + 4);
         }
     }
 
-    ctx.restore();
+
+    
 }
+
+
+
+
+
+
 
 // --- Draw the frequency-domain (FFT) plot ---
 export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, color, leftMargin=80, rightMargin=40, topMargin=40, bottomMargin=40) {
@@ -354,6 +427,15 @@ export function drawFFT(ctx, data, freqAxis, width, height, yOffset, zoom, pan, 
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
+
+
+
+
+
+
+
+
+
 
     // --- Draw X-axis ticks (Frequency) ---
     ctx.font = "12px Arial";
