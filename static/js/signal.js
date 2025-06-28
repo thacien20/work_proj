@@ -9,10 +9,30 @@ export function generateSignal() {
     const signalType = document.getElementById('signalType').value;
     const customFormula = document.getElementById('customFormula').value;
 
+    // Multi-frequency fields
+    let frequencies = null;
+    let amplitudes = null;
+    if (signalType === 'multi') {
+        const freqStr = document.getElementById('multiFrequencies').value;
+        const ampStr = document.getElementById('multiAmplitudes').value;
+        // Accept both comma and/or space as separators for frequencies
+        frequencies = freqStr.split(/[,\s]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
+        // Accept both comma and/or space as separators for amplitudes
+        if (ampStr.trim() !== '') {
+            amplitudes = ampStr.split(/[,\s]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
+        }
+        if (!frequencies.length) {
+            alert('Please enter at least one valid frequency for multi-frequency signal.');
+            return;
+        }
+    }
+
     // Validation
     if (!frequency || frequency <= 0.1 || frequency > 1000) {
-        alert('Please enter a valid frequency between 0.1 and 1000 Hz.');
-        return;
+        if (signalType !== 'multi') {
+            alert('Please enter a valid frequency between 0.1 and 1000 Hz.');
+            return;
+        }
     }
     if (!points || points < 1024 || points > 65000) {
         alert('Please enter a valid number of points between 1024 and 65000.');
@@ -24,13 +44,22 @@ export function generateSignal() {
     }
 
     // Derive samplingFrequency
-    const samplingFrequency = Math.max(4 * frequency, 10000); // Ensure at least 10000 Hz or 4x frequency
+    const samplingFrequency = signalType === 'multi'
+        ? Math.max(4 * Math.max(...frequencies), 10000)
+        : Math.max(4 * frequency, 10000); // Ensure at least 10000 Hz or 4x frequency
     console.log(`Derived samplingFrequency: ${samplingFrequency} Hz`);
+
+    // Prepare payload
+    const payload = { frequency, points, noise, signalType, customFormula, samplingFrequency };
+    if (signalType === 'multi') {
+        payload.frequencies = frequencies;
+        if (amplitudes) payload.amplitudes = amplitudes;
+    }
 
     fetch('/api/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ frequency, points, noise, signalType, customFormula, samplingFrequency })
+        body: JSON.stringify(payload)
     })
     .then(async response => {
         if (!response.ok) {

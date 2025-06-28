@@ -38,6 +38,20 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Set default values for multi-frequency fields when multi is selected
+    const signalTypeSelect = document.getElementById('signalType');
+    const multiFreqInput = document.getElementById('multiFrequencies');
+    const multiAmpInput = document.getElementById('multiAmplitudes');
+    if (signalTypeSelect && multiFreqInput && multiAmpInput) {
+        signalTypeSelect.addEventListener('change', function() {
+            if (this.value === 'multi') {
+                // Only set if empty or user hasn't changed
+                if (!multiFreqInput.value.trim()) multiFreqInput.value = '120, 200, 300';
+                if (!multiAmpInput.value.trim()) multiAmpInput.value = '1 1 1';
+            }
+        });
+    }
 });
 
 let lastSignalSnapshot = null;
