@@ -7,7 +7,6 @@ export function generateSignal() {
     let points = parseInt(document.getElementById('points').value);
     const noise = parseFloat(document.getElementById('noise').value);
     const signalType = document.getElementById('signalType').value;
-    const customFormula = document.getElementById('customFormula').value;
 
     // Multi-frequency fields
     let frequencies = null;
@@ -38,10 +37,6 @@ export function generateSignal() {
         alert('Please enter a valid number of points between 1024 and 65000.');
         return;
     }
-    if (signalType === 'custom' && !customFormula.trim()) {
-        alert('Please enter a custom formula for custom signal type.');
-        return;
-    }
 
     // Derive samplingFrequency and points for multi to ensure good frequency resolution
     let adjustedPoints;
@@ -60,7 +55,7 @@ export function generateSignal() {
         adjustedPoints = Math.round(adjustedPoints * 2); // Double the points
         // Clamp to allowed range
         if (adjustedPoints < 1024) adjustedPoints = 1024;
-        if (adjustedPoints > 40000) adjustedPoints = 40000;
+        if (adjustedPoints > 10000) adjustedPoints = 10500;
         document.getElementById('points').value = adjustedPoints;
         console.log(`Multi: minFreq=${minFreq}, minDuration=${minDuration}, adjustedPoints=${adjustedPoints}`);
     } else {
@@ -78,7 +73,7 @@ export function generateSignal() {
     console.log(`Using FS: ${FS} Hz, points: ${adjustedPoints}`);
 
     // Prepare payload
-    const payload = { frequency, points: adjustedPoints, noise, signalType, customFormula, fs: FS };
+    const payload = { frequency, points: adjustedPoints, noise, signalType, fs: FS };
     if (signalType === 'multi') {
         payload.frequencies = frequencies;
         if (amplitudes) payload.amplitudes = amplitudes;

@@ -49,27 +49,6 @@
                     <button type="button" id="opsBtn_divide">Divide</button>
                 </div>
             </div>
-            <div class="const-op-dropdown">
-                <button class="main-btn" id="constOpBtn">Const. Op. ▼</button>
-                <div class="const-op-content">
-                    <div class="const-op-row">
-                        <button type="button" class="const-op-action" data-op="add" id="constOpBtn_add">Add</button>
-                        <input type="number" class="const-op-input" placeholder="Value">
-                    </div>
-                    <div class="const-op-row">
-                        <button type="button" class="const-op-action" data-op="subtract" id="constOpBtn_subtract">Subtract</button>
-                        <input type="number" class="const-op-input" placeholder="Value">
-                    </div>
-                    <div class="const-op-row">
-                        <button type="button" class="const-op-action" data-op="multiply" id="constOpBtn_multiply">Multiply</button>
-                        <input type="number" class="const-op-input" placeholder="Value">
-                    </div>
-                    <div class="const-op-row">
-                        <button type="button" class="const-op-action" data-op="divide" id="constOpBtn_divide">Divide</button>
-                        <input type="number" class="const-op-input" placeholder="Value">
-                    </div>
-                </div>
-            </div>
         </div>
         <section id="signal-section">
             <form id="signalForm">
@@ -106,12 +85,7 @@
                         <option value="square">Square</option>
                         <option value="triangle">Triangle</option>
                         <option value="multi">Multi</option>
-                        <option value="custom">Custom</option>
                     </select>
-                </div>
-                <div class="form-group" id="customFormulaGroup" style="display:none;">
-                    <label for="customFormula">Custom Formula:</label>
-                    <input type="text" id="customFormula" name="customFormula" placeholder="e.g., sin(2*pi*frequency*t) + 0.5*sin(4*pi*frequency*t)">
                 </div>
                 <div class="button-group">
                     <button type="button" id="generateBtn">Generate Signal</button>
@@ -119,9 +93,10 @@
                 </div>
             </form>
 
-            <div class="canvas-container">
+            <div class="canvas-container" style="position:relative;">
                 <div id="plot"></div>
                 <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
+                <button type="button" id="clearBtn" class="plot-clear-btn">Clear</button>
             </div>
         </section>
     </main>
@@ -131,11 +106,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         const signalType = document.getElementById('signalType');
         const multiFreqGroup = document.getElementById('multiFreqGroup');
-        const customFormulaGroup = document.getElementById('customFormulaGroup');
         const phaseGroup = document.getElementById('phaseGroup');
         function updateFields() {
             multiFreqGroup.style.display = (signalType.value === 'multi') ? '' : 'none';
-            customFormulaGroup.style.display = (signalType.value === 'custom') ? '' : 'none';
             phaseGroup.style.display = (signalType.value !== 'multi') ? '' : 'none';
         }
         signalType.addEventListener('change', updateFields);

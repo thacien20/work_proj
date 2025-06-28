@@ -23,7 +23,7 @@ export function plotAll() {
                 y: ov.signal,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'Overlay Signal',
+                name: 'Signal', // swapped
                 line: { color: '#ff8800' },
                 yaxis: 'y1',
                 xaxis: 'x1'
@@ -36,7 +36,7 @@ export function plotAll() {
                 y: ov.fft,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'Overlay FFT',
+                name: 'Signal FFT', // swapped
                 line: { color: '#ff8800' },
                 yaxis: 'y2',
                 xaxis: 'x2'
@@ -54,7 +54,7 @@ export function plotAll() {
             y: state.signalData,
             type: 'scatter',
             mode: 'lines',
-            name: 'Signal',
+            name: 'Overlay', // swapped
             line: { color: '#007bff' },
             yaxis: 'y1',
             xaxis: 'x1'
@@ -71,7 +71,7 @@ export function plotAll() {
             y: state.fftMagnitudes,
             type: 'scatter',
             mode: 'lines',
-            name: 'FFT',
+            name: 'Overlay FFT', // swapped
             line: { color: '#007bff' },
             yaxis: 'y2',
             xaxis: 'x2'

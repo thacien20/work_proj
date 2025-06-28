@@ -15,7 +15,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     generateSignal();
-    setupConstOpDropdown();
     setupAnalyzeDropdown();
     setupOperationsDropdown();
 
@@ -124,7 +123,7 @@ function addOverlay() {
         fft: new Float32Array(state.fftMagnitudes),
         freq: new Float32Array(state.fftFreqAxis)
     }];
-    alert('Overlay added! Now generate a new main signal.');
+    alert('Main signal recorded, now add your overlay:');
 }
 
 // Patch generateSignal to clear overlays if not waiting for overlay
@@ -136,74 +135,6 @@ if (!window._generateSignalPatched) {
         // Do not touch overlays unless addOverlay was just used
     };
     window._generateSignalPatched = true;
-}
-
-function setupConstOpDropdown() {
-    const constOpBtn = document.getElementById('constOpBtn');
-    const constOpContent = document.querySelector('.const-op-content');
-    if (constOpBtn && constOpContent) {
-        constOpBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            constOpContent.classList.toggle('show');
-        });
-        document.addEventListener('click', function(e) {
-            if (!constOpContent.contains(e.target) && e.target !== constOpBtn) {
-                constOpContent.classList.remove('show');
-            }
-        });
-        const operationButtons = [
-            { id: 'constOpBtn_add', op: 'add' },
-            { id: 'constOpBtn_subtract', op: 'subtract' },
-            { id: 'constOpBtn_multiply', op: 'multiply' },
-            { id: 'constOpBtn_divide', op: 'divide' }
-        ];
-        operationButtons.forEach(({ id, op }) => {
-            const button = document.getElementById(id);
-            button.addEventListener('click', async () => {
-                if (!state.signalData.length || !state.fs) {
-                    alert('Please generate a signal first');
-                    return;
-                }
-                const row = button.closest('.const-op-row');
-                const constantInput = row.querySelector('.const-op-input');
-                const constant = parseFloat(constantInput.value);
-                if (isNaN(constant)) {
-                    alert('Please enter a valid constant value');
-                    return;
-                }
-                const data = {
-                    signal: Array.from(state.signalData),
-                    operation: op,
-                    constant: constant,
-                    fs: state.fs
-                };
-                try {
-                    const response = await fetch('/api/apply_operation', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-                    const result = await response.json();
-                    if (response.ok) {
-                        state.signalData = new Float32Array(result.signal);
-                        state.fftMagnitudes = new Float32Array(result.fft);
-                        state.fftFreqAxis = new Float32Array(result.freq_axis);
-                        const points = state.signalData.length;
-                        state.time_axis = new Float32Array(points);
-                        for (let i = 0; i < points; i++) {
-                            state.time_axis[i] = i / FS;
-                        }
-                        plotAll();
-                    } else {
-                        alert(result.error);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Failed to apply operation');
-                }
-            });
-        });
-    }
 }
 
 function setupAnalyzeDropdown() {
@@ -271,4 +202,13 @@ function setupOperationsDropdown() {
             });
         });
     }
+}
+
+document.getElementById('clearBtn').onclick = function() {
+    state.signalData = new Float32Array();
+    state.time_axis = new Float32Array();
+    state.fftMagnitudes = new Float32Array();
+    state.fftFreqAxis = new Float32Array();
+    state.overlays = [];
+    plotAll();
 }

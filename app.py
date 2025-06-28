@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from config import Config
 from signal_generation import generate_signal  # <-- updated import
-from signal_processing import compute_fft, operations, FS
+from signal_processing import compute_fft, FS
 from file_utils import allowed_file
 from waveforms import get_waveforms
 
@@ -30,7 +30,6 @@ def generate_signal_endpoint():
         points = int(data['points'])
         noise = float(data.get('noise', 0.0))
         signal_type = data.get('signalType', 'sine')
-        custom_formula = data.get('customFormula', '')
         # Multi-frequency support
         frequencies = data.get('frequencies', None)
         amplitudes = data.get('amplitudes', None)
@@ -52,7 +51,7 @@ def generate_signal_endpoint():
     t = np.arange(points) / FS
 
     try:
-        signal = generate_signal(t, frequency, signal_type, custom_formula, frequencies, amplitudes)
+        signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
@@ -63,32 +62,6 @@ def generate_signal_endpoint():
 
     return jsonify({
         'signal': signal.tolist(),
-        'fft': fft_magnitude.tolist(),
-        'freq_axis': freq_axis.tolist()
-    })
-
-@app.route('/api/apply_operation', methods=['POST'])
-def apply_operation():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    try:
-        signal = np.array(data['signal'])
-        operation = data['operation']
-        constant = float(data['constant'])
-    except (KeyError, ValueError):
-        return jsonify({'error': 'Invalid or missing parameters'}), 400
-
-    try:
-        modified_signal = operations(signal, operation, constant)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-
-    fft_magnitude, freq_axis = compute_fft(modified_signal)
-
-    return jsonify({
-        'signal': modified_signal.tolist(),
         'fft': fft_magnitude.tolist(),
         'freq_axis': freq_axis.tolist()
     })

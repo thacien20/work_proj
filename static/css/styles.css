@@ -162,91 +162,6 @@ canvas:not(:supported) + .canvas-fallback {
     background-color: #e0e0e0;
 }
 
-.const-op-dropdown {
-    position: relative;
-    width: 170px;
-}
-
-#constOpBtn {
-    width: 170px;
-    text-align: left;
-}
-
-.const-op-content {
-    display: none;
-    position: absolute;
-    left: 0;
-    top: 100%;
-    background-color: #f9f9f9;
-    min-width: 170px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
-    z-index: 2;
-    padding: 10px 0;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.const-op-content.show {
-    display: flex;
-}
-
-.const-op-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 10px;
-}
-
-.const-op-action {
-    background: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 3px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.const-op-input {
-    width: 80px;
-    padding: 4px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-}
-
-@media (max-width: 768px) {
-    main {
-        flex-direction: column;
-        padding: 1em;
-    }
-    .sidebar {
-        width: 100%;
-        position: static;
-        align-items: stretch;
-    }
-    #signal-section {
-        margin-left: 0;
-        margin-top: 20px;
-    }
-    .canvas-container {
-        max-width: 100%;
-        height: auto;
-        aspect-ratio: 4 / 3; /* Maintain canvas aspect ratio */
-    }
-    form label {
-        width: 100%;
-        margin-bottom: 5px;
-    }
-    form input, form select {
-        width: 100%;
-        box-sizing: border-box;
-    }
-    form button {
-        width: 100%;
-        margin: 5px 0;
-    }
-}
 .file-dropdown {
     position: absolute;
     top: 40px;
@@ -290,4 +205,23 @@ canvas:not(:supported) + .canvas-fallback {
 
 .file-dropdown.show .file-dropdown-content {
     display: flex;
+}
+
+.plot-clear-btn {
+    position: absolute;
+    bottom: 10px;
+    right: -80px; /* Increased from 10px to 20px for more spacing */
+    z-index: 10;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 8px 18px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+}
+.plot-clear-btn:hover, .plot-clear-btn:focus {
+    background-color: #0056b3;
 }

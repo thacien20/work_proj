@@ -19,11 +19,7 @@ def generate_multi_sine(t, frequencies, amplitudes=None):
         signal += a * np.sin(2 * np.pi * f * t)
     return signal
 
-def generate_custom(t, formula, frequency):
-    # Use eval with caution! Sanitize input in production.
-    return eval(formula, {"t": t, "frequency": frequency, "np": np, "sin": np.sin, "cos": np.cos, "pi": np.pi})
-
-def generate_signal(t, frequency, signal_type, custom_formula="", frequencies=None, amplitudes=None, phase=0):
+def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None, phase=0):
     if signal_type == "sine":
         return generate_sine(t, frequency, phase)
     elif signal_type == "square":
@@ -34,10 +30,8 @@ def generate_signal(t, frequency, signal_type, custom_formula="", frequencies=No
         if frequencies is None:
             raise ValueError("Frequencies list required for multi signal type")
         return generate_multi_sine(t, frequencies, amplitudes)
-    elif signal_type == "custom":
-        return generate_custom(t, custom_formula, frequency)
     else:
         raise ValueError("Unsupported signal type")
-    
+
 
 
