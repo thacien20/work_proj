@@ -1,5 +1,6 @@
-import numpy as np
+
 import numexpr
+import numpy as np
 
 # Existing SAFE_FUNCTIONS (unchanged)
 SAFE_FUNCTIONS = {
