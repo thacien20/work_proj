@@ -24,13 +24,12 @@
         </div>
         <div class="sidebar">
             <button class="main-btn" id="processingBtn">Processing</button>
-            <div class="dropdown">
-                <button class="dropbtn" id = "filterBtn">Filter ▼</button>
-                <div class="dropdown-content">
-                    <button type="button" id="filterBtn_lowPass">Low Pass</button>
-                    <button type="button" id="filterBtn_highPass">High Pass</button>
-                    <button type="button" id="filterBtn_bandPass">Band Pass</button>
-                    <button type="button" id="filterBtn_bandStop">Band Stop</button>
+            <div class="dropdown" id="filterDropdownContainer">
+                <button class="dropbtn" id="filterBtn">Filter ▼</button>
+                <div class="dropdown-content" id="filterDropdownContent">
+                    <button type="button" id="filterBtn_highPass">High Pass Filter</button>
+                    <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
+                    <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
                 </div>
             </div>
             <div class="dropdown">

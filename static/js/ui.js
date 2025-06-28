@@ -18,7 +18,6 @@ window.addEventListener('DOMContentLoaded', () => {
     setupConstOpDropdown();
     setupAnalyzeDropdown();
     setupOperationsDropdown();
-    setupFilterDropdown();
 
     document.getElementById('generateBtn').onclick = generateSignal;
     document.getElementById('addOverlayBtn').onclick = addOverlay;
@@ -35,6 +34,21 @@ window.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', function(e) {
             if (!fileDropdownContent.contains(e.target) && e.target !== filesBtn) {
                 fileDropdown.classList.remove('show');
+            }
+        });
+    }
+
+    // Filter dropdown logic
+    const filterBtn = document.getElementById('filterBtn');
+    const filterDropdown = document.getElementById('filterDropdownContent');
+    if (filterBtn && filterDropdown) {
+        filterBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            filterDropdown.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+            if (!filterDropdown.contains(e.target) && e.target !== filterBtn) {
+                filterDropdown.classList.remove('show');
             }
         });
     }
@@ -253,22 +267,6 @@ function setupOperationsDropdown() {
                     alert('You must add an overlay before using Operations.');
                 }
             });
-        });
-    }
-}
-
-function setupFilterDropdown() {
-    const filterBtn = document.getElementById('filterBtn');
-    const filterDropdown = filterBtn?.nextElementSibling;
-    if (filterBtn && filterDropdown) {
-        filterBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            filterDropdown.classList.toggle('show');
-        });
-        document.addEventListener('click', function(e) {
-            if (!filterDropdown.contains(e.target) && e.target !== filterBtn) {
-                filterDropdown.classList.remove('show');
-            }
         });
     }
 }

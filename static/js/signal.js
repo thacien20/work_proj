@@ -4,7 +4,7 @@ import { plotAll } from './plotting.js';
 
 export function generateSignal() {
     const frequency = parseFloat(document.getElementById('frequency').value);
-    const points = parseInt(document.getElementById('points').value);
+    let points = parseInt(document.getElementById('points').value);
     const noise = parseFloat(document.getElementById('noise').value);
     const signalType = document.getElementById('signalType').value;
     const customFormula = document.getElementById('customFormula').value;
@@ -54,7 +54,7 @@ export function generateSignal() {
         }
         // Use a lower multiplier for sampling frequency to maximize frequency resolution
         samplingFrequency = 3 * maxFreq; // 3x Nyquist for multi: prioritize frequency resolution
-        // Ensure at least 20 periods of the lowest frequency are captured (was 10)
+        // Ensure at least 20 periods of the lowest frequency are captured
         const minDuration = Math.max(1, 20 / minFreq); // at least 1s or 20 cycles of lowest freq
         adjustedPoints = Math.round(samplingFrequency * minDuration);
         // Artificially increase points for better resolution
@@ -62,23 +62,20 @@ export function generateSignal() {
         // Clamp to allowed range
         // Cap the number of points to keep data size small and ensure responsiveness
         if (adjustedPoints < 1024) adjustedPoints = 1024;
-        if (adjustedPoints > 40000) adjustedPoints = 20000;
+        if (adjustedPoints > 40000) adjustedPoints = 40000;
+        document.getElementById('points').value = adjustedPoints;
         console.log(`Multi: minFreq=${minFreq}, minDuration=${minDuration}, adjustedPoints=${adjustedPoints}`);
     } else {
         if (frequency > 1000) {
             alert('Maximum allowed frequency is 1000 Hz. Please enter a lower frequency.');
             return;
         }
-        // Use duration-based points for single-frequency signals as well
+        // For single-type signals, use the points value directly from the HTML input (unrestricted)
         samplingFrequency = 100 * frequency;
-        // At least 20 cycles or 1s, whichever is longer
-        const minDuration = Math.max(1, 20 / frequency);
-        adjustedPoints = Math.round(samplingFrequency * minDuration);
-        // Clamp to allowed range
-        // Cap the number of points to keep data size small and ensure responsiveness
-        if (adjustedPoints < 1024) adjustedPoints = 1024;
-        if (adjustedPoints > 6000) adjustedPoints = 2000;
-        console.log(`Single: freq=${frequency}, minDuration=${minDuration}, adjustedPoints=${adjustedPoints}`);
+        adjustedPoints = points;
+        // Do not adjust or clamp points for single-type signals
+        document.getElementById('points').value = adjustedPoints;
+        console.log(`Single: freq=${frequency}, points=${adjustedPoints}`);
     }
     console.log(`Derived samplingFrequency: ${samplingFrequency} Hz, points: ${adjustedPoints}`);
 
