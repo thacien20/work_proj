@@ -1,21 +1,18 @@
 // ui.js
 import { state } from './state.js';
 import { generateSignal } from './signal.js';
-import { plotAll, initZoom } from './plotting.js';
+import { plotAll } from './plotting.js';
 
 window.addEventListener('DOMContentLoaded', () => {
     console.log('ui.js loaded');
-    const canvas = document.getElementById('combinedCanvas');
-    initZoom(canvas);
+    // No canvas or initZoom needed for Plotly
 
-    function resizeCanvas() {
-        const container = document.querySelector('.canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight || 600;
-        plotAll();
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    // Optionally, resize Plotly plot on window resize
+    window.addEventListener('resize', () => {
+        if (document.getElementById('plot')) {
+            Plotly.Plots.resize('plot');
+        }
+    });
 
     generateSignal();
     setupConstOpDropdown();
@@ -25,7 +22,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('generateBtn').onclick = generateSignal;
     document.getElementById('addOverlayBtn').onclick = addOverlay;
-    document.getElementById('resetZoomBtn').onclick = resetZoom;
 
     // Files dropdown setup
     const filesBtn = document.getElementById('filesBtn');
@@ -44,30 +40,30 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function resetZoom() {
-    state.timeZoom = 1;
-    state.timePan = null;
-    state.fftZoom = 1;
-    state.fftPan = null;
-    state.intensityZoom = 1; // Reset vertical zoom
-    state.magnitudeZoom = 1; // Reset vertical zoom
-    plotAll();
-}
+let lastSignalSnapshot = null;
+let waitingForOverlay = false;
 
 function addOverlay() {
     if (!state.signalData.length || !state.fftMagnitudes.length || !state.fftFreqAxis.length) {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
-    state.overlays.push({
+    // Save the current signal as the overlay
+    state.overlays = [{
         signal: new Float32Array(state.signalData),
         time_axis: new Float32Array(state.time_axis),
         fft: new Float32Array(state.fftMagnitudes),
         freq: new Float32Array(state.fftFreqAxis)
-    });
-    alert('Overlay added!');
-    plotAll();
+    }];
+    alert('Overlay added! Now generate a new main signal.');
 }
+
+// Patch generateSignal to clear overlays if not waiting for overlay
+const originalGenerateSignal = generateSignal;
+generateSignal = async function(...args) {
+    await originalGenerateSignal.apply(this, args);
+    // Do not touch overlays unless addOverlay was just used
+};
 
 function setupConstOpDropdown() {
     const constOpBtn = document.getElementById('constOpBtn');

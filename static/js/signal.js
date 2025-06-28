@@ -46,45 +46,19 @@ export function generateSignal() {
         }
         return response.json();
     })
-   // signal.js (relevant section)
-.then(data => {
-    if (!data) return;
-    console.log('Input frequency:', frequency, 'Sampling frequency:', samplingFrequency);
-    console.log('FFT freq_axis:', data.freq_axis);
-    state.signalData = new Float32Array(data.signal);
-    state.fs = samplingFrequency;
-    state.frequency = frequency; // Add this to store the input frequency
-    state.time_axis = new Float32Array(points);
-    for (let i = 0; i < points; i++) {
-        state.time_axis[i] = i / samplingFrequency;
-    }
-    state.fftMagnitudes = new Float32Array(data.fft);
-    state.fftFreqAxis = new Float32Array(data.freq_axis);
-
-    console.log("Signal/FFT loaded", state.signalData.length);
-        // Log the lengths of both arrays
-
-    console.log('signalData length:', state.signalData.length, 'time_axis length:', 
-        state.time_axis.length);
-
-    // N is the number of points
-    const N = points;
-    console.log(
-        'signalData length:', state.signalData.length,
-        'time_axis length:', state.time_axis.length,
-        'N:', N
-    );
-
-    
-    state.timeZoom = 1;
-
-    state.timeZoom = 1;
-    state.timePan = 0;
-    state.fftZoom = 1;
-    state.fftPan = 0;
-    plotAll();
-})
-    
+    .then(data => {
+        if (!data) return;
+        state.signalData = new Float32Array(data.signal);
+        state.fs = samplingFrequency;
+        state.frequency = frequency;
+        state.time_axis = new Float32Array(points);
+        for (let i = 0; i < points; i++) {
+            state.time_axis[i] = i / samplingFrequency;
+        }
+        state.fftMagnitudes = new Float32Array(data.fft);
+        state.fftFreqAxis = new Float32Array(data.freq_axis);
+        plotAll();
+    })
     .catch(err => {
         alert('Network or JS error: ' + err);
         console.error('Fetch error:', err);

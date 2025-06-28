@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signal FFT Demo</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <header>
@@ -106,16 +107,19 @@
                 </div>
                 <div class="button-group">
                     <button type="button" id="generateBtn">Generate Signal</button>
-                
                     <button type="button" id="addOverlayBtn">Add Overlay</button>
-                    <button type="button" id="resetZoomBtn">Reset Zoom</button>
                 </div>
             </form>
-            <div class="canvas-container">
-                <canvas id="combinedCanvas"></canvas>
-                <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
-                <p class="canvas-fallback">Your browser does not support HTML5 Canvas.</p>
-            </div>
+
+<div class="canvas-container">
+    <div id="plot"></div>
+    <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
+</div>
+
+
+
+
+
         </section>
     </main>
     <script type="module" src="/static/js/ui.js"></script>
