@@ -1,6 +1,7 @@
-
 import numexpr
 import numpy as np
+
+FS = 10000  # Sampling frequency (Hz), constant for all signals
 
 # Existing SAFE_FUNCTIONS (unchanged)
 SAFE_FUNCTIONS = {
@@ -43,11 +44,11 @@ def generate_signal(t, frequency, signal_type, custom_formula=None):
     else:
         return np.sin(2 * np.pi * frequency * t)
 
-def compute_fft(signal, fs):
-    """Compute FFT with windowing and zero-padding."""
+def compute_fft(signal):
+    """Compute FFT with windowing and zero-padding using constant FS."""
     points = len(signal)
-    sigma = points / (fs * 10)
-    t = np.arange(points) / fs
+    sigma = points / (FS * 10)
+    t = np.arange(points) / FS
     window = np.exp(-0.5 * ((t - t[-1]/2) / sigma)**2)
     windowed_signal = signal * window
 
@@ -57,7 +58,7 @@ def compute_fft(signal, fs):
 
     fft = np.fft.rfft(zero_filled)
     fft_magnitude = np.abs(fft) / points
-    freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/fs)
+    freq_axis = np.fft.rfftfreq(len(zero_filled), d=1/FS)
     return fft_magnitude, freq_axis
 
 def operations(signal, operation, constant):

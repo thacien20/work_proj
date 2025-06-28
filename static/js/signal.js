@@ -1,5 +1,5 @@
 // signal.js
-import { state } from './state.js';
+import { state, FS } from './state.js';
 import { plotAll } from './plotting.js';
 
 export function generateSignal() {
@@ -44,7 +44,7 @@ export function generateSignal() {
     }
 
     // Derive samplingFrequency and points for multi to ensure good frequency resolution
-    let samplingFrequency, adjustedPoints;
+    let adjustedPoints;
     if (signalType === 'multi') {
         const minFreq = Math.min(...frequencies);
         const maxFreq = Math.max(...frequencies);
@@ -52,15 +52,13 @@ export function generateSignal() {
             alert('Maximum allowed frequency is 1000 Hz. Please lower your highest frequency.');
             return;
         }
-        // Use a lower multiplier for sampling frequency to maximize frequency resolution
-        samplingFrequency = 3 * maxFreq; // 3x Nyquist for multi: prioritize frequency resolution
+        // Use FS as a constant, do not assign to it!
         // Ensure at least 20 periods of the lowest frequency are captured
         const minDuration = Math.max(1, 20 / minFreq); // at least 1s or 20 cycles of lowest freq
-        adjustedPoints = Math.round(samplingFrequency * minDuration);
+        adjustedPoints = Math.round(FS * minDuration);
         // Artificially increase points for better resolution
         adjustedPoints = Math.round(adjustedPoints * 2); // Double the points
         // Clamp to allowed range
-        // Cap the number of points to keep data size small and ensure responsiveness
         if (adjustedPoints < 1024) adjustedPoints = 1024;
         if (adjustedPoints > 40000) adjustedPoints = 40000;
         document.getElementById('points').value = adjustedPoints;
@@ -71,16 +69,16 @@ export function generateSignal() {
             return;
         }
         // For single-type signals, use the points value directly from the HTML input (unrestricted)
-        samplingFrequency = 100 * frequency;
+        // Do not assign FS here! Just use adjustedPoints = points;
         adjustedPoints = points;
         // Do not adjust or clamp points for single-type signals
         document.getElementById('points').value = adjustedPoints;
         console.log(`Single: freq=${frequency}, points=${adjustedPoints}`);
     }
-    console.log(`Derived samplingFrequency: ${samplingFrequency} Hz, points: ${adjustedPoints}`);
+    console.log(`Using FS: ${FS} Hz, points: ${adjustedPoints}`);
 
     // Prepare payload
-    const payload = { frequency, points: adjustedPoints, noise, signalType, customFormula, samplingFrequency };
+    const payload = { frequency, points: adjustedPoints, noise, signalType, customFormula, fs: FS };
     if (signalType === 'multi') {
         payload.frequencies = frequencies;
         if (amplitudes) payload.amplitudes = amplitudes;
@@ -114,13 +112,13 @@ export function generateSignal() {
     })
     .then(data => {
         if (!data) return;
-        // Update state.time_axis and state.signalData with correct length for plotting
         state.signalData = new Float32Array(data.signal);
-        state.fs = samplingFrequency;
         state.frequency = frequency;
-        state.time_axis = new Float32Array(adjustedPoints);
-        for (let i = 0; i < adjustedPoints; i++) {
-            state.time_axis[i] = i / samplingFrequency;
+        // Always use FS for time axis, and match length to returned signal
+        const n = data.signal.length;
+        state.time_axis = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            state.time_axis[i] = i / FS;
         }
         state.fftMagnitudes = new Float32Array(data.fft);
         state.fftFreqAxis = new Float32Array(data.freq_axis);

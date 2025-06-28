@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 from config import Config
 from signal_generation import generate_signal  # <-- updated import
-from signal_processing import compute_fft, operations
+from signal_processing import compute_fft, operations, FS
 from file_utils import allowed_file
 from waveforms import get_waveforms
 
@@ -31,7 +31,6 @@ def generate_signal_endpoint():
         noise = float(data.get('noise', 0.0))
         signal_type = data.get('signalType', 'sine')
         custom_formula = data.get('customFormula', '')
-        fs = float(data['samplingFrequency'])
         # Multi-frequency support
         frequencies = data.get('frequencies', None)
         amplitudes = data.get('amplitudes', None)
@@ -47,10 +46,10 @@ def generate_signal_endpoint():
     if signal_type == 'multi':
         if not frequencies or not isinstance(frequencies, list):
             return jsonify({'error': 'Frequencies list required for multi signal type'}), 400
-    elif frequency is None or frequency <= 0 or noise < 0 or noise > 1 or fs <= 0:
+    elif frequency is None or frequency <= 0 or noise < 0 or noise > 1:
         return jsonify({'error': 'Invalid parameter values'}), 400
 
-    t = np.arange(points) / fs
+    t = np.arange(points) / FS
 
     try:
         signal = generate_signal(t, frequency, signal_type, custom_formula, frequencies, amplitudes)
@@ -60,7 +59,7 @@ def generate_signal_endpoint():
     if noise > 0:
         signal += (np.random.rand(points) - 0.5) * noise
 
-    fft_magnitude, freq_axis = compute_fft(signal, fs)
+    fft_magnitude, freq_axis = compute_fft(signal)
 
     return jsonify({
         'signal': signal.tolist(),
@@ -78,7 +77,6 @@ def apply_operation():
         signal = np.array(data['signal'])
         operation = data['operation']
         constant = float(data['constant'])
-        fs = float(data['fs'])
     except (KeyError, ValueError):
         return jsonify({'error': 'Invalid or missing parameters'}), 400
 
@@ -87,7 +85,7 @@ def apply_operation():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
-    fft_magnitude, freq_axis = compute_fft(modified_signal, fs)
+    fft_magnitude, freq_axis = compute_fft(modified_signal)
 
     return jsonify({
         'signal': modified_signal.tolist(),
@@ -126,7 +124,6 @@ def signal_operation():
         signal1 = np.array(data['signal1'])
         signal2 = np.array(data['signal2'])
         operation = data['operation']
-        fs = float(data['fs'])
     except (KeyError, ValueError):
         return jsonify({'error': 'Invalid or missing parameters'}), 400
     try:
@@ -134,7 +131,7 @@ def signal_operation():
         result_signal = signal_to_signal_operation(signal1, signal2, operation)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-    fft_magnitude, freq_axis = compute_fft(result_signal, fs)
+    fft_magnitude, freq_axis = compute_fft(result_signal)
     return jsonify({
         'signal': result_signal.tolist(),
         'fft': fft_magnitude.tolist(),

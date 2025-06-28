@@ -1,5 +1,5 @@
 // plotting.js
-import { state } from './state.js';
+import { state, FS } from './state.js';
 
 // Main function to plot all data (signal and FFT, overlays, axes, labels) using Plotly.js
 export function plotAll() {
@@ -116,3 +116,5 @@ export function plotAll() {
     // --- Render the plot using Plotly ---
     Plotly.newPlot('plot', traces, layout, {responsive: true});
 }
+
+// In all plotting logic, use FS for any time axis calculations if needed.

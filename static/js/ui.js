@@ -1,5 +1,5 @@
 // ui.js
-import { state } from './state.js';
+import { state, FS } from './state.js';
 import { generateSignal } from './signal.js';
 import { plotAll } from './plotting.js';
 
@@ -63,6 +63,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const multiAmpGroup = document.getElementById('multiAmpGroup');
     const phaseGroup = document.getElementById('phaseGroup');
     const phaseValue = document.getElementById('phaseValue');
+    const freqInput = document.getElementById('frequency');
+
     if (signalTypeSelect && multiFreqInput && multiAmpInput && addOverlayBtn && freqSingleGroup && multiFreqGroup && multiAmpGroup && phaseGroup && phaseValue) {
         signalTypeSelect.addEventListener('change', function() {
             if (this.value === 'multi') {
@@ -115,7 +117,7 @@ function addOverlay() {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
-    // Save the current signal as the overlay
+    // Save the current signal as the overlay, always use state.time_axis (which is i/FS)
     state.overlays = [{
         signal: new Float32Array(state.signalData),
         time_axis: new Float32Array(state.time_axis),
@@ -189,7 +191,7 @@ function setupConstOpDropdown() {
                         const points = state.signalData.length;
                         state.time_axis = new Float32Array(points);
                         for (let i = 0; i < points; i++) {
-                            state.time_axis[i] = i / state.fs;
+                            state.time_axis[i] = i / FS;
                         }
                         plotAll();
                     } else {
@@ -257,7 +259,7 @@ function setupOperationsDropdown() {
                         const points = state.signalData.length;
                         state.time_axis = new Float32Array(points);
                         for (let i = 0; i < points; i++) {
-                            state.time_axis[i] = i / state.fs;
+                            state.time_axis[i] = i / FS;
                         }
                         plotAll();
                     } catch (error) {
