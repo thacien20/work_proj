@@ -43,13 +43,52 @@ window.addEventListener('DOMContentLoaded', () => {
     const signalTypeSelect = document.getElementById('signalType');
     const multiFreqInput = document.getElementById('multiFrequencies');
     const multiAmpInput = document.getElementById('multiAmplitudes');
-    if (signalTypeSelect && multiFreqInput && multiAmpInput) {
+    const addOverlayBtn = document.getElementById('addOverlayBtn');
+    const freqSingleGroup = document.getElementById('frequency').closest('.form-group');
+    const multiFreqGroup = document.getElementById('multiFreqGroup');
+    const multiAmpGroup = document.getElementById('multiAmpGroup');
+    const phaseGroup = document.getElementById('phaseGroup');
+    const phaseValue = document.getElementById('phaseValue');
+    if (signalTypeSelect && multiFreqInput && multiAmpInput && addOverlayBtn && freqSingleGroup && multiFreqGroup && multiAmpGroup && phaseGroup && phaseValue) {
         signalTypeSelect.addEventListener('change', function() {
             if (this.value === 'multi') {
                 // Only set if empty or user hasn't changed
                 if (!multiFreqInput.value.trim()) multiFreqInput.value = '120, 200, 300';
                 if (!multiAmpInput.value.trim()) multiAmpInput.value = '1 1 1';
+                addOverlayBtn.style.display = 'none';
+                freqSingleGroup.style.display = 'none';
+                multiFreqGroup.style.display = '';
+                multiAmpGroup.style.display = '';
+                phaseGroup.style.display = 'none';
+            } else {
+                addOverlayBtn.style.display = '';
+                freqSingleGroup.style.display = '';
+                multiFreqGroup.style.display = 'none';
+                multiAmpGroup.style.display = 'none';
+                phaseGroup.style.display = '';
+                phaseValue.value = '0';
             }
+        });
+        // On page load, set correct visibility
+        if (signalTypeSelect.value === 'multi') {
+            addOverlayBtn.style.display = 'none';
+            freqSingleGroup.style.display = 'none';
+            multiFreqGroup.style.display = '';
+            multiAmpGroup.style.display = '';
+            phaseGroup.style.display = 'none';
+        } else {
+            multiFreqGroup.style.display = 'none';
+            multiAmpGroup.style.display = 'none';
+            phaseGroup.style.display = '';
+            phaseValue.value = '0';
+        }
+        phaseValue.addEventListener('input', function() {
+            let val = parseInt(phaseValue.value, 10) || 0;
+            if (val < 0) val = 0;
+            if (val > 360) val = 360;
+            // Instead of reassigning the const, just set the value
+            this.value = val;
+            document.getElementById('generateBtn').click();
         });
     }
 });
@@ -73,11 +112,15 @@ function addOverlay() {
 }
 
 // Patch generateSignal to clear overlays if not waiting for overlay
-const originalGenerateSignal = generateSignal;
-generateSignal = async function(...args) {
-    await originalGenerateSignal.apply(this, args);
-    // Do not touch overlays unless addOverlay was just used
-};
+// Only patch if not already patched (avoid assignment to const)
+if (!window._generateSignalPatched) {
+    const originalGenerateSignal = generateSignal;
+    window.generateSignal = async function(...args) {
+        await originalGenerateSignal.apply(this, args);
+        // Do not touch overlays unless addOverlay was just used
+    };
+    window._generateSignalPatched = true;
+}
 
 function setupConstOpDropdown() {
     const constOpBtn = document.getElementById('constOpBtn');

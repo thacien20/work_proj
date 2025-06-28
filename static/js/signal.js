@@ -43,17 +43,57 @@ export function generateSignal() {
         return;
     }
 
-    // Derive samplingFrequency
-    const samplingFrequency = signalType === 'multi'
-        ? Math.max(4 * Math.max(...frequencies), 10000)
-        : Math.max(4 * frequency, 10000); // Ensure at least 10000 Hz or 4x frequency
-    console.log(`Derived samplingFrequency: ${samplingFrequency} Hz`);
+    // Derive samplingFrequency and points for multi to ensure good frequency resolution
+    let samplingFrequency, adjustedPoints;
+    if (signalType === 'multi') {
+        const minFreq = Math.min(...frequencies);
+        const maxFreq = Math.max(...frequencies);
+        if (maxFreq > 1000) {
+            alert('Maximum allowed frequency is 1000 Hz. Please lower your highest frequency.');
+            return;
+        }
+        // Use a lower multiplier for sampling frequency to maximize frequency resolution
+        samplingFrequency = 3 * maxFreq; // 3x Nyquist for multi: prioritize frequency resolution
+        // Ensure at least 20 periods of the lowest frequency are captured (was 10)
+        const minDuration = Math.max(1, 20 / minFreq); // at least 1s or 20 cycles of lowest freq
+        adjustedPoints = Math.round(samplingFrequency * minDuration);
+        // Artificially increase points for better resolution
+        adjustedPoints = Math.round(adjustedPoints * 2); // Double the points
+        // Clamp to allowed range
+        // Cap the number of points to keep data size small and ensure responsiveness
+        if (adjustedPoints < 1024) adjustedPoints = 1024;
+        if (adjustedPoints > 40000) adjustedPoints = 20000;
+        console.log(`Multi: minFreq=${minFreq}, minDuration=${minDuration}, adjustedPoints=${adjustedPoints}`);
+    } else {
+        if (frequency > 1000) {
+            alert('Maximum allowed frequency is 1000 Hz. Please enter a lower frequency.');
+            return;
+        }
+        // Use duration-based points for single-frequency signals as well
+        samplingFrequency = 100 * frequency;
+        // At least 20 cycles or 1s, whichever is longer
+        const minDuration = Math.max(1, 20 / frequency);
+        adjustedPoints = Math.round(samplingFrequency * minDuration);
+        // Clamp to allowed range
+        // Cap the number of points to keep data size small and ensure responsiveness
+        if (adjustedPoints < 1024) adjustedPoints = 1024;
+        if (adjustedPoints > 6000) adjustedPoints = 2000;
+        console.log(`Single: freq=${frequency}, minDuration=${minDuration}, adjustedPoints=${adjustedPoints}`);
+    }
+    console.log(`Derived samplingFrequency: ${samplingFrequency} Hz, points: ${adjustedPoints}`);
 
     // Prepare payload
-    const payload = { frequency, points, noise, signalType, customFormula, samplingFrequency };
+    const payload = { frequency, points: adjustedPoints, noise, signalType, customFormula, samplingFrequency };
     if (signalType === 'multi') {
         payload.frequencies = frequencies;
         if (amplitudes) payload.amplitudes = amplitudes;
+    } else {
+        let phase = 0;
+        if (signalType !== 'multi') {
+            const phaseInput = document.getElementById('phaseValue');
+            if (phaseInput) phase = parseInt(phaseInput.value, 10) || 0;
+        }
+        payload.phase = phase;
     }
 
     fetch('/api/signal', {
@@ -77,11 +117,12 @@ export function generateSignal() {
     })
     .then(data => {
         if (!data) return;
+        // Update state.time_axis and state.signalData with correct length for plotting
         state.signalData = new Float32Array(data.signal);
         state.fs = samplingFrequency;
         state.frequency = frequency;
-        state.time_axis = new Float32Array(points);
-        for (let i = 0; i < points; i++) {
+        state.time_axis = new Float32Array(adjustedPoints);
+        for (let i = 0; i < adjustedPoints; i++) {
             state.time_axis[i] = i / samplingFrequency;
         }
         state.fftMagnitudes = new Float32Array(data.fft);
