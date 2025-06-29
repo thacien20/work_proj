@@ -36,7 +36,6 @@
             <div class="dropdown">
                 <button class="dropbtn" id="analyzeBtn">Analyze ▼</button>
                 <div class="dropdown-content" id="analyzeDropdown">
-                    <button type="button" id="analyzeBtn_deconvolution">Deconvolution</button>
                     <button type="button" id="analyzeBtn_correlation">Correlation</button>
                 </div>
             </div>
@@ -54,7 +53,7 @@
             <form id="signalForm">
                 <div class="form-group">
                     <label for="frequency">Frequency (Hz, 0.1–1000):</label>
-                    <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="0.1" value="50.12" required>
+                    <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="any" value="50.12" required>
                 </div>
                 <!-- Phase control input, replaced button with number input -->
                 <div class="form-group" id="phaseGroup" style="display:none;">
@@ -90,6 +89,7 @@
                 <div class="button-group">
                     <button type="button" id="generateBtn">Generate Signal</button>
                     <button type="button" id="addOverlayBtn">Add Overlay</button>
+                    <button type="button" id="deconvBtn" style="display:none; margin-left:10px;">Deconvolution</button>
                 </div>
             </form>
 
@@ -100,6 +100,11 @@
                 <div class="button-stack">
                     <button type="button" id="clearBtn" class="plot-clear-btn">Clear</button>
                     <button type="button" id="undo-btn" class="plot-undo-btn">Undo</button>
+                </div>
+                <div id="deconv-slider-container" style="display:none; margin-top:10px;">
+                    <label for="deconvRegSlider">Deconvolution Regularization (epsilon): </label>
+                    <input type="range" id="deconvRegSlider" min="-9" max="-2" step="0.1" value="-6">
+                    <span id="deconvRegValue">1e-6</span>
                 </div>
             </div>
         </section>

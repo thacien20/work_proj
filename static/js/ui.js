@@ -444,6 +444,92 @@ if (filterViewBtn) {
                     xaxis2: {title: 'Frequency (Hz)'},
                     yaxis2: {title: 'Magnitude'}
                 });
+                // Show Deconvolution button
+                const deconvBtn = document.getElementById('deconvBtn');
+                const deconvSliderContainer = document.getElementById('deconv-slider-container');
+                const deconvRegSlider = document.getElementById('deconvRegSlider');
+                const deconvRegValue = document.getElementById('deconvRegValue');
+                let lastDeconvParams = {
+                    filtered: result.filtered,
+                    filter_impulse: data.impulse,
+                    epsilon: 1e-6
+                };
+                function updateDeconvRegValue() {
+                    const exp = parseFloat(deconvRegSlider.value);
+                    const val = Math.pow(10, exp);
+                    deconvRegValue.textContent = '1e' + exp;
+                    return val;
+                }
+                if (deconvBtn && deconvSliderContainer && deconvRegSlider && deconvRegValue) {
+                    deconvBtn.style.display = '';
+                    deconvSliderContainer.style.display = '';
+                    deconvRegSlider.value = '-6';
+                    deconvRegValue.textContent = '1e-6';
+                    let callDeconv = async (epsilon) => {
+                        try {
+                            const resp = await fetch('/api/deconvolve', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    filtered: lastDeconvParams.filtered,
+                                    filter_impulse: lastDeconvParams.filter_impulse,
+                                    epsilon: epsilon
+                                })
+                            });
+                            const deconv = await resp.json();
+                            if (deconv.error) {
+                                alert('Deconvolution error: ' + deconv.error);
+                                return;
+                            }
+                            const deconvColor = '#2ca02c';
+                            Plotly.newPlot('plot', [
+                                {
+                                    x: Array.from({length: deconv.deconvolved.length}, (_, i) => i / FS),
+                                    y: deconv.deconvolved,
+                                    type: 'scatter',
+                                    mode: 'lines',
+                                    name: 'Deconvolved Signal',
+                                    line: { color: deconvColor },
+                                    xaxis: 'x1',
+                                    yaxis: 'y1'
+                                },
+                                {
+                                    x: deconv.freq_axis,
+                                    y: deconv.fft_magnitude,
+                                    type: 'scatter',
+                                    mode: 'lines',
+                                    name: 'Deconvolved FFT',
+                                    line: { color: deconvColor, dash: 'dot' },
+                                    xaxis: 'x2',
+                                    yaxis: 'y2'
+                                }
+                            ], {
+                                grid: {rows: 2, columns: 1, pattern: 'independent'},
+                                height: 700,
+                                width: 900,
+                                showlegend: true,
+                                margin: { l: 80, r: 40, t: 40, b: 70 },
+                                xaxis: {title: 'Time (s)'},
+                                yaxis: {title: 'Amplitude'},
+                                xaxis2: {title: 'Frequency (Hz)'},
+                                yaxis2: {title: 'Magnitude'}
+                            });
+                            if (deconv.unstable) {
+                                alert('Warning: Deconvolution result may be unstable or noisy.');
+                            }
+                        } catch (err) {
+                            alert('Deconvolution failed: ' + err.message);
+                        }
+                    };
+                    deconvBtn.onclick = async function() {
+                        const epsilon = updateDeconvRegValue();
+                        await callDeconv(epsilon);
+                    };
+                    deconvRegSlider.oninput = async function() {
+                        const epsilon = updateDeconvRegValue();
+                        await callDeconv(epsilon);
+                    };
+                }
             } else {
                 alert('Error applying filter: ' + (result.error || 'Unknown error'));
             }

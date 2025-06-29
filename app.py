@@ -11,6 +11,7 @@ from file_utils import allowed_file
 from waveforms import get_waveforms
 from Filters import apply_filter
 from filters_view import filter_visualization
+from deconvolution import deconvolve_signal
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
@@ -194,6 +195,25 @@ def apply_filter_fft_endpoint():
         'filtered': filtered_signal.tolist(),
         'filtered_fft': filtered_fft_mag.tolist(),
         'filtered_freq_axis': filtered_freq_axis.tolist()
+    })
+
+@app.route('/api/deconvolve', methods=['POST'])
+def deconvolve_endpoint():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        filtered = np.array(data['filtered'], dtype=np.float64)
+        filter_impulse = np.array(data['filter_impulse'], dtype=np.float64)
+        eps = float(data.get('eps', 1e-6))
+    except Exception as e:
+        return jsonify({'error': f'Invalid input: {e}'}), 400
+    result = deconvolve_signal(filtered, filter_impulse, eps)
+    return jsonify({
+        'deconvolved': result['deconvolved'].tolist(),
+        'deconv_fft': result['deconv_fft'].tolist(),
+        'deconv_freq_axis': result['deconv_freq_axis'].tolist(),
+        'unstable': result['unstable']
     })
 
 if __name__ == '__main__':
