@@ -226,6 +226,26 @@ canvas:not(:supported) + .canvas-fallback {
     background-color: #0056b3;
 }
 
+.plot-undo-btn {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    z-index: 10;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 8px 18px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+    margin-left: 10px;
+}
+.plot-undo-btn:hover, .plot-undo-btn:focus {
+    background-color: #0056b3;
+}
+
 /* Custom legend styles */
 #custom-legend {
     display: flex;
