@@ -67,9 +67,6 @@ form button:hover, form button:focus {
 
 .canvas-container {
     position: relative;
-    width: 100%;
-    max-width: 800px;
-    height: 600px;
 }
 
 canvas {
@@ -207,41 +204,30 @@ canvas:not(:supported) + .canvas-fallback {
     display: flex;
 }
 
-.plot-clear-btn {
+.button-stack {
     position: absolute;
     bottom: 10px;
-    right: -80px; /* Increased from 10px to 20px for more spacing */
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     z-index: 10;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 3px;
-    padding: 8px 18px;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    transition: background 0.2s;
-}
-.plot-clear-btn:hover, .plot-clear-btn:focus {
-    background-color: #0056b3;
 }
 
-.plot-undo-btn {
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-    z-index: 10;
+.plot-clear-btn, .plot-undo-btn {
     background-color: #007bff;
     color: #fff;
     border: none;
     border-radius: 3px;
-    padding: 8px 18px;
-    font-size: 16px;
+    padding: 5px 12px;
+    font-size: 13px;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     transition: background 0.2s;
-    margin-left: 10px;
+    width: 80px;
 }
+
+.plot-clear-btn:hover, .plot-clear-btn:focus,
 .plot-undo-btn:hover, .plot-undo-btn:focus {
     background-color: #0056b3;
 }
