@@ -23,21 +23,38 @@ def generate_exponential_decay(t, tau=0.05, amplitude=1.0):
     """Generate an exponential decay signal: amplitude * exp(-t / tau)"""
     return amplitude * np.exp(-t / tau)
 
-def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None, phase=0, tau=0.05, amplitude=1.0):
-    if signal_type == "sine":
+def generate_white_noise(t, amplitude=1.0, distribution='gaussian'):
+    """Generate white noise. Distribution can be 'gaussian' (default) or 'uniform'."""
+    if distribution == 'gaussian':
+        return amplitude * np.random.normal(0, 1, size=len(t))
+    elif distribution == 'uniform':
+        return amplitude * (np.random.rand(len(t)) * 2 - 1)  # Uniform in [-1, 1]
+    else:
+        raise ValueError("Unsupported distribution for white noise: {}".format(distribution))
+
+def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None, phase=0, tau=0.05, amplitude=1.0, noise_type=None):
+    # Accept both dash and underscore variants for noise types
+    normalized_type = signal_type.replace('-', '_').lower()
+    if normalized_type == "sine":
         return generate_sine(t, frequency, phase)
-    elif signal_type == "square":
+    elif normalized_type == "square":
         return generate_square(t, frequency, phase)
-    elif signal_type == "triangle":
+    elif normalized_type == "triangle":
         return generate_triangle(t, frequency, phase)
-    elif signal_type == "multi":
+    elif normalized_type == "multi":
         if frequencies is None:
             raise ValueError("Frequencies list required for multi signal type")
         return generate_multi_sine(t, frequencies, amplitudes)
-    elif signal_type == "expdecay":
+    elif normalized_type == "expdecay":
         return generate_exponential_decay(t, tau=tau, amplitude=amplitude)
+    elif normalized_type in ["random", "gaussian"]:
+        if normalized_type == "random":
+            distribution = 'uniform'
+        elif normalized_type == "gaussian":
+            distribution = 'gaussian'
+        return generate_white_noise(t, amplitude=amplitude, distribution=distribution)
     else:
-        raise ValueError("Unsupported signal type")
+        raise ValueError(f"Unsupported signal type: {signal_type}")
 
 
 

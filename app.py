@@ -60,6 +60,10 @@ def generate_signal_endpoint():
     try:
         if signal_type == 'expdecay':
             signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes, tau=tau, amplitude=amplitude)
+        elif signal_type in ['random', 'gaussian']:
+            # Map frontend types to backend logic
+            noise_type = data.get('noise_type', 'gaussian')
+            signal = generate_signal(t, frequency, signal_type, None, None, amplitude=amplitude, noise_type=noise_type)
         else:
             signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes)
     except ValueError as e:

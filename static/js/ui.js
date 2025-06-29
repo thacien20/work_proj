@@ -87,6 +87,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 phaseGroup.style.display = '';
                 phaseValue.value = '0';
             }
+            // Add: update UI for noise signal types
+            if (this.value === 'random' || this.value === 'gaussian') {
+                // Hide frequency and phase for noise types
+                freqSingleGroup.style.display = 'none';
+                phaseGroup.style.display = 'none';
+                multiFreqGroup.style.display = 'none';
+                multiAmpGroup.style.display = 'none';
+            }
         });
         // On page load, set correct visibility
         if (signalTypeSelect.value === 'multi') {

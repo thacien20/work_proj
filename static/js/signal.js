@@ -89,6 +89,18 @@ export function generateSignal() {
         // if (ampInput) amplitude = parseFloat(ampInput.value) || 1.0;
         // payload.amplitude = amplitude;
         // No phase for expdecay
+    } else if (signalType === 'random' || signalType === 'gaussian') {
+        // For noise types, optionally allow amplitude and noise_type
+        let amplitude = 1.0;
+        // const ampInput = document.getElementById('amplitudeValue');
+        // if (ampInput) amplitude = parseFloat(ampInput.value) || 1.0;
+        payload.amplitude = amplitude;
+        // Set noise_type for backend
+        if (signalType === 'random') {
+            payload.noise_type = 'uniform';
+        } else if (signalType === 'gaussian') {
+            payload.noise_type = 'gaussian';
+        }
     } else {
         let phase = 0;
         if (signalType !== 'multi') {
