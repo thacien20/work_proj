@@ -1,7 +1,7 @@
 import numpy as np
 from signal_processing import compute_fft, FS
 
-def deconvolve_signal(filtered, filter_impulse, eps=1e-6, reg_factor=1e-4, window=False):
+def deconvolve_signal(filtered, filter_impulse, eps=1e-6, reg_factor=1e-4, window=True):
     """
     Perform frequency-domain deconvolution with improved regularization and optional windowing.
 

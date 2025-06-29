@@ -3,7 +3,7 @@ from scipy.signal import butter, filtfilt
 
 FS = 10000  # Sampling frequency (Hz), constant for all signals
 
-def compute_fft(signal, FS=FS):
+def compute_fft(signal):
     """Compute FFT with windowing and zero-padding using constant FS."""
     points = len(signal)
     sigma = points / (FS * 10)

@@ -494,14 +494,15 @@ if (filterViewBtn) {
                                     yaxis: 'y1'
                                 },
                                 {
-                                    x: deconv.freq_axis,
-                                    y: deconv.fft_magnitude,
+                                    x: deconv.deconv_freq_axis, // <-- use correct key from backend
+                                    y: deconv.deconv_fft,       // <-- use correct key from backend
                                     type: 'scatter',
                                     mode: 'lines',
                                     name: 'Deconvolved FFT',
-                                    line: { color: deconvColor, dash: 'dot' },
+                                    line: { color: deconvColor },
                                     xaxis: 'x2',
-                                    yaxis: 'y2'
+                                    yaxis: 'y2',
+                                    showlegend: true // show legend for FFT
                                 }
                             ], {
                                 grid: {rows: 2, columns: 1, pattern: 'independent'},
