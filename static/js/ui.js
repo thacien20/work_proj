@@ -128,8 +128,9 @@ function addOverlay() {
         freq: new Float32Array(state.fftFreqAxis)
     }];
     state.plotHistory.push({type: 'overlay'}); // Track overlay for undo
+    // Do NOT clear or replace the main signal here!
     plotAll();
-    alert('Signal saved. Now add overlay.');
+    alert('Signal saved as overlay. Now generate a new signal to compare.');
 }
 
 // Patch generateSignal to clear overlays if not waiting for overlay
