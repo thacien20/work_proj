@@ -26,7 +26,8 @@ export function plotAll() {
             name: 'Signal', // Always label main signal
             line: { color: '#000000' },
             yaxis: 'y1',
-            xaxis: 'x1'
+            xaxis: 'x1',
+            showlegend: true
         });
     }
 
@@ -40,10 +41,11 @@ export function plotAll() {
             y: state.fftMagnitudes,
             type: 'scatter',
             mode: 'lines',
-            name: 'Signal FFT', // Main FFT
+            // name: 'Signal FFT', // Main FFT (legend removed)
             line: { color: '#000000' },
             yaxis: 'y2',
-            xaxis: 'x2'
+            xaxis: 'x2',
+            showlegend: false // Hide from legend
         });
     }
 
@@ -61,7 +63,8 @@ export function plotAll() {
                 name: 'Overlay', // Overlay signal
                 line: { color: '#d62728' },
                 yaxis: 'y1',
-                xaxis: 'x1'
+                xaxis: 'x1',
+                showlegend: true
             });
         }
         // Overlay FFT
@@ -71,10 +74,11 @@ export function plotAll() {
                 y: ov.fft,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'Overlay FFT', // Overlay FFT
+                // name: 'Overlay FFT', // Overlay FFT (legend removed)
                 line: { color: '#d62728' },
                 yaxis: 'y2',
-                xaxis: 'x2'
+                xaxis: 'x2',
+                showlegend: false // Hide from legend
             });
         }
     }
@@ -87,8 +91,10 @@ export function plotAll() {
             type: 'scatter',
             mode: 'lines',
             name: 'Filtered',
+            line: { color: '#1f77b4' }, // Set filtered signal color
             yaxis: 'y1',
-            xaxis: 'x1'
+            xaxis: 'x1',
+            showlegend: true
         });
     }
     // --- Add filtered FFT trace if present ---
@@ -98,9 +104,11 @@ export function plotAll() {
             y: state.filteredFft,
             type: 'scatter',
             mode: 'lines',
-            name: 'Filtered FFT',
+            // name: 'Filtered FFT', // Filtered FFT (legend removed)
+            line: { color: '#1f77b4' }, // Set filtered FFT color to match signal
             yaxis: 'y2',
-            xaxis: 'x2'
+            xaxis: 'x2',
+            showlegend: false // Hide from legend
         });
     }
 
@@ -132,7 +140,7 @@ export function plotAll() {
         grid: { rows: 2, columns: 1, pattern: 'independent' }, // 2 rows, 1 column
         height: 600,
         width: 900,
-        showlegend: false, // Legend deactivated
+        showlegend: true, // Enable Plotly legend for all traces
         margin: { l: 80, r: 40, t: 40, b: 80 }, // Increased margins for axis labels
         xaxis: { title: 'Time (s)' }, // Top subplot x-axis
         yaxis: { title: 'Intensity' }, // Top subplot y-axis
@@ -144,17 +152,7 @@ export function plotAll() {
     Plotly.newPlot('plot', traces, layout, {responsive: true});
 
     // --- Update custom legend ---
-    const legendDiv = document.getElementById('custom-legend');
-    if (legendDiv) {
-        if (overlayPresent) {
-            legendDiv.innerHTML = `
-                <span class="legend-item"><span class="legend-line legend-line-black"></span>Overlay</span>
-                <span class="legend-item"><span class="legend-line legend-line-red"></span>Signal</span>
-            `;
-        } else {
-            legendDiv.innerHTML = '';
-        }
-    }
+    // (No longer needed, Plotly legend is now enabled)
 }
 
 // In all plotting logic, use FS for any time axis calculations if needed.

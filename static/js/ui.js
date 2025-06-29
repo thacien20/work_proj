@@ -338,3 +338,21 @@ if (filterViewBtn) {
         });
     };
 }
+
+// Add Undo button logic for overlays and filters
+const undoBtn = document.getElementById('undo-btn');
+if (undoBtn) {
+    undoBtn.onclick = function() {
+        const lastAction = state.plotHistory.pop();
+        if (!lastAction) return;
+        if (lastAction.type === 'overlay') {
+            state.overlays = [];
+        } else if (lastAction.type === 'filter') {
+            state.filteredActive = false;
+            state.filteredSignal = null;
+            state.filteredFft = null;
+            state.filteredFftFreq = null;
+        }
+        plotAll();
+    };
+}
