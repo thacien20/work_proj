@@ -128,6 +128,13 @@ function addOverlay() {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
+    // Warn if overlay and main signal lengths differ
+    if (state.overlays.length > 0) {
+        const prevOverlay = state.overlays[state.overlays.length - 1];
+        if (prevOverlay.signal && prevOverlay.signal.length !== state.signalData.length) {
+            alert('Warning: The length of the main signal and the overlay are different. This may cause errors in operations or comparisons.');
+        }
+    }
     // Save the current signal as the overlay (replace any previous overlay)
     state.overlays = [{
         signal: new Float32Array(state.signalData),
@@ -141,13 +148,15 @@ function addOverlay() {
     alert('Signal saved as overlay. Now generate a new signal to compare.');
 }
 
-// Patch generateSignal to clear overlays if not waiting for overlay
-// Only patch if not already patched (avoid assignment to const)
+// Patch generateSignal to clear overlays if not waiting for overlay and show multi warning
 if (!window._generateSignalPatched) {
     const originalGenerateSignal = generateSignal;
     window.generateSignal = async function(...args) {
         await originalGenerateSignal.apply(this, args);
         // Do not touch overlays unless addOverlay was just used
+        if (signalTypeSelect && signalTypeSelect.value === 'multi') {
+            showMultiWarning();
+        }
     };
     window._generateSignalPatched = true;
 }
@@ -233,6 +242,11 @@ document.getElementById('clearBtn').onclick = function() {
 }
 
 async function applyFilter(type) {
+    // Error handling: block if no signal is present
+    if (!state.signalData || state.signalData.length === 0) {
+        alert('Please generate a signal before applying a filter.');
+        return;
+    }
     let params = { filterType: type, fs: FS, order: 4 };
     if (type === 'lowpass') {
         params.cutoff = prompt('Lowpass cutoff frequency (Hz, 10-1000):', 200) || 200;
@@ -281,6 +295,11 @@ const addOverlayBtn = document.getElementById('addOverlayBtn');
 const filterViewBtn = document.getElementById('filterBtn_view');
 if (filterViewBtn) {
     filterViewBtn.onclick = async function() {
+        // Error handling: block if no signal is present
+        if (!state.signalData || state.signalData.length === 0) {
+            alert('Please generate a signal before viewing a filter response.');
+            return;
+        }
         // Prompt user for filter type and parameters
         const filterType = prompt('Enter filter type (lowpass, highpass, bandpass):', 'lowpass');
         if (!filterType) return;
@@ -550,6 +569,24 @@ if (filterViewBtn) {
     };
 }
 
+// --- Custom Legend Logic ---
+function renderCustomLegend() {
+    // No-op: legend logic removed, legend will remain empty.
+    const legendDiv = document.getElementById('custom-legend');
+    if (!legendDiv) return;
+    legendDiv.innerHTML = '';
+}
+
+// Patch plotAll to also update the legend
+if (!window._plotAllPatched) {
+    const originalPlotAll = plotAll;
+    window.plotAll = function(...args) {
+        originalPlotAll.apply(this, args);
+        renderCustomLegend();
+    };
+    window._plotAllPatched = true;
+}
+
 // Add Undo button logic for overlays and filters
 const undoBtn = document.getElementById('undo-btn');
 if (undoBtn) {
@@ -566,4 +603,74 @@ if (undoBtn) {
         }
         plotAll();
     };
+}
+
+// Add a button to show memory state
+const showStateBtn = document.createElement('button');
+showStateBtn.type = 'button';
+showStateBtn.id = 'showStateBtn';
+showStateBtn.textContent = 'Show Data Status';
+showStateBtn.className = 'plot-undo-btn';
+// Place next to Clear/Undo buttons
+const buttonStack = document.querySelector('.button-stack');
+if (buttonStack) {
+    buttonStack.appendChild(showStateBtn);
+}
+showStateBtn.onclick = function() {
+    let msg = '';
+    const mainLen = state.signalData && state.signalData.length ? state.signalData.length : 0;
+    const overlayLen = (state.overlays && state.overlays.length && state.overlays[state.overlays.length-1].signal.length) ? state.overlays[state.overlays.length-1].signal.length : 0;
+    msg += 'Main signal: ' + (mainLen ? `${mainLen} points` : 'none') + '\n';
+    msg += 'Overlay: ' + (overlayLen ? `${overlayLen} points` : 'none') + '\n';
+    msg += 'Filtered signal: ' + (state.filteredSignal && state.filteredSignal.length ? `${state.filteredSignal.length} points` : 'none') + '\n';
+    msg += 'Filtered active: ' + (state.filteredActive ? 'yes' : 'no') + '\n';
+    // Indicate which data will be used for actions
+    if (state.filteredActive && state.filteredSignal && state.filteredSignal.length) {
+        msg += '\nIf you apply a filter now, it will act on the main signal (not the overlay or filtered signal).';
+    } else if (mainLen) {
+        msg += '\nIf you apply a filter now, it will act on the main signal.';
+    } else {
+        msg += '\nNo main signal present: filtering is not possible.';
+    }
+    if (state.overlays && state.overlays.length) {
+        msg += '\nIf you perform an operation (add, subtract, etc), it will use both the main signal and the overlay.';
+    }
+    // Compare lengths and show warning if different
+    if (mainLen && overlayLen && mainLen !== overlayLen) {
+        const warn = '\u26A0\uFE0F Warning: The main signal and overlay have different lengths! Operations may not work as expected.';
+        msg += '\n\n' + warn;
+        alert(warn);
+    }
+    alert(msg);
+};
+
+// Show persistent warning if 'multi' signal type is selected or generated
+function showMultiWarningBox(show) {
+    const box = document.getElementById('multi-warning');
+    if (!box) return;
+    if (show) {
+        box.style.display = '';
+        box.textContent = '⚠️ Multi signal type may have a different size than other signals. If you want to compare another signal to a multi signal, generate the multi signal first, then add overlays. Do not overlay a multi signal onto a non-multi signal.';
+    } else {
+        box.style.display = 'none';
+        box.textContent = '';
+    }
+}
+if (signalTypeSelect) {
+    signalTypeSelect.addEventListener('change', function() {
+        showMultiWarningBox(this.value === 'multi');
+    });
+    // On page load
+    showMultiWarningBox(signalTypeSelect.value === 'multi');
+}
+// Also show after generating a multi signal
+if (!window._generateSignalPatched) {
+    const originalGenerateSignal = generateSignal;
+    window.generateSignal = async function(...args) {
+        await originalGenerateSignal.apply(this, args);
+        if (signalTypeSelect && signalTypeSelect.value === 'multi') {
+            showMultiWarningBox(true);
+        }
+    };
+    window._generateSignalPatched = true;
 }

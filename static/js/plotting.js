@@ -23,7 +23,7 @@ export function plotAll() {
             y: state.signalData,
             type: 'scatter',
             mode: 'lines',
-            name: 'Signal', // Always label main signal
+            name: 'Main Signal', // Always label main signal
             line: { color: '#000000' },
             yaxis: 'y1',
             xaxis: 'x1',
