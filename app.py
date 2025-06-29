@@ -160,5 +160,41 @@ def filter_view():
         return jsonify({'error': str(e)}), 400
     return jsonify(result)
 
+@app.route('/api/apply_filter_fft', methods=['POST'])
+def apply_filter_fft_endpoint():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        signal = np.array(data['signal'], dtype=np.float64)
+        # filter_freq is a list of [real, imag] pairs
+        filter_freq_pairs = data['filter_freq']
+        filter_freq = np.array([complex(re, im) for re, im in filter_freq_pairs], dtype=np.complex128)
+    except Exception as e:
+        return jsonify({'error': f'Invalid input: {e}'}), 400
+    # Zero-pad both to the same length (next power of 2 for efficiency)
+    n = max(len(signal), len(filter_freq))
+    n_fft = 2 ** int(np.ceil(np.log2(n)))
+    signal_padded = np.zeros(n_fft)
+    filter_padded = np.zeros(n_fft, dtype=np.complex128)
+    signal_padded[:len(signal)] = signal
+    filter_padded[:len(filter_freq)] = filter_freq
+    # FFT of signal
+    signal_fft = np.fft.fft(signal_padded)
+    # Multiply in frequency domain
+    filtered_fft = signal_fft * filter_padded
+    # Inverse FFT to get filtered signal
+    filtered_signal = np.fft.ifft(filtered_fft).real
+    # Return only the original signal length
+    filtered_signal = filtered_signal[:len(signal)]
+    # Compute FFT of filtered signal (magnitude and freq axis)
+    from signal_processing import compute_fft, FS
+    filtered_fft_mag, filtered_freq_axis = compute_fft(filtered_signal)
+    return jsonify({
+        'filtered': filtered_signal.tolist(),
+        'filtered_fft': filtered_fft_mag.tolist(),
+        'filtered_freq_axis': filtered_freq_axis.tolist()
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

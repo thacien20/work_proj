@@ -264,6 +264,11 @@ async function applyFilter(type) {
     }
 }
 
+let filterViewActive = false;
+let lastFilterFreqResponse = null;
+
+const addOverlayBtn = document.getElementById('addOverlayBtn');
+
 // --- Filter View Main Plot Logic ---
 const filterViewBtn = document.getElementById('filterBtn_view');
 if (filterViewBtn) {
@@ -337,6 +342,116 @@ if (filterViewBtn) {
             xaxis3: {title: 'Frequency (Hz)'},
             yaxis3: {title: 'Phase (radians)'}
         });
+        // Store the filter's frequency response for later use
+        lastFilterFreqResponse = data.magnitude.map((mag, i) => {
+            const phase = data.phase[i];
+            return [mag * Math.cos(phase), mag * Math.sin(phase)]; // [real, imag]
+        });
+        filterViewActive = true;
+        // Change Add Overlay button to Apply
+        addOverlayBtn.textContent = 'Apply';
+        addOverlayBtn.onclick = async function() {
+            // Prompt user for which signal to apply filter to
+            let choice = 'main';
+            if (state.overlays.length > 0) {
+                choice = prompt('Apply filter to which signal? (main/overlay)', 'main');
+            }
+            let signal = null;
+            if (choice === 'overlay') {
+                signal = Array.from(state.overlays[0].signal);
+            } else {
+                signal = Array.from(state.signalData);
+            }
+            // Zero-pad filter FFT to match signal length
+            let n = Math.max(signal.length, lastFilterFreqResponse.length);
+            let n_fft = 1;
+            while (n_fft < n) n_fft *= 2;
+            // Interpolate filter FFT to match signal FFT bins if needed
+            let filter_fft = lastFilterFreqResponse;
+            if (filter_fft.length !== n_fft) {
+                // Simple zero-padding or truncation
+                let tmp = new Array(n_fft).fill([0, 0]);
+                for (let i = 0; i < Math.min(filter_fft.length, n_fft); i++) {
+                    tmp[i] = filter_fft[i];
+                }
+                filter_fft = tmp;
+            }
+            // Call backend to apply filter in frequency domain
+            const resp = await fetch('/api/apply_filter_fft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ signal, filter_freq: filter_fft })
+            });
+            const result = await resp.json();
+            if (result.filtered) {
+                // Plot both the original and filtered signals and their FFTs for comparison
+                // Define consistent colors
+                const originalColor = '#000000'; // black
+                const filteredColor = '#1f77b4'; // blue
+                Plotly.newPlot('plot', [
+                    // Time domain: original
+                    {
+                        x: Array.from({length: state.signalData.length}, (_, i) => i / FS),
+                        y: Array.from(state.signalData),
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Original Signal',
+                        line: { color: originalColor },
+                        xaxis: 'x1',
+                        yaxis: 'y1'
+                    },
+                    // Time domain: filtered
+                    {
+                        x: Array.from({length: result.filtered.length}, (_, i) => i / FS),
+                        y: result.filtered,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Filtered (FFT)',
+                        line: { color: filteredColor },
+                        xaxis: 'x1',
+                        yaxis: 'y1'
+                    },
+                    // Frequency domain: original
+                    {
+                        x: Array.from(state.fftFreqAxis),
+                        y: Array.from(state.fftMagnitudes),
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Original FFT',
+                        line: { color: originalColor, dash: 'dot' },
+                        xaxis: 'x2',
+                        yaxis: 'y2'
+                    },
+                    // Frequency domain: filtered
+                    {
+                        x: result.filtered_freq_axis,
+                        y: result.filtered_fft,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Filtered FFT Magnitude',
+                        line: { color: filteredColor, dash: 'dot' },
+                        xaxis: 'x2',
+                        yaxis: 'y2'
+                    }
+                ], {
+                    grid: {rows: 2, columns: 1, pattern: 'independent'},
+                    height: 700,
+                    width: 900,
+                    showlegend: true,
+                    margin: { l: 80, r: 40, t: 40, b: 70 },
+                    xaxis: {title: 'Time (s)'},
+                    yaxis: {title: 'Amplitude'},
+                    xaxis2: {title: 'Frequency (Hz)'},
+                    yaxis2: {title: 'Magnitude'}
+                });
+            } else {
+                alert('Error applying filter: ' + (result.error || 'Unknown error'));
+            }
+            // Restore Add Overlay button
+            addOverlayBtn.textContent = 'Add Overlay';
+            addOverlayBtn.onclick = addOverlay;
+            filterViewActive = false;
+        };
     };
 }
 
