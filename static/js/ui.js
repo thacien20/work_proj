@@ -128,13 +128,6 @@ function addOverlay() {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
-    // Warn if overlay and main signal lengths differ
-    if (state.overlays.length > 0) {
-        const prevOverlay = state.overlays[state.overlays.length - 1];
-        if (prevOverlay.signal && prevOverlay.signal.length !== state.signalData.length) {
-            alert('Warning: The length of the main signal and the overlay are different. This may cause errors in operations or comparisons.');
-        }
-    }
     // Save the current signal as the overlay (replace any previous overlay)
     state.overlays = [{
         signal: new Float32Array(state.signalData),
@@ -624,7 +617,6 @@ showStateBtn.onclick = function() {
     msg += 'Overlay: ' + (overlayLen ? `${overlayLen} points` : 'none') + '\n';
     msg += 'Filtered signal: ' + (state.filteredSignal && state.filteredSignal.length ? `${state.filteredSignal.length} points` : 'none') + '\n';
     msg += 'Filtered active: ' + (state.filteredActive ? 'yes' : 'no') + '\n';
-    // Indicate which data will be used for actions
     if (state.filteredActive && state.filteredSignal && state.filteredSignal.length) {
         msg += '\nIf you apply a filter now, it will act on the main signal (not the overlay or filtered signal).';
     } else if (mainLen) {
@@ -637,11 +629,18 @@ showStateBtn.onclick = function() {
     }
     // Compare lengths and show warning if different
     if (mainLen && overlayLen && mainLen !== overlayLen) {
-        const warn = '\u26A0\uFE0F Warning: The main signal and overlay have different lengths! Operations may not work as expected.';
-        msg += '\n\n' + warn;
-        alert(warn);
+        msg += '\n\n%RED%Different sample size detected ! Operations might not work !%ENDRED%';
     }
-    alert(msg);
+    // Show as plain alert, but replace %RED%...%ENDRED% with red text if possible
+    if (msg.includes('%RED%')) {
+        // Try to show as HTML if possible
+        const htmlMsg = msg.replace(/%RED%(.+?)%ENDRED%/g, '<span style="color:red;">$1</span>').replace(/\n/g, '<br>');
+        const win = window.open('', '', 'width=500,height=400');
+        win.document.write('<html><body style="font-family:sans-serif;font-size:1.1em;padding:2em;">' + htmlMsg + '<br><br><button onclick="window.close()" style="font-size:1em;">Close</button></body></html>');
+        win.document.close();
+    } else {
+        alert(msg);
+    }
 };
 
 // Show persistent warning if 'multi' signal type is selected or generated
