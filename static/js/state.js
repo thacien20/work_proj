@@ -6,5 +6,10 @@ export const state = {
     fftMagnitudes: new Float32Array(), // FFT magnitude data
     fftFreqAxis: new Float32Array(), // Frequency axis for FFT (Hz)
     frequency: null, // Input frequency (Hz) from UI, set by signal.js
-    overlays: [] // Array of overlay signals {signal, time_axis, fft, freq}
+    overlays: [], // Array of overlay signals {signal, time_axis, fft, freq}
+    filteredActive: false, // Track if a filter is active (if not already present)
+    filteredSignal: null,  // Store filtered signal (if not already present)
+    filteredFft: null,     // Store filtered FFT (if not already present)
+    filteredFftFreq: null, // Store filtered FFT frequency axis (if not already present)
+    plotHistory: [] // Stack of plot actions for undo (e.g., {type: 'overlay'}, {type: 'filter'})
 };

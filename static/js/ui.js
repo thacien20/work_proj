@@ -50,6 +50,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 filterDropdown.classList.remove('show');
             }
         });
+        // Add filter button listeners
+        document.getElementById('filterBtn_highPass').onclick = () => applyFilter('highpass');
+        document.getElementById('filterBtn_lowPass').onclick = () => applyFilter('lowpass');
+        document.getElementById('filterBtn_bandPass').onclick = () => applyFilter('bandpass');
     }
 
     // Set default values for multi-frequency fields when multi is selected
@@ -116,13 +120,14 @@ function addOverlay() {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
-    // Save the current signal as the overlay, always use state.time_axis (which is i/FS)
-    state.overlays = [{
+    // Save the current signal as a new overlay, always use state.time_axis (which is i/FS)
+    state.overlays.push({
         signal: new Float32Array(state.signalData),
         time_axis: new Float32Array(state.time_axis),
         fft: new Float32Array(state.fftMagnitudes),
         freq: new Float32Array(state.fftFreqAxis)
-    }];
+    });
+    state.plotHistory.push({type: 'overlay'}); // Track overlay for undo
     alert('Main signal recorded, now add your overlay:');
 }
 
@@ -210,5 +215,66 @@ document.getElementById('clearBtn').onclick = function() {
     state.fftMagnitudes = new Float32Array();
     state.fftFreqAxis = new Float32Array();
     state.overlays = [];
+    state.filteredSignal = undefined;
+    state.filteredActive = false;
+    state.filteredFft = undefined;
+    state.filteredFftFreq = undefined;
     plotAll();
 }
+
+async function applyFilter(type) {
+    let params = { filterType: type, fs: FS, order: 4 };
+    if (type === 'lowpass') {
+        params.cutoff = prompt('Lowpass cutoff frequency (Hz, 10-1000):', 200) || 200;
+    } else if (type === 'highpass') {
+        params.cutoff = prompt('Highpass cutoff frequency (Hz, 1-990):', 100) || 100;
+    } else if (type === 'bandpass') {
+        params.lowcut = prompt('Bandpass LOW cutoff (Hz, 1-990):', 100) || 100;
+        params.highcut = prompt('Bandpass HIGH cutoff (Hz, 10-1000):', 300) || 300;
+    }
+    // Send current signal to backend
+    const signal = Array.from(state.signalData);
+    const response = await fetch('/api/filter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...params, signal })
+    });
+    const data = await response.json();
+    if (data.filtered) {
+        state.filteredSignal = new Float32Array(data.filtered);
+        state.filteredActive = true;
+        // FFT of filtered signal
+        if (data.filtered_fft && data.filtered_freq_axis) {
+            state.filteredFft = new Float32Array(data.filtered_fft);
+            state.filteredFftFreq = new Float32Array(data.filtered_freq_axis);
+        } else {
+            state.filteredFft = null;
+            state.filteredFftFreq = null;
+        }
+        state.plotHistory.push({type: 'filter'}); // Track filter for undo
+        plotAll();
+    } else {
+        alert('Filter error: ' + (data.error || 'Unknown error'));
+    }
+}
+
+document.getElementById('undo-btn').onclick = function() {
+    if (state.plotHistory.length === 0) return;
+    const lastAction = state.plotHistory.pop();
+    if (lastAction.type === 'filter') {
+        state.filteredActive = false;
+        state.filteredSignal = null;
+        state.filteredFft = null;
+        state.filteredFftFreq = null;
+    } else if (lastAction.type === 'overlay') {
+        // Restore the last overlay as the main signal, remove it from overlays
+        if (state.overlays.length > 0) {
+            const lastOverlay = state.overlays.pop();
+            state.signalData = new Float32Array(lastOverlay.signal);
+            state.time_axis = new Float32Array(lastOverlay.time_axis);
+            state.fftMagnitudes = new Float32Array(lastOverlay.fft);
+            state.fftFreqAxis = new Float32Array(lastOverlay.freq);
+        }
+    }
+    plotAll();
+};

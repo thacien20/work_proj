@@ -78,6 +78,33 @@ export function plotAll() {
         });
     }
 
+    // --- Add filtered signal trace if present ---
+    if (state.filteredActive && state.filteredSignal && state.filteredSignal.length === state.time_axis.length) {
+        traces.push({
+            x: state.time_axis,
+            y: state.filteredSignal,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Filtered',
+            line: { color: '#28a745', dash: 'dash' },
+            yaxis: 'y1',
+            xaxis: 'x1'
+        });
+    }
+    // --- Add filtered FFT trace if present ---
+    if (state.filteredActive && state.filteredFft && state.filteredFftFreq && state.filteredFft.length === state.filteredFftFreq.length) {
+        traces.push({
+            x: state.filteredFftFreq,
+            y: state.filteredFft,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Filtered FFT',
+            line: { color: '#28a745', dash: 'dash' },
+            yaxis: 'y2',
+            xaxis: 'x2'
+        });
+    }
+
     // --- Auto-zoom FFT x-axis to significant frequencies ---
     // This section finds the frequency range where the FFT magnitude is 
     // significant (above 5% of max),

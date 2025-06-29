@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.signal import butter, filtfilt
 
 FS = 10000  # Sampling frequency (Hz), constant for all signals
 

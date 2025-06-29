@@ -9,6 +9,7 @@ from signal_generation import generate_signal  # <-- updated import
 from signal_processing import compute_fft, FS
 from file_utils import allowed_file
 from waveforms import get_waveforms
+from Filters import apply_filter
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
@@ -110,6 +111,33 @@ def signal_operation():
         'fft': fft_magnitude.tolist(),
         'freq_axis': freq_axis.tolist()
     })
+
+@app.route('/api/filter', methods=['POST'])
+def filter_signal():
+    data = request.get_json()
+    signal = np.array(data['signal'])
+    filter_type = data['filterType']
+    order = int(data.get('order', 4))
+    fs = data.get('fs', FS)
+    cutoff = data.get('cutoff')
+    lowcut = data.get('lowcut')
+    highcut = data.get('highcut')
+
+    from Filters import apply_filter
+
+    try:
+        if filter_type == 'lowpass' or filter_type == 'highpass':
+            filtered = apply_filter(signal, filter_type, cutoff=float(cutoff), order=order, fs=fs)
+        elif filter_type == 'bandpass':
+            filtered = apply_filter(signal, filter_type, lowcut=float(lowcut), highcut=float(highcut), order=order, fs=fs)
+        else:
+            return jsonify({'error': 'Invalid filter type'}), 400
+        # Compute FFT of filtered signal
+        fft_magnitude, freq_axis = compute_fft(filtered)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+    return jsonify({'filtered': filtered.tolist(), 'filtered_fft': fft_magnitude.tolist(), 'filtered_freq_axis': freq_axis.tolist()})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
