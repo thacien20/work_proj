@@ -13,37 +13,6 @@ export function plotAll() {
     // --- Prepare traces array for Plotly ---
     const traces = [];
 
-    // --- Add overlay signal and FFT if present ---
-    if (state.overlays && state.overlays.length > 0) {
-        const ov = state.overlays[0];
-        // Overlay time-domain signal
-        if (ov.signal && (ov.time_axis || state.time_axis)) {
-            traces.push({
-                x: ov.time_axis || state.time_axis,
-                y: ov.signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Signal', // swapped
-                line: { color: '#ff8800' },
-                yaxis: 'y1',
-                xaxis: 'x1'
-            });
-        }
-        // Overlay FFT
-        if (ov.fft && ov.freq) {
-            traces.push({
-                x: ov.freq,
-                y: ov.fft,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Signal FFT', // swapped
-                line: { color: '#ff8800' },
-                yaxis: 'y2',
-                xaxis: 'x2'
-            });
-        }
-    }
-
     // --- Add main time-domain signal trace ---
     if (
         state.signalData && state.signalData.length > 0 &&
@@ -54,8 +23,8 @@ export function plotAll() {
             y: state.signalData,
             type: 'scatter',
             mode: 'lines',
-            name: 'Overlay', // swapped
-            line: { color: '#007bff' },
+            name: 'Signal', // Main signal
+            line: { color: '#000000' },
             yaxis: 'y1',
             xaxis: 'x1'
         });
@@ -71,11 +40,43 @@ export function plotAll() {
             y: state.fftMagnitudes,
             type: 'scatter',
             mode: 'lines',
-            name: 'Overlay FFT', // swapped
-            line: { color: '#007bff' },
+            name: 'Signal FFT', // Main FFT
+            line: { color: '#000000' },
             yaxis: 'y2',
             xaxis: 'x2'
         });
+    }
+
+    // --- Add overlay signal and FFT if present ---
+    let overlayPresent = state.overlays && state.overlays.length > 0;
+    if (overlayPresent) {
+        const ov = state.overlays[0];
+        // Overlay time-domain signal
+        if (ov.signal && (ov.time_axis || state.time_axis)) {
+            traces.push({
+                x: ov.time_axis || state.time_axis,
+                y: ov.signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Overlay', // Overlay signal
+                line: { color: '#d62728' },
+                yaxis: 'y1',
+                xaxis: 'x1'
+            });
+        }
+        // Overlay FFT
+        if (ov.fft && ov.freq) {
+            traces.push({
+                x: ov.freq,
+                y: ov.fft,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Overlay FFT', // Overlay FFT
+                line: { color: '#d62728' },
+                yaxis: 'y2',
+                xaxis: 'x2'
+            });
+        }
     }
 
     // --- Add filtered signal trace if present ---
@@ -86,7 +87,6 @@ export function plotAll() {
             type: 'scatter',
             mode: 'lines',
             name: 'Filtered',
-            line: { color: '#28a745', dash: 'dash' },
             yaxis: 'y1',
             xaxis: 'x1'
         });
@@ -99,7 +99,6 @@ export function plotAll() {
             type: 'scatter',
             mode: 'lines',
             name: 'Filtered FFT',
-            line: { color: '#28a745', dash: 'dash' },
             yaxis: 'y2',
             xaxis: 'x2'
         });
@@ -133,7 +132,7 @@ export function plotAll() {
         grid: { rows: 2, columns: 1, pattern: 'independent' }, // 2 rows, 1 column
         height: 600,
         width: 900,
-        showlegend: true,
+        showlegend: false, // Legend deactivated
         xaxis: { title: 'Time (s)' }, // Top subplot x-axis
         yaxis: { title: 'Intensity' }, // Top subplot y-axis
         xaxis2: { title: 'Frequency (Hz)', range: fftRange || undefined }, // Bottom subplot x-axis, auto-zoomed
@@ -142,6 +141,19 @@ export function plotAll() {
 
     // --- Render the plot using Plotly ---
     Plotly.newPlot('plot', traces, layout, {responsive: true});
+
+    // --- Update custom legend ---
+    const legendDiv = document.getElementById('custom-legend');
+    if (legendDiv) {
+        if (overlayPresent) {
+            legendDiv.innerHTML = `
+                <span class="legend-item"><span class="legend-line legend-line-black"></span>Overlay</span>
+                <span class="legend-item"><span class="legend-line legend-line-red"></span>Signal</span>
+            `;
+        } else {
+            legendDiv.innerHTML = '';
+        }
+    }
 }
 
 // In all plotting logic, use FS for any time axis calculations if needed.

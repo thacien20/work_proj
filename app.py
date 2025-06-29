@@ -10,6 +10,7 @@ from signal_processing import compute_fft, FS
 from file_utils import allowed_file
 from waveforms import get_waveforms
 from Filters import apply_filter
+from filters_view import filter_visualization
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
@@ -138,6 +139,26 @@ def filter_signal():
         return jsonify({'error': str(e)}), 400
 
     return jsonify({'filtered': filtered.tolist(), 'filtered_fft': fft_magnitude.tolist(), 'filtered_freq_axis': freq_axis.tolist()})
+
+@app.route('/api/filter_view', methods=['POST'])
+def filter_view():
+    data = request.get_json()
+    filter_type = data.get('filterType')
+    order = int(data.get('order', 4))
+    fs = data.get('fs', FS)
+    cutoff = data.get('cutoff')
+    lowcut = data.get('lowcut')
+    highcut = data.get('highcut')
+    try:
+        if filter_type == 'lowpass' or filter_type == 'highpass':
+            result = filter_visualization(filter_type, cutoff=float(cutoff), order=order, fs=fs)
+        elif filter_type == 'bandpass':
+            result = filter_visualization(filter_type, lowcut=float(lowcut), highcut=float(highcut), order=order, fs=fs)
+        else:
+            return jsonify({'error': 'Invalid filter type'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -120,15 +120,16 @@ function addOverlay() {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
-    // Save the current signal as a new overlay, always use state.time_axis (which is i/FS)
-    state.overlays.push({
+    // Save the current signal as the overlay (replace any previous overlay)
+    state.overlays = [{
         signal: new Float32Array(state.signalData),
         time_axis: new Float32Array(state.time_axis),
         fft: new Float32Array(state.fftMagnitudes),
         freq: new Float32Array(state.fftFreqAxis)
-    });
+    }];
     state.plotHistory.push({type: 'overlay'}); // Track overlay for undo
-    alert('Main signal recorded, now add your overlay:');
+    plotAll();
+    alert('Signal saved. Now add overlay.');
 }
 
 // Patch generateSignal to clear overlays if not waiting for overlay
@@ -254,27 +255,86 @@ async function applyFilter(type) {
         state.plotHistory.push({type: 'filter'}); // Track filter for undo
         plotAll();
     } else {
-        alert('Filter error: ' + (data.error || 'Unknown error'));
+        let msg = data.error || 'Unknown error';
+        if (msg.includes('length of the input vector') || msg.includes('padlen')) {
+            msg = 'Please generate data first before applying a filter.';
+        }
+        alert('Filter error: ' + msg);
     }
 }
 
-document.getElementById('undo-btn').onclick = function() {
-    if (state.plotHistory.length === 0) return;
-    const lastAction = state.plotHistory.pop();
-    if (lastAction.type === 'filter') {
-        state.filteredActive = false;
-        state.filteredSignal = null;
-        state.filteredFft = null;
-        state.filteredFftFreq = null;
-    } else if (lastAction.type === 'overlay') {
-        // Restore the last overlay as the main signal, remove it from overlays
-        if (state.overlays.length > 0) {
-            const lastOverlay = state.overlays.pop();
-            state.signalData = new Float32Array(lastOverlay.signal);
-            state.time_axis = new Float32Array(lastOverlay.time_axis);
-            state.fftMagnitudes = new Float32Array(lastOverlay.fft);
-            state.fftFreqAxis = new Float32Array(lastOverlay.freq);
+// --- Filter View Main Plot Logic ---
+const filterViewBtn = document.getElementById('filterBtn_view');
+if (filterViewBtn) {
+    filterViewBtn.onclick = async function() {
+        // Prompt user for filter type and parameters
+        const filterType = prompt('Enter filter type (lowpass, highpass, bandpass):', 'lowpass');
+        if (!filterType) return;
+        let params = { filterType, fs: FS, order: 4 };
+        if (filterType === 'lowpass') {
+            params.cutoff = prompt('Lowpass cutoff frequency (Hz, 10-1000):', 200) || 200;
+        } else if (filterType === 'highpass') {
+            params.cutoff = prompt('Highpass cutoff frequency (Hz, 1-990):', 100) || 100;
+        } else if (filterType === 'bandpass') {
+            params.lowcut = prompt('Bandpass LOW cutoff (Hz, 1-990):', 100) || 100;
+            params.highcut = prompt('Bandpass HIGH cutoff (Hz, 10-1000):', 300) || 300;
+        } else {
+            alert('Invalid filter type.');
+            return;
         }
-    }
-    plotAll();
-};
+        // Fetch filter visualization data from backend
+        const response = await fetch('/api/filter_view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params)
+        });
+        const data = await response.json();
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        // Plot impulse, magnitude, and phase responses in the main plot area
+        const plotDiv = document.getElementById('plot');
+        Plotly.newPlot(plotDiv, [
+            {
+                x: data.impulse_x,
+                y: data.impulse,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Impulse Response',
+                yaxis: 'y1',
+                xaxis: 'x1'
+            },
+            {
+                x: data.freq,
+                y: data.magnitude,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Magnitude',
+                yaxis: 'y2',
+                xaxis: 'x2'
+            },
+            {
+                x: data.freq,
+                y: data.phase,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Phase',
+                yaxis: 'y3',
+                xaxis: 'x3'
+            }
+        ], {
+            grid: {rows: 3, columns: 1, pattern: 'independent'},
+            height: 800,
+            width: 900,
+            showlegend: true,
+            margin: { l: 80, r: 40, t: 40, b: 70 }, // Added margin for axis labels
+            xaxis: {title: 'Sample (n)'},
+            yaxis: {title: 'Amplitude'},
+            xaxis2: {title: 'Frequency (Hz)'},
+            yaxis2: {title: 'Magnitude'},
+            xaxis3: {title: 'Frequency (Hz)'},
+            yaxis3: {title: 'Phase (radians)'}
+        });
+    };
+}

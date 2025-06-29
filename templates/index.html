@@ -30,6 +30,7 @@
                     <button type="button" id="filterBtn_highPass">High Pass Filter</button>
                     <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
                     <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
+                    <button type="button" id="filterBtn_view">Filter View</button> <!-- New button for filter visualization -->
                 </div>
             </div>
             <div class="dropdown">
@@ -94,7 +95,8 @@
             </form>
 
             <div class="canvas-container" style="position:relative;">
-                <div id="plot"></div>
+                <div id="plot" style="width:900px;height:600px;"></div>
+                <div id="custom-legend"></div>
                 <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
                 <button type="button" id="clearBtn" class="plot-clear-btn">Clear</button>
                 <button type="button" id="undo-btn" class="plot-undo-btn">Undo</button>
@@ -116,5 +118,14 @@
         updateFields();
     });
     </script>
+
+    <!-- Modal for filter visualization -->
+    <div id="filterViewModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="closeFilterView">&times;</span>
+            <h2>Filter Visualization</h2>
+            <div id="filter-view-plot"></div>
+        </div>
+    </div>
 </body>
 </html>

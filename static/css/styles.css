@@ -225,3 +225,30 @@ canvas:not(:supported) + .canvas-fallback {
 .plot-clear-btn:hover, .plot-clear-btn:focus {
     background-color: #0056b3;
 }
+
+/* Custom legend styles */
+#custom-legend {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.legend-line {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    display: inline-block;
+}
+.legend-line-black {
+    background: #000;
+}
+.legend-line-red {
+    background: #d62728;
+}
