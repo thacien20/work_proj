@@ -53,15 +53,22 @@ def generate_signal_endpoint():
 
     t = np.arange(points) / FS
 
+    # Handle tau and amplitude for expdecay
+    tau = float(data.get('tau', 0.05)) if signal_type == 'expdecay' else 0.05
+    amplitude = float(data.get('amplitude', 1.0)) if signal_type == 'expdecay' else 1.0
+
     try:
-        signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes)
+        if signal_type == 'expdecay':
+            signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes, tau=tau, amplitude=amplitude)
+        else:
+            signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
     if noise > 0:
         signal += (np.random.rand(points) - 0.5) * noise
 
-    fft_magnitude, freq_axis = compute_fft(signal)
+    fft_magnitude, freq_axis = compute_fft(signal, FS)
 
     return jsonify({
         'signal': signal.tolist(),
@@ -107,7 +114,7 @@ def signal_operation():
         result_signal = signal_to_signal_operation(signal1, signal2, operation)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
-    fft_magnitude, freq_axis = compute_fft(result_signal)
+    fft_magnitude, freq_axis = compute_fft(result_signal, FS)
     return jsonify({
         'signal': result_signal.tolist(),
         'fft': fft_magnitude.tolist(),
@@ -135,7 +142,7 @@ def filter_signal():
         else:
             return jsonify({'error': 'Invalid filter type'}), 400
         # Compute FFT of filtered signal
-        fft_magnitude, freq_axis = compute_fft(filtered)
+        fft_magnitude, freq_axis = compute_fft(filtered, FS)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
@@ -190,7 +197,7 @@ def apply_filter_fft_endpoint():
     filtered_signal = filtered_signal[:len(signal)]
     # Compute FFT of filtered signal (magnitude and freq axis)
     from signal_processing import compute_fft, FS
-    filtered_fft_mag, filtered_freq_axis = compute_fft(filtered_signal)
+    filtered_fft_mag, filtered_freq_axis = compute_fft(filtered_signal, FS)
     return jsonify({
         'filtered': filtered_signal.tolist(),
         'filtered_fft': filtered_fft_mag.tolist(),

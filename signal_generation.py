@@ -19,7 +19,11 @@ def generate_multi_sine(t, frequencies, amplitudes=None):
         signal += a * np.sin(2 * np.pi * f * t)
     return signal
 
-def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None, phase=0):
+def generate_exponential_decay(t, tau=0.05, amplitude=1.0):
+    """Generate an exponential decay signal: amplitude * exp(-t / tau)"""
+    return amplitude * np.exp(-t / tau)
+
+def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None, phase=0, tau=0.05, amplitude=1.0):
     if signal_type == "sine":
         return generate_sine(t, frequency, phase)
     elif signal_type == "square":
@@ -30,6 +34,8 @@ def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None
         if frequencies is None:
             raise ValueError("Frequencies list required for multi signal type")
         return generate_multi_sine(t, frequencies, amplitudes)
+    elif signal_type == "expdecay":
+        return generate_exponential_decay(t, tau=tau, amplitude=amplitude)
     else:
         raise ValueError("Unsupported signal type")
 

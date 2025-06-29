@@ -77,6 +77,18 @@ export function generateSignal() {
     if (signalType === 'multi') {
         payload.frequencies = frequencies;
         if (amplitudes) payload.amplitudes = amplitudes;
+    } else if (signalType === 'expdecay') {
+        // For exponential decay, get tau value from input
+        let tau = 0.05;
+        const tauInput = document.getElementById('tauValue');
+        if (tauInput) tau = parseFloat(tauInput.value) || 0.05;
+        payload.tau = tau;
+        // Optionally allow amplitude (default 1.0)
+        // let amplitude = 1.0;
+        // const ampInput = document.getElementById('amplitudeValue');
+        // if (ampInput) amplitude = parseFloat(ampInput.value) || 1.0;
+        // payload.amplitude = amplitude;
+        // No phase for expdecay
     } else {
         let phase = 0;
         if (signalType !== 'multi') {
