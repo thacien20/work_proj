@@ -74,7 +74,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 // Only set if empty or user hasn't changed
                 if (!multiFreqInput.value.trim()) multiFreqInput.value = '120, 200, 300';
                 if (!multiAmpInput.value.trim()) multiAmpInput.value = '1 1 1';
-                addOverlayBtn.style.display = 'none';
+                // addOverlayBtn.style.display = 'none'; // REMOVE THIS LINE
                 freqSingleGroup.style.display = 'none';
                 multiFreqGroup.style.display = '';
                 multiAmpGroup.style.display = '';
@@ -90,7 +90,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         // On page load, set correct visibility
         if (signalTypeSelect.value === 'multi') {
-            addOverlayBtn.style.display = 'none';
+            // addOverlayBtn.style.display = 'none'; // REMOVE THIS LINE
             freqSingleGroup.style.display = 'none';
             multiFreqGroup.style.display = '';
             multiAmpGroup.style.display = '';
