@@ -23,7 +23,7 @@ export function plotAll() {
             y: state.signalData,
             type: 'scatter',
             mode: 'lines',
-            name: 'Signal', // Main signal
+            name: 'Signal', // Always label main signal
             line: { color: '#000000' },
             yaxis: 'y1',
             xaxis: 'x1'
@@ -133,6 +133,7 @@ export function plotAll() {
         height: 600,
         width: 900,
         showlegend: false, // Legend deactivated
+        margin: { l: 80, r: 40, t: 40, b: 80 }, // Increased margins for axis labels
         xaxis: { title: 'Time (s)' }, // Top subplot x-axis
         yaxis: { title: 'Intensity' }, // Top subplot y-axis
         xaxis2: { title: 'Frequency (Hz)', range: fftRange || undefined }, // Bottom subplot x-axis, auto-zoomed
