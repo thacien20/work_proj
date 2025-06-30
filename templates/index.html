@@ -4,17 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signal FFT Demo</title>
+    <!-- External CSS and JavaScript libraries -->
     <link rel="stylesheet" href="/static/css/styles.css">
-        <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
-    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
 </head>
 <body>
-    <header>
+    <!-- Main header with navigation buttons and title -->
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
+        <!-- Navigation buttons for different categories/sections -->
+        <nav style="display: flex; gap: 15px;">
+            <button class="header-btn" id="dataBtn">Data</button>
+            <button class="header-btn" id="healthBtn">Health</button>
+            <button class="header-btn" id="ictBtn">ICT</button>
+            <button class="header-btn" id="scienceBtn">Science</button>
+            <button class="header-btn" id="economicsBtn">Economics</button>
+            <button class="header-btn" id="aiBtn">AI</button>
+            <button class="header-btn" id="businessBtn">Business</button>
+        </nav>
+        <!-- Main application title -->
         <h1>Signal Processing and Visualization </h1>
     </header>
-    <!-- Galaxy sidebar moved far left, partially off-screen -->
+    
+    <!-- ===== ANIMATED VISUAL ELEMENTS ===== -->
+    
+    <!-- Galaxy animation sidebar - positioned on the left side -->
+    <!-- Uses absolute positioning to scroll with page content -->
     <div id="galaxy-sidebar" style="
-        position:fixed;
+        position:absolute;
         left:5;
         top:113px;
         width:120px;
@@ -26,30 +42,34 @@
         justify-content:right;
         pointer-events:none;
     ">
+        <!-- Canvas element for galaxy animation - controlled by galaxy.js -->
         <canvas id="galaxy-canvas" width="120" height="120" style="display:block; margin:0 auto; background:#101020; border-radius:10px; pointer-events:none;"></canvas>
     </div>
     
-    <!-- Rwanda flag canvas container -->
+    <!-- Rwanda flag animation container - positioned on the right side -->
+    <!-- Features depth animation with scaling, rotation, and opacity effects -->
     <div id="rwanda-canvas-container" style="
-        position:fixed;
+        position:absolute;
         right:20px;
-        top:120px;
+        top:80px;
         width:240px;
-        height:240px;
+        height:160px;
         z-index:999;
         pointer-events:none;
         background:rgba(0,0,0,0.1);
-        border-radius:50%;
+        border-radius:15px;
         border:2px solid rgba(255,255,255,0.2);
         overflow:hidden;
     ">
+        <!-- Rwanda flag image with animated depth effect -->
+        <!-- Image is oversized (400x267) to prevent empty space during rotation -->
         <img id="rwanda-flag" src="/static/imag/rwanda.PNG" alt="Rwanda Flag" style="
             position:absolute;
-            width:240px;
-            height:240px;
+            width:400px;
+            height:267px;
             object-fit:cover;
             object-position:center;
-            border-radius:50%;
+            border-radius:12px;
             box-shadow:0 10px 30px rgba(0,0,0,0.9);
             left:50%;
             top:50%;
@@ -57,179 +77,278 @@
         ">
     </div>
 
+    <!-- ===== CUSTOM STYLES ===== -->
     <style>
+        /* Rwanda flag container hover effect */
         #rwanda-canvas-container:hover {
             background:rgba(0,0,0,0.2);
         }
+        
+        /* Header navigation button styling */
+        .header-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Header button hover animation - lifts up with enhanced shadow */
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        /* Header button active state - returns to normal position */
+        .header-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
+    
+    <!-- ===== MAIN APPLICATION CONTENT ===== -->
+    <!-- Flexbox layout: row-reverse puts sidebar on right, content on left -->
     <main style="display: flex; flex-direction:row-reverse; align-items: flex-start;">
-        <!-- Removed old galaxy-sidebar from here -->
+        
+        <!-- Main content area with signal processing controls -->
         <div style="flex:1;">
-        <!-- Files dropdown button, place this where your Files button was -->
-        <div class="file-dropdown">
-            <button id="filesBtn" class="file-button">Files ▼</button>
-            <div class="file-dropdown-content">
-                <button type="button" id="exportBtn">Export CSV</button>
-                <input type="file" id="importFile" accept=".csv" style="display:none">
-                <button type="button" id="importBtn">Import CSV</button>
-            </div>
-        </div>
-        <div class="sidebar">
-            <button class="main-btn" id="processingBtn">Processing</button>
-            <div class="dropdown" id="filterDropdownContainer">
-                <button class="dropbtn" id="filterBtn">Filter ▼</button>
-                <div class="dropdown-content" id="filterDropdownContent">
-                    <button type="button" id="filterBtn_highPass">High Pass Filter</button>
-                    <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
-                    <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
-                    <button type="button" id="filterBtn_view">Filter View</button> <!-- New button for filter visualization -->
+            
+            <!-- ===== FILE OPERATIONS DROPDOWN ===== -->
+            <!-- Dropdown for CSV import/export functionality -->
+            <div class="file-dropdown">
+                <button id="filesBtn" class="file-button">Files ▼</button>
+                <div class="file-dropdown-content">
+                    <button type="button" id="exportBtn">Export CSV</button>
+                    <!-- Hidden file input for CSV import -->
+                    <input type="file" id="importFile" accept=".csv" style="display:none">
+                    <button type="button" id="importBtn">Import CSV</button>
                 </div>
             </div>
-            <div class="dropdown">
-                <button class="dropbtn" id="analyzeBtn">Analyze ▼</button>
-                <div class="dropdown-content" id="analyzeDropdown">
-                    <button type="button" id="analyzeBtn_correlation">Correlation</button>
+            
+            <!-- ===== PROCESSING CONTROLS SIDEBAR ===== -->
+            <!-- Right-side control panel for signal processing operations -->
+            <div class="sidebar">
+                
+                <!-- Main processing button -->
+                <button class="main-btn" id="processingBtn">Processing</button>
+                
+                <!-- Filter operations dropdown -->
+                <div class="dropdown" id="filterDropdownContainer">
+                    <button class="dropbtn" id="filterBtn">Filter ▼</button>
+                    <div class="dropdown-content" id="filterDropdownContent">
+                        <button type="button" id="filterBtn_highPass">High Pass Filter</button>
+                        <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
+                        <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
+                        <button type="button" id="filterBtn_view">Filter View</button> <!-- Filter visualization -->
+                    </div>
+                </div>
+                
+                <!-- Analysis operations dropdown -->
+                <div class="dropdown">
+                    <button class="dropbtn" id="analyzeBtn">Analyze ▼</button>
+                    <div class="dropdown-content" id="analyzeDropdown">
+                        <button type="button" id="analyzeBtn_correlation">Correlation</button>
+                    </div>
+                </div>
+                
+                <!-- Mathematical operations dropdown -->
+                <div class="dropdown">
+                    <button class="dropbtn" id="operationsBtn">Operations ▼</button>
+                    <div class="dropdown-content" id="operationsDropdown">
+                        <button type="button" id="opsBtn_add">Add</button>
+                        <button type="button" id="opsBtn_subtract">Subtract</button>
+                        <button type="button" id="opsBtn_multiply">Multiply</button>
+                        <button type="button" id="opsBtn_divide">Divide</button>
+                    </div>
                 </div>
             </div>
-            <div class="dropdown">
-                <button class="dropbtn" id="operationsBtn">Operations ▼</button>
-                <div class="dropdown-content" id="operationsDropdown">
-                    <button type="button" id="opsBtn_add">Add</button>
-                    <button type="button" id="opsBtn_subtract">Subtract</button>
-                    <button type="button" id="opsBtn_multiply">Multiply</button>
-                    <button type="button" id="opsBtn_divide">Divide</button>
-                </div>
-            </div>
-        </div>
-        <section id="signal-section">
-            <form id="signalForm">
-                <div class="form-group">
-                    <label for="frequency">Frequency (Hz, 0.1–1000):</label>
-                    <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="any" value="50.12" required>
-                </div>
-                <!-- Phase control input, replaced button with number input -->
-                <div class="form-group" id="phaseGroup" style="display:none;">
-                    <label for="phaseValue">Phase (degrees):</label>
-                    <input type="number" id="phaseValue" name="phaseValue" min="0" max="360" step="10" value="0" style="width:70px; text-align:center;">
-                </div>
-                <!-- Multi-frequency support -->
-                <div class="form-group" id="multiFreqGroup" style="display:none;">
-                    <label for="multiFrequencies">Frequencies ( Hz):</label>
-                    <input type="text" id="multiFrequencies" name="multiFrequencies" placeholder="e.g., 120 200 300" value="120, 200, 300">
-                </div>
-                <div class="form-group" id="multiAmpGroup" style="display:none;">
-                    <label for="multiAmplitudes">Amplitudes (optional):</label>
-                    <input type="text" id="multiAmplitudes" name="multiAmplitudes" placeholder="e.g., 1 1 1" value="1 1 1">
-                </div>
-                <div class="form-group">
-                    <label for="points">Points (1024–65000):</label>
-                    <input type="number" id="points" name="points" min="1024" max="65000" step="64" value="1024" required>
-                </div>
-                <div class="form-group">
-                    <label for="noise">Noise Level (0–1):</label>
-                    <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required>
-                </div>
-                <div class="form-group">
-                    <label for="signalType">Signal Type:</label>
-                    <select id="signalType" name="signalType">
-                        <option value="sine">Sine</option>
-                        <option value="square">Square</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="multi">Multi</option>
-                        <option value="expdecay">Exponential Decay</option>
-                        <option value="random">Random Noise</option>
-                        <option value="gaussian">Gaussian Noise</option>
-                    </select>
-                </div>
-                <!-- Tau input for exponential decay -->
-                <div class="form-group" id="tauGroup" style="display:none;">
-                    <label for="tauValue">Decay Constant τ (seconds):</label>
-                    <input type="number" id="tauValue" name="tauValue" min="0.001" max="10" step="0.001" value="0.05" style="width:90px; text-align:center;">
-                </div>
-                <div class="button-group">
-                    <button type="button" id="generateBtn">Generate Signal</button>
-                    <button type="button" id="livePlotBtn">Live Plot</button>
-                    <button type="button" id="addOverlayBtn">Add Overlay</button>
-                    <button type="button" id="deconvBtn" style="display:none; margin-left:10px;">Deconvolution</button>
-                </div>
-            </form>
+            
+            <!-- ===== SIGNAL GENERATION FORM ===== -->
+            <!-- Main form for configuring and generating various signal types -->
+            <section id="signal-section">
+                <form id="signalForm">
+                    
+                    <!-- Basic frequency input (0.1-1000 Hz range) -->
+                    <div class="form-group">
+                        <label for="frequency">Frequency (Hz, 0.1–1000):</label>
+                        <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="any" value="50.12" required>
+                    </div>
+                    
+                    <!-- Phase control - hidden for multi-frequency signals -->
+                    <div class="form-group" id="phaseGroup" style="display:none;">
+                        <label for="phaseValue">Phase (degrees):</label>
+                        <input type="number" id="phaseValue" name="phaseValue" min="0" max="360" step="10" value="0" style="width:70px; text-align:center;">
+                    </div>
+                    
+                    <!-- Multi-frequency support - shown only for 'multi' signal type -->
+                    <div class="form-group" id="multiFreqGroup" style="display:none;">
+                        <label for="multiFrequencies">Frequencies ( Hz):</label>
+                        <input type="text" id="multiFrequencies" name="multiFrequencies" placeholder="e.g., 120 200 300" value="120, 200, 300">
+                    </div>
+                    <div class="form-group" id="multiAmpGroup" style="display:none;">
+                        <label for="multiAmplitudes">Amplitudes (optional):</label>
+                        <input type="text" id="multiAmplitudes" name="multiAmplitudes" placeholder="e.g., 1 1 1" value="1 1 1">
+                    </div>
+                    
+                    <!-- Data points configuration (affects resolution and processing time) -->
+                    <div class="form-group">
+                        <label for="points">Points (1024–65000):</label>
+                        <input type="number" id="points" name="points" min="1024" max="65000" step="64" value="1024" required>
+                    </div>
+                    
+                    <!-- Noise level control (0-1 scale) -->
+                    <div class="form-group">
+                        <label for="noise">Noise Level (0–1):</label>
+                        <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required>
+                    </div>
+                    
+                    <!-- Signal type selector - controls which parameters are shown -->
+                    <div class="form-group">
+                        <label for="signalType">Signal Type:</label>
+                        <select id="signalType" name="signalType">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="multi">Multi</option>
+                            <option value="expdecay">Exponential Decay</option>
+                            <option value="random">Random Noise</option>
+                            <option value="gaussian">Gaussian Noise</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Tau (decay constant) input - shown only for exponential decay signals -->
+                    <div class="form-group" id="tauGroup" style="display:none;">
+                        <label for="tauValue">Decay Constant τ (seconds):</label>
+                        <input type="number" id="tauValue" name="tauValue" min="0.001" max="10" step="0.001" value="0.05" style="width:90px; text-align:center;">
+                    </div>
+                    
+                    <!-- Primary action buttons for signal generation -->
+                    <div class="button-group">
+                        <button type="button" id="generateBtn">Generate Signal</button>
+                        <button type="button" id="livePlotBtn">Live Plot</button>
+                        <button type="button" id="addOverlayBtn">Add Overlay</button>
+                        <!-- Deconvolution button - shown only when applicable -->
+                        <button type="button" id="deconvBtn" style="display:none; margin-left:10px;">Deconvolution</button>
+                    </div>
+                </form>
 
-            <div class="button-stack">
-                <button type="button" id="clearBtn" class="plot-clear-btn">Clear</button>
-                <button type="button" id="undo-btn" class="plot-undo-btn">Undo</button>
-            </div>
-            <div id="custom-legend" class="custom-legend" style="margin: 12px 0 12px 0; position:relative; left:0; z-index:100;"></div>
-            <div id="plot" style="width:900px;height:600px;"></div>
-            <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
-            <div id="deconv-slider-container" style="display:none; margin-top:10px;">
-                <label for="deconvRegSlider">Deconvolution Regularization (epsilon): </label>
-                <input type="range" id="deconvRegSlider" min="-9" max="-2" step="0.1" value="-6">
-                <span id="deconvRegValue">1e-6</span>
-            </div>
-            <!-- Warning box for multi signal type -->
-            <div id="multi-warning" style="display:none;"></div>
-        </section>
+                <!-- ===== PLOT MANAGEMENT CONTROLS ===== -->
+                <!-- Utility buttons for plot manipulation -->
+                <div class="button-stack">
+                    <button type="button" id="clearBtn" class="plot-clear-btn">Clear</button>
+                    <button type="button" id="undo-btn" class="plot-undo-btn">Undo</button>
+                </div>
+                
+                <!-- ===== PLOT DISPLAY AREA ===== -->
+                <!-- Custom legend for plot traces -->
+                <div id="custom-legend" class="custom-legend" style="margin: 12px 0 12px 0; position:relative; left:0; z-index:100;"></div>
+                
+                <!-- Main plot container - uses Plotly.js for interactive visualization -->
+                <div id="plot" style="width:900px;height:600px;"></div>
+                
+                <!-- User instruction text -->
+                <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
+                
+                <!-- ===== DECONVOLUTION CONTROLS ===== -->
+                <!-- Slider for deconvolution regularization parameter - hidden by default -->
+                <div id="deconv-slider-container" style="display:none; margin-top:10px;">
+                    <label for="deconvRegSlider">Deconvolution Regularization (epsilon): </label>
+                    <input type="range" id="deconvRegSlider" min="-9" max="-2" step="0.1" value="-6">
+                    <span id="deconvRegValue">1e-6</span>
+                </div>
+                
+                <!-- Warning display for multi-signal type issues -->
+                <div id="multi-warning" style="display:none;"></div>
+            </section>
+        </div>
     </main>
+    
+    <!-- ===== EXTERNAL JAVASCRIPT MODULES ===== -->
+    <!-- Main UI functionality and event handlers -->
     <script type="module" src="/static/js/ui.js"></script>
+    <!-- Galaxy animation controller -->
     <script type="module" src="/static/js/galaxy.js"></script>
+    
+    <!-- ===== INLINE JAVASCRIPT ===== -->
     <script>
-    // Rwanda flag depth animation (traveling through space)
-    function animateRwandaFlag() {
-        const flag = document.getElementById('rwanda-flag');
-        let animationFrame;
-        let startTime = Date.now();
-        
-        function animateDepth() {
-            const currentTime = Date.now();
-            const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
+        // ===== RWANDA FLAG DEPTH ANIMATION =====
+        // Creates a "traveling through space" effect with scaling, rotation, and opacity
+        function animateRwandaFlag() {
+            const flag = document.getElementById('rwanda-flag');
+            let animationFrame;
+            let startTime = Date.now();
             
-            // Create a sine wave for smooth back-and-forth motion (4 second cycle - faster)
-            const cycle = (Math.sin(elapsed * Math.PI / 2) + 1) / 2; // 0 to 1
+            function animateDepth() {
+                const currentTime = Date.now();
+                const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
+                
+                // Create smooth back-and-forth motion using sine wave (20-second cycle)
+                const cycle = (Math.sin(elapsed * Math.PI / 10) + 1) / 2; // 0 to 1
+                
+                // Scale: from 1.0 (fills canvas) to 2.0 (very close/zoomed in)
+                // Prevents empty space during rotation by using oversized image
+                const scale = 1.0 + (cycle * 1.0);
+                
+                // Opacity: from 0.7 (slightly faded) to 1.0 (fully visible)
+                const opacity = 0.7 + (cycle * 0.3);
+                
+                // Rotation: 2 degrees per second for elegant effect
+                const rotation = elapsed * 2;
+                
+                // Apply all transformations simultaneously
+                flag.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`;
+                flag.style.opacity = opacity;
+                
+                // Continue animation loop
+                animationFrame = requestAnimationFrame(animateDepth);
+            }
             
-            // Scale: from 1.0 (fills canvas) to 2.0 (very close/zoomed in) - NO EMPTY SPACE
-            const scale = 1.0 + (cycle * 1.0);
-            
-            // Opacity: from 0.7 (slightly faded) to 1.0 (fully visible)
-            const opacity = 0.7 + (cycle * 0.3);
-            
-            // Faster rotation for more dynamic effect
-            const rotation = elapsed * 15; // Faster rotation: 15°/second
-            
-            // Apply the transform with scaling, opacity, and rotation
-            flag.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`;
-            flag.style.opacity = opacity;
-            
-            animationFrame = requestAnimationFrame(animateDepth);
+            // Start the animation when function is called
+            animateDepth();
         }
         
-        // Start the animation
-        animateDepth();
-    }
-    
-    // Start animation when page loads
-    document.addEventListener('DOMContentLoaded', animateRwandaFlag);
-    
-    // Show/hide multi-frequency and custom formula fields
-    document.addEventListener('DOMContentLoaded', function() {
-        const signalType = document.getElementById('signalType');
-        const multiFreqGroup = document.getElementById('multiFreqGroup');
-        const phaseGroup = document.getElementById('phaseGroup');
-        const tauGroup = document.getElementById('tauGroup');
-        function updateFields() {
-            multiFreqGroup.style.display = (signalType.value === 'multi') ? '' : 'none';
-            phaseGroup.style.display = (signalType.value !== 'multi') ? '' : 'none';
-            tauGroup.style.display = (signalType.value === 'expdecay') ? '' : 'none';
-        }
-        signalType.addEventListener('change', updateFields);
-        updateFields();
-    });
+        // ===== INITIALIZATION =====
+        // Start Rwanda flag animation when page loads
+        document.addEventListener('DOMContentLoaded', animateRwandaFlag);
+        
+        // ===== FORM FIELD VISIBILITY CONTROL =====
+        // Show/hide form fields based on selected signal type
+        document.addEventListener('DOMContentLoaded', function() {
+            const signalType = document.getElementById('signalType');
+            const multiFreqGroup = document.getElementById('multiFreqGroup');
+            const phaseGroup = document.getElementById('phaseGroup');
+            const tauGroup = document.getElementById('tauGroup');
+            
+            function updateFields() {
+                // Show multi-frequency fields only for 'multi' signal type
+                multiFreqGroup.style.display = (signalType.value === 'multi') ? '' : 'none';
+                // Hide phase control for multi-frequency signals
+                phaseGroup.style.display = (signalType.value !== 'multi') ? '' : 'none';
+                // Show tau field only for exponential decay signals
+                tauGroup.style.display = (signalType.value === 'expdecay') ? '' : 'none';
+            }
+            
+            // Update fields when signal type changes
+            signalType.addEventListener('change', updateFields);
+            // Set initial field visibility
+            updateFields();
+        });
     </script>
 
-    <!-- Modal for filter visualization -->
+    <!-- ===== MODAL DIALOGS ===== -->
+    <!-- Filter visualization modal - hidden by default, shown when filter view is requested -->
     <div id="filterViewModal" class="modal" style="display:none;">
         <div class="modal-content">
+            <!-- Close button for modal -->
             <span class="close" id="closeFilterView">&times;</span>
             <h2>Filter Visualization</h2>
+            <!-- Container for filter frequency response plots -->
             <div id="filter-view-plot"></div>
         </div>
     </div>
