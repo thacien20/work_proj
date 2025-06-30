@@ -338,18 +338,40 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
+        
+        /* Big canvas container styling - wraps all main content */
+        .big-canvas-container {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255,255,255,0.08));
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin: 50px;
+            padding: 50px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            min-height: 800px;
+        }
+        
+        /* Big canvas container hover effect */
+        .big-canvas-container:hover {
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        }
     </style>
     
-    <!-- ===== MAIN APPLICATION CONTENT ===== -->
-    <!-- Flexbox layout: row-reverse puts sidebar on right, content on left -->
-    <main style="display: flex; flex-direction:row-reverse; align-items: flex-start;">
-        
-        <!-- Main content area with signal processing controls -->
-        <div style="flex:1;">
+    <!-- ===== BIG CANVAS CONTAINER ===== -->
+    <!-- Unified container wrapping all main application content -->
+    <div class="big-canvas-container">
+        <!-- ===== MAIN APPLICATION CONTENT ===== -->
+        <!-- Flexbox layout: row-reverse puts sidebar on right, content on left -->
+        <main style="display: flex; flex-direction:row-reverse; align-items: flex-start;">
+            
+            <!-- Main content area with signal processing controls -->
+            <div style="flex:1;">
             
             <!-- ===== FILE OPERATIONS DROPDOWN ===== -->
             <!-- Dropdown for CSV import/export functionality -->
-            <div class="file-dropdown" style="margin-top: 30px;">
+            <div class="file-dropdown" style="margin-top: -115px; transform: translate(-50px);">
                 <button id="filesBtn" class="file-button">Files ▼</button>
                 <div class="file-dropdown-content">
                     <button type="button" id="exportBtn">Export CSV</button>
@@ -486,6 +508,7 @@
             </section>
         </div>
     </main>
+    </div> <!-- End of big-canvas-container -->
     
     <!-- ===== DRAGGABLE BUTTON CANVAS ===== -->
     <div class="draggable-button-canvas" id="buttonCanvas">
