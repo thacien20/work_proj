@@ -282,8 +282,6 @@ async function applyFilter(type) {
 let filterViewActive = false;
 let lastFilterFreqResponse = null;
 
-const addOverlayBtn = document.getElementById('addOverlayBtn');
-
 // --- Filter View Main Plot Logic ---
 const filterViewBtn = document.getElementById('filterBtn_view');
 if (filterViewBtn) {
@@ -368,9 +366,14 @@ if (filterViewBtn) {
             return [mag * Math.cos(phase), mag * Math.sin(phase)]; // [real, imag]
         });
         filterViewActive = true;
-        // Change Add Overlay button to Apply
-        addOverlayBtn.textContent = 'Apply';
-        addOverlayBtn.onclick = async function() {
+        // Change Add Overlay button to Apply (both original and draggable versions)
+        const addOverlayBtn = document.getElementById('addOverlayBtn');
+        const addOverlayBtn2 = document.getElementById('addOverlayBtn2');
+        
+        if (addOverlayBtn) addOverlayBtn.textContent = 'Apply';
+        if (addOverlayBtn2) addOverlayBtn2.textContent = 'Apply';
+        
+        const applyFunction = async function() {
             // Prompt user for which signal to apply filter to
             let choice = 'main';
             if (state.overlays.length > 0) {
@@ -556,15 +559,36 @@ if (filterViewBtn) {
                         await callDeconv(epsilon);
                     };
                 }
+                
+                // Restore Add Overlay button functionality
+                restoreAddOverlayButton();
             } else {
                 alert('Error applying filter: ' + (result.error || 'Unknown error'));
+                // Also restore on error
+                restoreAddOverlayButton();
             }
-            // Restore Add Overlay button
-            addOverlayBtn.textContent = 'Add Overlay';
-            addOverlayBtn.onclick = addOverlay;
-            filterViewActive = false;
         };
+        
+        // Assign the apply function to both buttons
+        if (addOverlayBtn) addOverlayBtn.onclick = applyFunction;
+        if (addOverlayBtn2) addOverlayBtn2.onclick = applyFunction;
     };
+}
+
+// Function to restore Add Overlay button functionality
+function restoreAddOverlayButton() {
+    const addOverlayBtn = document.getElementById('addOverlayBtn');
+    const addOverlayBtn2 = document.getElementById('addOverlayBtn2');
+    
+    if (addOverlayBtn) {
+        addOverlayBtn.textContent = 'Add Overlay';
+        addOverlayBtn.onclick = addOverlay;
+    }
+    if (addOverlayBtn2) {
+        addOverlayBtn2.textContent = 'Add Overlay';
+        addOverlayBtn2.onclick = addOverlay;
+    }
+    filterViewActive = false;
 }
 
 // --- Live Plot Animation ---

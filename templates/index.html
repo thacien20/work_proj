@@ -111,6 +111,60 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        /* Processing sidebar button styling - gray theme */
+        .processing-btn {
+            background: linear-gradient(135deg, #808080 0%, #606060 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Processing button hover animation */
+        .processing-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #606060 0%, #808080 100%);
+        }
+        
+        /* Processing button active state */
+        .processing-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Canvas button styling - gray theme */
+        .canvas-btn {
+            background: linear-gradient(135deg, #808080 0%, #606060 100%);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Canvas button hover animation */
+        .canvas-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #606060 0%, #808080 100%);
+        }
+        
+        /* Canvas button active state */
+        .canvas-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
         /* Plot management button styling - matches header-btn for consistency */
         .plot-undo-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -200,13 +254,13 @@
         /* Draggable button canvas styling */
         .draggable-button-canvas {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 780px;
+            left: 300px;
+            transform: none;
             display: flex;
             gap: 8px;
             padding: 12px 15px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            background: linear-gradient(135deg, rgba(128, 128, 128, 0.9), rgba(96, 96, 96, 0.9));
             border: 2px solid rgba(255,255,255,0.3);
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -219,7 +273,6 @@
         /* Draggable canvas hover effect */
         .draggable-button-canvas:hover {
             box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-            transform: translate(-50%, -50%) scale(1.02);
         }
         
         /* Button styling inside draggable canvas */
@@ -228,7 +281,7 @@
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.3);
             padding: 6px 10px;
-            font-size: 12px;
+            font-size: 14px;
             border-radius: 6px;
         }
         
@@ -240,13 +293,13 @@
         /* Vertical signal controls canvas styling */
         .vertical-signal-canvas {
             position: absolute;
-            top: 200px;
-            right: 50px;
+            top: 600px;
+            left: 400px;
             display: flex;
             flex-direction: column;
             gap: 8px;
             padding: 15px;
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(46, 125, 50, 0.9));
+            background: linear-gradient(135deg, rgba(128, 128, 128, 0.9), rgba(96, 96, 96, 0.9));
             border: 2px solid rgba(255,255,255,0.3);
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -272,7 +325,7 @@
             color: white;
             padding: 8px 12px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -383,11 +436,11 @@
                     <!-- Vertical sidebar with processing operation buttons -->
                     <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 8px; width: 150px;">
                         <!-- Main processing button -->
-                        <button class="header-btn" id="processingBtn">Processing</button>
+                        <button class="processing-btn" id="processingBtn">Processing</button>
                         
                         <!-- Filter operations dropdown -->
                         <div class="dropdown" id="filterDropdownContainer" style="position: relative;">
-                            <button class="header-btn" id="filterBtn" style="width: 100%;">Filter ▼</button>
+                            <button class="processing-btn" id="filterBtn" style="width: 100%;">Filter ▼</button>
                             <div class="dropdown-content" id="filterDropdownContent">
                                 <button type="button" id="filterBtn_highPass">High Pass Filter</button>
                                 <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
@@ -398,15 +451,15 @@
                         
                         <!-- Analysis operations dropdown -->
                         <div class="dropdown" style="position: relative;">
-                            <button class="header-btn" id="analyzeBtn" style="width: 100%;">Analyze ▼</button>
+                            <button class="processing-btn" id="analyzeBtn" style="width: 100%;">Analyze ▼</button>
                             <div class="dropdown-content" id="analyzeDropdown">
-                                <button type="button" id="analyzeBtn_correlation">Correlation</button>
+                                <!-- No analyze options currently available -->
                             </div>
                         </div>
                         
                         <!-- Mathematical operations dropdown -->
                         <div class="dropdown" style="position: relative;">
-                            <button class="header-btn" id="operationsBtn" style="width: 100%;">Operations ▼</button>
+                            <button class="processing-btn" id="operationsBtn" style="width: 100%;">Operations ▼</button>
                             <div class="dropdown-content" id="operationsDropdown">
                                 <button type="button" id="opsBtn_add">Add</button>
                                 <button type="button" id="opsBtn_subtract">Subtract</button>
@@ -436,9 +489,9 @@
     
     <!-- ===== DRAGGABLE BUTTON CANVAS ===== -->
     <div class="draggable-button-canvas" id="buttonCanvas">
-        <button type="button" id="clearBtn" class="header-btn">Clear</button>
-        <button type="button" id="undo-btn" class="header-btn">Undo</button>
-        <button type="button" id="showStateBtn" class="header-btn">Show Data Status</button>
+        <button type="button" id="clearBtn" class="canvas-btn">Clear</button>
+        <button type="button" id="undo-btn" class="canvas-btn">Undo</button>
+        <button type="button" id="showStateBtn" class="canvas-btn">Show Data Status</button>
     </div>
     
     <!-- ===== VERTICAL SIGNAL CONTROLS CANVAS ===== -->
@@ -531,6 +584,30 @@
                     });
                 }
             });
+            
+            // Close filter dropdown when any filter option is clicked
+            const filterDropdownButtons = document.querySelectorAll('#filterBtn_highPass, #filterBtn_lowPass, #filterBtn_bandPass, #filterBtn_view');
+            filterDropdownButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Close the filter dropdown immediately
+                    const filterDropdown = document.getElementById('filterDropdownContainer');
+                    if (filterDropdown) {
+                        filterDropdown.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Close operations dropdown when any operation option is clicked
+            const operationsDropdownButtons = document.querySelectorAll('#opsBtn_add, #opsBtn_subtract, #opsBtn_multiply, #opsBtn_divide');
+            operationsDropdownButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Close the operations dropdown immediately
+                    const operationsDropdown = document.querySelector('#operationsBtn').parentElement;
+                    if (operationsDropdown) {
+                        operationsDropdown.classList.remove('active');
+                    }
+                });
+            });
         });
         
         // ===== FORM FIELD VISIBILITY CONTROL =====
@@ -595,7 +672,7 @@
                 buttonCanvas.style.position = 'absolute';
                 buttonCanvas.style.left = newLeft + 'px';
                 buttonCanvas.style.top = newTop + 'px';
-                buttonCanvas.style.transform = 'translate(-50%, -50%)';
+                buttonCanvas.style.transform = 'none';
             });
             
             // Mouse up event - stop dragging
@@ -635,7 +712,7 @@
                 buttonCanvas.style.position = 'absolute';
                 buttonCanvas.style.left = newLeft + 'px';
                 buttonCanvas.style.top = newTop + 'px';
-                buttonCanvas.style.transform = 'translate(-50%, -50%)';
+                buttonCanvas.style.transform = 'none';
                 e.preventDefault();
             });
             
