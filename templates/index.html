@@ -12,7 +12,25 @@
     <header>
         <h1>Signal Processing and Visualization </h1>
     </header>
-    <main>
+    <!-- Galaxy sidebar moved far left, partially off-screen -->
+    <div id="galaxy-sidebar" style="
+        position:fixed;
+        left:5;
+        top:113px;
+        width:120px;
+        height:160px;
+        z-index:1000;
+        background:transparent;
+        display:flex;
+        align-items:flex-end;
+        justify-content:right;
+        pointer-events:none;
+    ">
+        <canvas id="galaxy-canvas" width="120" height="120" style="display:block; margin:0 auto; background:#101020; border-radius:10px; pointer-events:none;"></canvas>
+    </div>
+    <main style="display: flex; flex-direction:row-reverse; align-items: flex-start;">
+        <!-- Removed old galaxy-sidebar from here -->
+        <div style="flex:1;">
         <!-- Files dropdown button, place this where your Files button was -->
         <div class="file-dropdown">
             <button id="filesBtn" class="file-button">Files ▼</button>
@@ -96,6 +114,7 @@
                 </div>
                 <div class="button-group">
                     <button type="button" id="generateBtn">Generate Signal</button>
+                    <button type="button" id="livePlotBtn">Live Plot</button>
                     <button type="button" id="addOverlayBtn">Add Overlay</button>
                     <button type="button" id="deconvBtn" style="display:none; margin-left:10px;">Deconvolution</button>
                 </div>
@@ -118,6 +137,7 @@
         </section>
     </main>
     <script type="module" src="/static/js/ui.js"></script>
+    <script type="module" src="/static/js/galaxy.js"></script>
     <script>
     // Show/hide multi-frequency and custom formula fields
     document.addEventListener('DOMContentLoaded', function() {

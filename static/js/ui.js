@@ -562,6 +562,41 @@ if (filterViewBtn) {
     };
 }
 
+// --- Live Plot Animation ---
+const livePlotBtn = document.getElementById('livePlotBtn');
+if (livePlotBtn) {
+    livePlotBtn.onclick = function() {
+        // Use the current main signal and time axis
+        const y = state.signalData;
+        const x = state.time_axis;
+        if (!y || !x || y.length === 0 || x.length === 0) {
+            alert('Please generate a signal first!');
+            return;
+        }
+        let current = 1;
+        const chunk = 5; // Number of points to add per frame
+        Plotly.newPlot('plot', [{
+            x: [],
+            y: [],
+            mode: 'lines',
+            line: {color: 'red'}
+        }], {margin: {t: 20}});
+        function animate() {
+            if (current <= y.length) {
+                Plotly.react('plot', [{
+                    x: Array.from(x).slice(0, current),
+                    y: Array.from(y).slice(0, current),
+                    mode: 'lines',
+                    line: {color: 'red'}
+                }], {margin: {t: 20}});
+                current += chunk;
+                setTimeout(animate, 30); // Adjust speed here
+            }
+        }
+        animate();
+    };
+}
+
 // --- Custom Legend Logic ---
 function renderCustomLegend() {
     // No-op: legend logic removed, legend will remain empty.
