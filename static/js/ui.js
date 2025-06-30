@@ -482,6 +482,11 @@ if (filterViewBtn) {
                 }
                 if (deconvBtn && deconvSliderContainer && deconvRegSlider && deconvRegValue) {
                     deconvBtn.style.display = '';
+                    // Also show the deconvolution button in the draggable canvas
+                    const deconvBtn2 = document.getElementById('deconvBtn2');
+                    if (deconvBtn2) {
+                        deconvBtn2.style.display = '';
+                    }
                     deconvSliderContainer.style.display = '';
                     deconvRegSlider.value = '-6';
                     deconvRegValue.textContent = '1e-6';
@@ -633,50 +638,43 @@ if (undoBtn) {
     };
 }
 
-// Add a button to show memory state
-const showStateBtn = document.createElement('button');
-showStateBtn.type = 'button';
-showStateBtn.id = 'showStateBtn';
-showStateBtn.textContent = 'Show Data Status';
-showStateBtn.className = 'plot-undo-btn';
-// Place next to Clear/Undo buttons
-const buttonStack = document.querySelector('.button-stack');
-if (buttonStack) {
-    buttonStack.appendChild(showStateBtn);
+// Add a button to show memory state - button now exists in HTML, just add functionality
+const showStateBtn = document.getElementById('showStateBtn');
+if (showStateBtn) {
+    showStateBtn.onclick = function() {
+        let msg = '';
+        const mainLen = state.signalData && state.signalData.length ? state.signalData.length : 0;
+        const overlayLen = (state.overlays && state.overlays.length && state.overlays[state.overlays.length-1].signal.length) ? state.overlays[state.overlays.length-1].signal.length : 0;
+        msg += 'Main signal: ' + (mainLen ? `${mainLen} points` : 'none') + '\n';
+        msg += 'Overlay: ' + (overlayLen ? `${overlayLen} points` : 'none') + '\n';
+        msg += 'Filtered signal: ' + (state.filteredSignal && state.filteredSignal.length ? `${state.filteredSignal.length} points` : 'none') + '\n';
+        msg += 'Filtered active: ' + (state.filteredActive ? 'yes' : 'no') + '\n';
+        if (state.filteredActive && state.filteredSignal && state.filteredSignal.length) {
+            msg += '\nIf you apply a filter now, it will act on the main signal (not the overlay or filtered signal).';
+        } else if (mainLen) {
+            msg += '\nIf you apply a filter now, it will act on the main signal.';
+        } else {
+            msg += '\nNo main signal present: filtering is not possible.';
+        }
+        if (state.overlays && state.overlays.length) {
+            msg += '\nIf you perform an operation (add, subtract, etc), it will use both the main signal and the overlay.';
+        }
+        // Compare lengths and show warning if different
+        if (mainLen && overlayLen && mainLen !== overlayLen) {
+            msg += '\n\n%RED%Different sample size detected ! Operations might not work !%ENDRED%';
+        }
+        // Show as plain alert, but replace %RED%...%ENDRED% with red text if possible
+        if (msg.includes('%RED%')) {
+            // Try to show as HTML if possible
+            const htmlMsg = msg.replace(/%RED%(.+?)%ENDRED%/g, '<span style="color:red;">$1</span>').replace(/\n/g, '<br>');
+            const win = window.open('', '', 'width=500,height=400');
+            win.document.write('<html><body style="font-family:sans-serif;font-size:1.1em;padding:2em;">' + htmlMsg + '<br><br><button onclick="window.close()" style="font-size:1em;">Close</button></body></html>');
+            win.document.close();
+        } else {
+            alert(msg);
+        }
+    };
 }
-showStateBtn.onclick = function() {
-    let msg = '';
-    const mainLen = state.signalData && state.signalData.length ? state.signalData.length : 0;
-    const overlayLen = (state.overlays && state.overlays.length && state.overlays[state.overlays.length-1].signal.length) ? state.overlays[state.overlays.length-1].signal.length : 0;
-    msg += 'Main signal: ' + (mainLen ? `${mainLen} points` : 'none') + '\n';
-    msg += 'Overlay: ' + (overlayLen ? `${overlayLen} points` : 'none') + '\n';
-    msg += 'Filtered signal: ' + (state.filteredSignal && state.filteredSignal.length ? `${state.filteredSignal.length} points` : 'none') + '\n';
-    msg += 'Filtered active: ' + (state.filteredActive ? 'yes' : 'no') + '\n';
-    if (state.filteredActive && state.filteredSignal && state.filteredSignal.length) {
-        msg += '\nIf you apply a filter now, it will act on the main signal (not the overlay or filtered signal).';
-    } else if (mainLen) {
-        msg += '\nIf you apply a filter now, it will act on the main signal.';
-    } else {
-        msg += '\nNo main signal present: filtering is not possible.';
-    }
-    if (state.overlays && state.overlays.length) {
-        msg += '\nIf you perform an operation (add, subtract, etc), it will use both the main signal and the overlay.';
-    }
-    // Compare lengths and show warning if different
-    if (mainLen && overlayLen && mainLen !== overlayLen) {
-        msg += '\n\n%RED%Different sample size detected ! Operations might not work !%ENDRED%';
-    }
-    // Show as plain alert, but replace %RED%...%ENDRED% with red text if possible
-    if (msg.includes('%RED%')) {
-        // Try to show as HTML if possible
-        const htmlMsg = msg.replace(/%RED%(.+?)%ENDRED%/g, '<span style="color:red;">$1</span>').replace(/\n/g, '<br>');
-        const win = window.open('', '', 'width=500,height=400');
-        win.document.write('<html><body style="font-family:sans-serif;font-size:1.1em;padding:2em;">' + htmlMsg + '<br><br><button onclick="window.close()" style="font-size:1em;">Close</button></body></html>');
-        win.document.close();
-    } else {
-        alert(msg);
-    }
-};
 
 // Show persistent warning if 'multi' signal type is selected or generated
 function showMultiWarningBox(show) {

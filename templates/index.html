@@ -22,7 +22,7 @@
             <button class="header-btn" id="businessBtn">Business</button>
         </nav>
         <!-- Main application title -->
-        <h1>Signal Processing and Visualization </h1>
+        <h1 style="margin: 20;">Tech & Data </h1>
     </header>
     
     <!-- ===== ANIMATED VISUAL ELEMENTS ===== -->
@@ -110,6 +110,181 @@
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        /* Plot management button styling - matches header-btn for consistency */
+        .plot-undo-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Plot button hover animation - matches header-btn behavior */
+        .plot-undo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        /* Plot button active state */
+        .plot-undo-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Dropdown content styling - hidden by default */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 6px;
+            z-index: 1;
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+        }
+        
+        /* Show dropdown content when dropdown is active */
+        .dropdown.active .dropdown-content {
+            display: block;
+        }
+        
+        /* Dropdown item buttons */
+        .dropdown-content button {
+            color: black;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 0;
+        }
+        
+        /* Dropdown item hover effect */
+        .dropdown-content button:hover {
+            background-color: #f1f1f1;
+        }
+        
+        /* First and last dropdown items rounded corners */
+        .dropdown-content button:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .dropdown-content button:last-child {
+            border-radius: 0 0 6px 6px;
+        }
+        
+        /* Button container styling - positioned below plot */
+        .button-stack {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px auto;
+            padding: 20px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            max-width: 500px;
+        }
+        
+        /* Draggable button canvas styling */
+        .draggable-button-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 8px;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: move;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            user-select: none;
+        }
+        
+        /* Draggable canvas hover effect */
+        .draggable-button-canvas:hover {
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            transform: translate(-50%, -50%) scale(1.02);
+        }
+        
+        /* Button styling inside draggable canvas */
+        .draggable-button-canvas .header-btn {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        
+        .draggable-button-canvas .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        /* Vertical signal controls canvas styling */
+        .vertical-signal-canvas {
+            position: absolute;
+            top: 200px;
+            right: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(46, 125, 50, 0.9));
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: move;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            user-select: none;
+            width: 140px;
+            min-width: 140px;
+            max-width: 140px;
+        }
+        
+        /* Vertical canvas hover effect */
+        .vertical-signal-canvas:hover {
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        
+        /* Button styling inside vertical canvas */
+        .vertical-signal-canvas button {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .vertical-signal-canvas button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
     </style>
     
     <!-- ===== MAIN APPLICATION CONTENT ===== -->
@@ -128,44 +303,6 @@
                     <!-- Hidden file input for CSV import -->
                     <input type="file" id="importFile" accept=".csv" style="display:none">
                     <button type="button" id="importBtn">Import CSV</button>
-                </div>
-            </div>
-            
-            <!-- ===== PROCESSING CONTROLS SIDEBAR ===== -->
-            <!-- Right-side control panel for signal processing operations -->
-            <div class="sidebar">
-                
-                <!-- Main processing button -->
-                <button class="main-btn" id="processingBtn">Processing</button>
-                
-                <!-- Filter operations dropdown -->
-                <div class="dropdown" id="filterDropdownContainer">
-                    <button class="dropbtn" id="filterBtn">Filter ▼</button>
-                    <div class="dropdown-content" id="filterDropdownContent">
-                        <button type="button" id="filterBtn_highPass">High Pass Filter</button>
-                        <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
-                        <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
-                        <button type="button" id="filterBtn_view">Filter View</button> <!-- Filter visualization -->
-                    </div>
-                </div>
-                
-                <!-- Analysis operations dropdown -->
-                <div class="dropdown">
-                    <button class="dropbtn" id="analyzeBtn">Analyze ▼</button>
-                    <div class="dropdown-content" id="analyzeDropdown">
-                        <button type="button" id="analyzeBtn_correlation">Correlation</button>
-                    </div>
-                </div>
-                
-                <!-- Mathematical operations dropdown -->
-                <div class="dropdown">
-                    <button class="dropbtn" id="operationsBtn">Operations ▼</button>
-                    <div class="dropdown-content" id="operationsDropdown">
-                        <button type="button" id="opsBtn_add">Add</button>
-                        <button type="button" id="opsBtn_subtract">Subtract</button>
-                        <button type="button" id="opsBtn_multiply">Multiply</button>
-                        <button type="button" id="opsBtn_divide">Divide</button>
-                    </div>
                 </div>
             </div>
             
@@ -228,8 +365,8 @@
                         <input type="number" id="tauValue" name="tauValue" min="0.001" max="10" step="0.001" value="0.05" style="width:90px; text-align:center;">
                     </div>
                     
-                    <!-- Primary action buttons for signal generation -->
-                    <div class="button-group">
+                    <!-- Primary action buttons for signal generation - Hidden, functionality moved to draggable canvas -->
+                    <div class="button-group" style="display:none;">
                         <button type="button" id="generateBtn">Generate Signal</button>
                         <button type="button" id="livePlotBtn">Live Plot</button>
                         <button type="button" id="addOverlayBtn">Add Overlay</button>
@@ -237,23 +374,51 @@
                         <button type="button" id="deconvBtn" style="display:none; margin-left:10px;">Deconvolution</button>
                     </div>
                 </form>
-
-                <!-- ===== PLOT MANAGEMENT CONTROLS ===== -->
-                <!-- Utility buttons for plot manipulation -->
-                <div class="button-stack">
-                    <button type="button" id="clearBtn" class="plot-clear-btn">Clear</button>
-                    <button type="button" id="undo-btn" class="plot-undo-btn">Undo</button>
-                </div>
                 
                 <!-- ===== PLOT DISPLAY AREA ===== -->
-                <!-- Custom legend for plot traces -->
-                <div id="custom-legend" class="custom-legend" style="margin: 12px 0 12px 0; position:relative; left:0; z-index:100;"></div>
                 
-                <!-- Main plot container - uses Plotly.js for interactive visualization -->
-                <div id="plot" style="width:900px;height:600px;"></div>
-                
-                <!-- User instruction text -->
-                <p class="zoom-instructions">Drag to zoom in, double-click to reset zoom</p>
+                <!-- Plot area with left sidebar for processing controls -->
+                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                    <!-- ===== PROCESSING CONTROLS SIDEBAR ===== -->
+                    <!-- Vertical sidebar with processing operation buttons -->
+                    <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 8px; width: 150px;">
+                        <!-- Main processing button -->
+                        <button class="header-btn" id="processingBtn">Processing</button>
+                        
+                        <!-- Filter operations dropdown -->
+                        <div class="dropdown" id="filterDropdownContainer" style="position: relative;">
+                            <button class="header-btn" id="filterBtn" style="width: 100%;">Filter ▼</button>
+                            <div class="dropdown-content" id="filterDropdownContent">
+                                <button type="button" id="filterBtn_highPass">High Pass Filter</button>
+                                <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
+                                <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
+                                <button type="button" id="filterBtn_view">Filter View</button> <!-- Filter visualization -->
+                            </div>
+                        </div>
+                        
+                        <!-- Analysis operations dropdown -->
+                        <div class="dropdown" style="position: relative;">
+                            <button class="header-btn" id="analyzeBtn" style="width: 100%;">Analyze ▼</button>
+                            <div class="dropdown-content" id="analyzeDropdown">
+                                <button type="button" id="analyzeBtn_correlation">Correlation</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Mathematical operations dropdown -->
+                        <div class="dropdown" style="position: relative;">
+                            <button class="header-btn" id="operationsBtn" style="width: 100%;">Operations ▼</button>
+                            <div class="dropdown-content" id="operationsDropdown">
+                                <button type="button" id="opsBtn_add">Add</button>
+                                <button type="button" id="opsBtn_subtract">Subtract</button>
+                                <button type="button" id="opsBtn_multiply">Multiply</button>
+                                <button type="button" id="opsBtn_divide">Divide</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main plot container - uses Plotly.js for interactive visualization -->
+                    <div id="plot" style="width:750px;height:600px; flex: 1;"></div>
+                </div>
                 
                 <!-- ===== DECONVOLUTION CONTROLS ===== -->
                 <!-- Slider for deconvolution regularization parameter - hidden by default -->
@@ -268,6 +433,21 @@
             </section>
         </div>
     </main>
+    
+    <!-- ===== DRAGGABLE BUTTON CANVAS ===== -->
+    <div class="draggable-button-canvas" id="buttonCanvas">
+        <button type="button" id="clearBtn" class="header-btn">Clear</button>
+        <button type="button" id="undo-btn" class="header-btn">Undo</button>
+        <button type="button" id="showStateBtn" class="header-btn">Show Data Status</button>
+    </div>
+    
+    <!-- ===== VERTICAL SIGNAL CONTROLS CANVAS ===== -->
+    <div class="vertical-signal-canvas" id="signalCanvas">
+        <button type="button" id="generateBtn2">Generate Signal</button>
+        <button type="button" id="addOverlayBtn2">Add Overlay</button>
+        <button type="button" id="livePlotBtn2">Live Plot</button>
+        <button type="button" id="deconvBtn2" style="display:none;">Deconvolution</button>
+    </div>
     
     <!-- ===== EXTERNAL JAVASCRIPT MODULES ===== -->
     <!-- Main UI functionality and event handlers -->
@@ -317,6 +497,42 @@
         // Start Rwanda flag animation when page loads
         document.addEventListener('DOMContentLoaded', animateRwandaFlag);
         
+        // ===== DROPDOWN FUNCTIONALITY =====
+        // Handle dropdown button clicks to show/hide dropdown content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all dropdown buttons
+            const dropdownButtons = document.querySelectorAll('#filterBtn, #analyzeBtn, #operationsBtn');
+            
+            dropdownButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Get the parent dropdown container
+                    const dropdown = this.parentElement;
+                    
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown').forEach(otherDropdown => {
+                        if (otherDropdown !== dropdown) {
+                            otherDropdown.classList.remove('active');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    dropdown.classList.toggle('active');
+                });
+            });
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown').forEach(dropdown => {
+                        dropdown.classList.remove('active');
+                    });
+                }
+            });
+        });
+        
         // ===== FORM FIELD VISIBILITY CONTROL =====
         // Show/hide form fields based on selected signal type
         document.addEventListener('DOMContentLoaded', function() {
@@ -338,6 +554,205 @@
             signalType.addEventListener('change', updateFields);
             // Set initial field visibility
             updateFields();
+        });
+        
+        // ===== DRAGGABLE BUTTON CANVAS =====
+        // Make the button canvas draggable around the screen
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttonCanvas = document.getElementById('buttonCanvas');
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+            
+            // Mouse down event - start dragging
+            buttonCanvas.addEventListener('mousedown', function(e) {
+                // Don't drag if clicking on a button
+                if (e.target.tagName === 'BUTTON') return;
+                
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Get current absolute position
+                const rect = buttonCanvas.getBoundingClientRect();
+                initialLeft = rect.left + window.scrollX;
+                initialTop = rect.top + window.scrollY;
+                
+                buttonCanvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            // Mouse move event - drag the canvas
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = initialLeft + deltaX;
+                const newTop = initialTop + deltaY;
+                
+                // Set absolute position directly
+                buttonCanvas.style.position = 'absolute';
+                buttonCanvas.style.left = newLeft + 'px';
+                buttonCanvas.style.top = newTop + 'px';
+                buttonCanvas.style.transform = 'translate(-50%, -50%)';
+            });
+            
+            // Mouse up event - stop dragging
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    buttonCanvas.style.cursor = 'move';
+                }
+            });
+            
+            // Touch events for mobile support
+            buttonCanvas.addEventListener('touchstart', function(e) {
+                if (e.target.tagName === 'BUTTON') return;
+                
+                isDragging = true;
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                const rect = buttonCanvas.getBoundingClientRect();
+                initialLeft = rect.left + window.scrollX;
+                initialTop = rect.top + window.scrollY;
+                
+                e.preventDefault();
+            });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - startX;
+                const deltaY = touch.clientY - startY;
+                
+                const newLeft = initialLeft + deltaX;
+                const newTop = initialTop + deltaY;
+                
+                buttonCanvas.style.position = 'absolute';
+                buttonCanvas.style.left = newLeft + 'px';
+                buttonCanvas.style.top = newTop + 'px';
+                buttonCanvas.style.transform = 'translate(-50%, -50%)';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('touchend', function() {
+                isDragging = false;
+            });
+        });
+        
+        // ===== VERTICAL SIGNAL CANVAS DRAGGING =====
+        // Make the vertical signal canvas draggable around the screen
+        document.addEventListener('DOMContentLoaded', function() {
+            const signalCanvas = document.getElementById('signalCanvas');
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+            
+            // Mouse down event - start dragging
+            signalCanvas.addEventListener('mousedown', function(e) {
+                // Don't drag if clicking on a button
+                if (e.target.tagName === 'BUTTON') return;
+                
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // Get current absolute position
+                const rect = signalCanvas.getBoundingClientRect();
+                initialLeft = rect.left + window.scrollX;
+                initialTop = rect.top + window.scrollY;
+                
+                signalCanvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            // Mouse move event - drag the canvas
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = initialLeft + deltaX;
+                const newTop = initialTop + deltaY;
+                
+                // Set absolute position directly
+                signalCanvas.style.position = 'absolute';
+                signalCanvas.style.left = newLeft + 'px';
+                signalCanvas.style.top = newTop + 'px';
+                signalCanvas.style.transform = 'none';
+            });
+            
+            // Mouse up event - stop dragging
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    signalCanvas.style.cursor = 'move';
+                }
+            });
+            
+            // Touch events for mobile support
+            signalCanvas.addEventListener('touchstart', function(e) {
+                if (e.target.tagName === 'BUTTON') return;
+                
+                isDragging = true;
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                const rect = signalCanvas.getBoundingClientRect();
+                initialLeft = rect.left + window.scrollX;
+                initialTop = rect.top + window.scrollY;
+                
+                e.preventDefault();
+            });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - startX;
+                const deltaY = touch.clientY - startY;
+                
+                const newLeft = initialLeft + deltaX;
+                const newTop = initialTop + deltaY;
+                
+                signalCanvas.style.position = 'absolute';
+                signalCanvas.style.left = newLeft + 'px';
+                signalCanvas.style.top = newTop + 'px';
+                signalCanvas.style.transform = 'none';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('touchend', function() {
+                isDragging = false;
+            });
+            
+            // ===== CONNECT NEW BUTTONS TO EXISTING FUNCTIONALITY =====
+            // Connect the new draggable buttons to the original button functions
+            
+            // Generate Signal button
+            document.getElementById('generateBtn2').addEventListener('click', function() {
+                document.getElementById('generateBtn').click();
+            });
+            
+            // Add Overlay button  
+            document.getElementById('addOverlayBtn2').addEventListener('click', function() {
+                document.getElementById('addOverlayBtn').click();
+            });
+            
+            // Live Plot button
+            document.getElementById('livePlotBtn2').addEventListener('click', function() {
+                document.getElementById('livePlotBtn').click();
+            });
+            
+            // Deconvolution button
+            document.getElementById('deconvBtn2').addEventListener('click', function() {
+                document.getElementById('deconvBtn').click();
+            });
         });
     </script>
 
