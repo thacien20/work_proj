@@ -28,6 +28,40 @@
     ">
         <canvas id="galaxy-canvas" width="120" height="120" style="display:block; margin:0 auto; background:#101020; border-radius:10px; pointer-events:none;"></canvas>
     </div>
+    
+    <!-- Rwanda flag canvas container -->
+    <div id="rwanda-canvas-container" style="
+        position:fixed;
+        right:20px;
+        top:120px;
+        width:240px;
+        height:240px;
+        z-index:999;
+        pointer-events:none;
+        background:rgba(0,0,0,0.1);
+        border-radius:50%;
+        border:2px solid rgba(255,255,255,0.2);
+        overflow:hidden;
+    ">
+        <img id="rwanda-flag" src="/static/imag/rwanda.PNG" alt="Rwanda Flag" style="
+            position:absolute;
+            width:240px;
+            height:240px;
+            object-fit:cover;
+            object-position:center;
+            border-radius:50%;
+            box-shadow:0 10px 30px rgba(0,0,0,0.9);
+            left:50%;
+            top:50%;
+            transform:translate(-50%, -50%);
+        ">
+    </div>
+
+    <style>
+        #rwanda-canvas-container:hover {
+            background:rgba(0,0,0,0.2);
+        }
+    </style>
     <main style="display: flex; flex-direction:row-reverse; align-items: flex-start;">
         <!-- Removed old galaxy-sidebar from here -->
         <div style="flex:1;">
@@ -139,6 +173,42 @@
     <script type="module" src="/static/js/ui.js"></script>
     <script type="module" src="/static/js/galaxy.js"></script>
     <script>
+    // Rwanda flag depth animation (traveling through space)
+    function animateRwandaFlag() {
+        const flag = document.getElementById('rwanda-flag');
+        let animationFrame;
+        let startTime = Date.now();
+        
+        function animateDepth() {
+            const currentTime = Date.now();
+            const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
+            
+            // Create a sine wave for smooth back-and-forth motion (4 second cycle - faster)
+            const cycle = (Math.sin(elapsed * Math.PI / 2) + 1) / 2; // 0 to 1
+            
+            // Scale: from 1.0 (fills canvas) to 2.0 (very close/zoomed in) - NO EMPTY SPACE
+            const scale = 1.0 + (cycle * 1.0);
+            
+            // Opacity: from 0.7 (slightly faded) to 1.0 (fully visible)
+            const opacity = 0.7 + (cycle * 0.3);
+            
+            // Faster rotation for more dynamic effect
+            const rotation = elapsed * 15; // Faster rotation: 15°/second
+            
+            // Apply the transform with scaling, opacity, and rotation
+            flag.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`;
+            flag.style.opacity = opacity;
+            
+            animationFrame = requestAnimationFrame(animateDepth);
+        }
+        
+        // Start the animation
+        animateDepth();
+    }
+    
+    // Start animation when page loads
+    document.addEventListener('DOMContentLoaded', animateRwandaFlag);
+    
     // Show/hide multi-frequency and custom formula fields
     document.addEventListener('DOMContentLoaded', function() {
         const signalType = document.getElementById('signalType');
