@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, render_template, send_file
-from functools import lru_cache
 import numpy as np
 import os
 from werkzeug.utils import secure_filename
@@ -102,7 +101,6 @@ def upload_signal():
     return jsonify({'error': 'File type not allowed'}), 400
 
 @app.route('/api/waveforms', methods=['GET'])
-@lru_cache(maxsize=32)
 def waveforms_endpoint():
     return jsonify(get_waveforms())
 
@@ -236,7 +234,7 @@ def rc_circuit_simulation():
     """
     Simulate the step response of an RC circuit.
     Expects JSON: {"R": float, "C": float, "V_in": float, "duration": float, "points": int}
-    Returns: {"t": [...], "V_out": [...]}
+    Returns: {"t": [...], "V_out": [...], "I_out": [...]}
     """
     data = request.get_json()
     if not data:
@@ -247,17 +245,17 @@ def rc_circuit_simulation():
         V_in = float(data.get('V_in', 1.0))  # Input step voltage
         duration = float(data.get('duration', 0.05))  # seconds
         points = int(data.get('points', 500))
-        t, V_out = rc_circuit_step_response(R, C, V_in, duration, points)
+        t, V_out, I_out = rc_circuit_step_response(R, C, V_in, duration, points)
     except Exception:
         return jsonify({'error': 'Invalid or missing parameters'}), 400
-    return jsonify({'t': t.tolist(), 'V_out': V_out.tolist()})
+    return jsonify({'t': t.tolist(), 'V_out': V_out.tolist(), 'I_out': I_out.tolist()})
 
 @app.route('/api/rl_circuit', methods=['POST'])
 def rl_circuit_simulation():
     """
     Simulate the step response of an RL circuit.
     Expects JSON: {"R": float, "L": float, "V_in": float, "duration": float, "points": int}
-    Returns: {"t": [...], "I_out": [...]}
+    Returns: {"t": [...], "I_out": [...], "V_out": [...]}
     """
     data = request.get_json()
     if not data:
@@ -268,17 +266,17 @@ def rl_circuit_simulation():
         V_in = float(data.get('V_in', 1.0))  # Input step voltage
         duration = float(data.get('duration', 0.05))  # seconds
         points = int(data.get('points', 500))
-        t, I_out = rl_circuit_step_response(R, L, V_in, duration, points)
+        t, I_out, V_out = rl_circuit_step_response(R, L, V_in, duration, points)
     except Exception:
         return jsonify({'error': 'Invalid or missing parameters'}), 400
-    return jsonify({'t': t.tolist(), 'I_out': I_out.tolist()})
+    return jsonify({'t': t.tolist(), 'I_out': I_out.tolist(), 'V_out': V_out.tolist()})
 
 @app.route('/api/rlc_circuit', methods=['POST'])
 def rlc_circuit_simulation():
     """
     Simulate the step response of a series RLC circuit.
     Expects JSON: {"R": float, "L": float, "C": float, "V_in": float, "duration": float, "points": int}
-    Returns: {"t": [...], "V_out": [...]}
+    Returns: {"t": [...], "V_out": [...], "I_out": [...]}
     """
     data = request.get_json()
     if not data:
@@ -290,10 +288,10 @@ def rlc_circuit_simulation():
         V_in = float(data.get('V_in', 1.0))
         duration = float(data.get('duration', 0.05))
         points = int(data.get('points', 500))
-        t, V_out = rlc_circuit_step_response(R, L, C, V_in, duration, points)
+        t, V_out, I_out = rlc_circuit_step_response(R, L, C, V_in, duration, points)
     except Exception:
         return jsonify({'error': 'Invalid or missing parameters'}), 400
-    return jsonify({'t': t.tolist(), 'V_out': V_out.tolist()})
+    return jsonify({'t': t.tolist(), 'V_out': V_out.tolist(), 'I_out': I_out.tolist()})
 
 @app.route('/api/diagram/<circuit_type>')
 def serve_circuit_diagram(circuit_type):

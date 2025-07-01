@@ -1,6 +1,6 @@
 // circuit_ui.js
 // Handles all UI logic for Circuits Lab (DOM, events, info, export)
-import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC } from './circuit_frontEnd.js';
+import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI } from './circuit_frontEnd.js';
 
 function setupCircuitLabUI() {
     const circuitType = document.getElementById('circuitType');
@@ -8,6 +8,7 @@ function setupCircuitLabUI() {
     const rlFields = document.getElementById('rl-fields');
     const rlcFields = document.getElementById('rlc-fields');
     const equationText = document.getElementById('equation-text');
+    const showCurrentCheckbox = document.getElementById('showCurrentCheckbox');
     circuitType.addEventListener('change', function() {
         if (this.value === 'rc') {
             rcFields.style.display = '';
@@ -34,11 +35,20 @@ function setupCircuitLabUI() {
         try {
             const def = { R: 1000, C: 1e-6, V_in: 1.0, duration: 0.05, points: 500 };
             const result = await simulateRCCircuit(def.R, def.C, def.V_in, def.duration, def.points);
-            plotRC(result.t, result.V_out);
+            if (showCurrentCheckbox && showCurrentCheckbox.checked) {
+                plotRC_VI(result.t, result.V_out, result.I_out, true);
+            } else {
+                plotRC(result.t, result.V_out);
+            }
         } catch (err) {
             document.getElementById('circuit-plot').innerText = 'Error loading default RC plot.';
         }
     });
+
+    // Helper to get checkbox state
+    function isShowCurrent() {
+        return showCurrentCheckbox && showCurrentCheckbox.checked;
+    }
 
     // Button event
     document.getElementById('circuitSimBtn').addEventListener('click', async () => {
@@ -46,6 +56,7 @@ function setupCircuitLabUI() {
         const V_in = parseFloat(document.getElementById('circuitVin').value);
         const duration = parseFloat(document.getElementById('circuitDuration').value);
         const points = parseInt(document.getElementById('circuitPoints').value);
+        const showCurrent = isShowCurrent();
         if (type === 'rc') {
             const R = parseFloat(document.getElementById('rcR').value);
             const C = parseFloat(document.getElementById('rcC').value);
@@ -55,7 +66,11 @@ function setupCircuitLabUI() {
             }
             try {
                 const result = await simulateRCCircuit(R, C, V_in, duration, points);
-                plotRC(result.t, result.V_out);
+                if (showCurrent) {
+                    plotRC_VI(result.t, result.V_out, result.I_out, true);
+                } else {
+                    plotRC(result.t, result.V_out);
+                }
             } catch (err) {
                 alert('RC Circuit Error: ' + err.message);
             }
@@ -68,7 +83,11 @@ function setupCircuitLabUI() {
             }
             try {
                 const result = await simulateRLCircuit(R, L, V_in, duration, points);
-                plotRL(result.t, result.I_out);
+                if (showCurrent) {
+                    plotRL_VI(result.t, result.I_out, result.V_out, true);
+                } else {
+                    plotRL(result.t, result.I_out);
+                }
             } catch (err) {
                 alert('RL Circuit Error: ' + err.message);
             }
@@ -82,12 +101,24 @@ function setupCircuitLabUI() {
             }
             try {
                 const result = await simulateRLCCircuit(R, L, C, V_in, duration, points);
-                plotRLC(result.t, result.V_out);
+                if (showCurrent) {
+                    plotRLC_VI(result.t, result.V_out, result.I_out, true);
+                } else {
+                    plotRLC(result.t, result.V_out);
+                }
             } catch (err) {
                 alert('RLC Circuit Error: ' + err.message);
             }
         }
     });
+
+    // Listen for checkbox changes to update plot
+    if (showCurrentCheckbox) {
+        showCurrentCheckbox.addEventListener('change', async () => {
+            // Simulate button click to refresh plot with new checkbox state
+            document.getElementById('circuitSimBtn').click();
+        });
+    }
 
     // Show Diagram button logic
     const showDiagramBtn = document.getElementById('showDiagramBtn');

@@ -59,7 +59,13 @@
             </div>
             <button type="button" id="circuitSimBtn" class="processing-btn" style="width:100%;margin-top:10px;">Simulate Circuit</button>
         </section>
-        <div id="circuit-plot" style="width:700px; height:400px; margin-top:30px;"></div>
+        <div style="width:700px; display:flex; align-items:center; gap:15px; margin-top:20px;">
+            <div style="flex:1;"></div>
+            <label style="font-size:1em; user-select:none;">
+                <input type="checkbox" id="showCurrentCheckbox" style="margin-right:6px; vertical-align:middle;">Show Current
+            </label>
+        </div>
+        <div id="circuit-plot" style="width:700px; height:400px; margin-top:10px;"></div>
         <section id="circuit-info" style="margin-top:20px; padding:10px; background:rgba(255,255,255,0.95); border-radius:8px; max-width:700px; width:100%;">
             <h4>About This Circuit</h4>
             <div id="equation-area">
