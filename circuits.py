@@ -59,3 +59,54 @@ def rl_circuit_step_response(R=1000, L=1e-3, V_in=1.0, duration=0.05, points=500
 def rlc_circuit_step_response(R=1000, L=1e-3, C=1e-6, V_in=1.0, duration=0.05, points=500):
     from rlc import rlc_circuit_step_response as rlc_func
     return rlc_func(R, L, C, V_in, duration, points)
+
+def differentiator_circuit_response(R=1000, C=1e-6, V_in=1.0, duration=0.05, points=500):
+    """
+    Simulate the step response of a practical op-amp differentiator circuit.
+    Returns output voltage for a given input step.
+    Args:
+        R (float): Resistance in Ohms
+        C (float): Capacitance in Farads
+        V_in (float): Input step voltage
+        duration (float): Duration of simulation in seconds
+        points (int): Number of points in output
+    Returns:
+        t (np.ndarray): Time array
+        V_out (np.ndarray): Output voltage array (differentiated signal)
+    """
+    if R <= 0 or C <= 0 or duration <= 0 or points <= 1:
+        raise ValueError("Invalid parameters for differentiator simulation.")
+    # Use a practical differentiator: H(s) = (sRC)/(tau*s + 1)
+    tau = 1e-6  # Small time constant for physical realizability
+    num = [R*C, 0]
+    den = [tau, 1]
+    system = signal.TransferFunction(num, den)
+    t = np.linspace(0, duration, points)
+    tout, V_out = signal.step(system, T=t)
+    V_out = V_in * V_out
+    return tout, V_out
+
+def integrator_circuit_response(R=1000, C=1e-6, V_in=1.0, duration=0.05, points=500):
+    """
+    Simulate the step response of an op-amp integrator circuit.
+    Returns output voltage for a given input step.
+    Args:
+        R (float): Resistance in Ohms
+        C (float): Capacitance in Farads
+        V_in (float): Input step voltage
+        duration (float): Duration of simulation in seconds
+        points (int): Number of points in output
+    Returns:
+        t (np.ndarray): Time array
+        V_out (np.ndarray): Output voltage array (integrated signal)
+    """
+    if R <= 0 or C <= 0 or duration <= 0 or points <= 1:
+        raise ValueError("Invalid parameters for integrator simulation.")
+    # Transfer function: H(s) = 1/(sRC)
+    num = [1]
+    den = [R*C, 0]
+    system = signal.TransferFunction(num, den)
+    t = np.linspace(0, duration, points)
+    tout, V_out = signal.step(system, T=t)
+    V_out = V_in * V_out
+    return tout, V_out

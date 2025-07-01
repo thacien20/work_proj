@@ -1,5 +1,5 @@
 // circuit_frontEnd.js
-// Handles all frontend logic for Circuits Lab (RC, RL, RLC)
+// Handles all frontend logic for Circuits Lab (RC, RL, RLC, Differentiator, Integrator)
 
 // Use global Plotly (already loaded in HTML)
 
@@ -36,6 +36,30 @@ async function simulateRLCCircuit(R, L, C, V_in, duration, points) {
     if (!response.ok) throw new Error(result.error || 'RLC circuit simulation failed');
     return result;
 }
+async function simulateDifferentiatorCircuit(R, C, V_in, duration, points) {
+    const payload = { R, C, V_in, duration, points };
+    const response = await fetch('/circuits/differentiator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Differentiator simulation failed');
+    return result;
+}
+
+async function simulateIntegratorCircuit(R, C, V_in, duration, points) {
+    const payload = { R, C, V_in, duration, points };
+    const response = await fetch('/circuits/integrator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Integrator simulation failed');
+    return result;
+}
+
 function plotRC(t, V_out) {
     Plotly.newPlot('circuit-plot', [{
         x: t,
@@ -201,4 +225,34 @@ function plotRLC_VI(t, V_out, I_out, showCurrent) {
     Plotly.newPlot('circuit-plot', traces, layout);
 }
 
-export { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI };
+function plotDifferentiator(t, V_out) {
+    Plotly.newPlot('circuit-plot', [{
+        x: t,
+        y: V_out,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Differentiator Output',
+        line: { color: '#8e44ad' }
+    }], {
+        title: 'Op-Amp Differentiator Step Response',
+        xaxis: { title: 'Time (s)' },
+        yaxis: { title: 'V_{out} (V)' }
+    });
+}
+
+function plotIntegrator(t, V_out) {
+    Plotly.newPlot('circuit-plot', [{
+        x: t,
+        y: V_out,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Integrator Output',
+        line: { color: '#16a085' }
+    }], {
+        title: 'Op-Amp Integrator Step Response',
+        xaxis: { title: 'Time (s)' },
+        yaxis: { title: 'V_{out} (V)' }
+    });
+}
+
+export { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator };

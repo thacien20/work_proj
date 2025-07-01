@@ -1,6 +1,6 @@
 // circuit_ui.js
 // Handles all UI logic for Circuits Lab (DOM, events, info, export)
-import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI } from './circuit_frontEnd.js';
+import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator } from './circuit_frontEnd.js';
 
 function setupCircuitLabUI() {
     const circuitType = document.getElementById('circuitType');
@@ -25,6 +25,16 @@ function setupCircuitLabUI() {
             rlFields.style.display = 'none';
             rlcFields.style.display = '';
             equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - (1/\sqrt{1-\zeta^2})e^{-\zeta\omega_n t} \sin(\omega_d t + \phi))';
+        } else if (this.value === 'differentiator') {
+            rcFields.style.display = '';
+            rlFields.style.display = 'none';
+            rlcFields.style.display = 'none';
+            equationText.innerHTML = 'V<sub>out</sub>(t) = RC \, (dV_{in}/dt)';
+        } else if (this.value === 'integrator') {
+            rcFields.style.display = '';
+            rlFields.style.display = 'none';
+            rlcFields.style.display = 'none';
+            equationText.innerHTML = 'V<sub>out</sub>(t) = (1/RC) \int V_{in}(t) dt';
         }
     });
     // Default info
@@ -108,6 +118,32 @@ function setupCircuitLabUI() {
                 }
             } catch (err) {
                 alert('RLC Circuit Error: ' + err.message);
+            }
+        } else if (type === 'differentiator') {
+            const R = parseFloat(document.getElementById('rcR').value);
+            const C = parseFloat(document.getElementById('rcC').value);
+            if (isNaN(R) || isNaN(C) || isNaN(V_in) || isNaN(duration) || isNaN(points)) {
+                alert('Please enter valid differentiator parameters.');
+                return;
+            }
+            try {
+                const result = await simulateDifferentiatorCircuit(R, C, V_in, duration, points);
+                plotDifferentiator(result.t, result.V_out);
+            } catch (err) {
+                alert('Differentiator Error: ' + err.message);
+            }
+        } else if (type === 'integrator') {
+            const R = parseFloat(document.getElementById('rcR').value);
+            const C = parseFloat(document.getElementById('rcC').value);
+            if (isNaN(R) || isNaN(C) || isNaN(V_in) || isNaN(duration) || isNaN(points)) {
+                alert('Please enter valid integrator parameters.');
+                return;
+            }
+            try {
+                const result = await simulateIntegratorCircuit(R, C, V_in, duration, points);
+                plotIntegrator(result.t, result.V_out);
+            } catch (err) {
+                alert('Integrator Error: ' + err.message);
             }
         }
     });

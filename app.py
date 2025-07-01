@@ -15,9 +15,13 @@ from deconvolution import deconvolve_signal
 from circuits import rc_circuit_step_response, rl_circuit_step_response
 from circuits import rlc_circuit_step_response  # Add RLC import
 from circuit_diagrams import draw_rc_circuit, draw_rl_circuit, draw_rlc_circuit
+from circuits_app import circuits_blueprint
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
+
+# Register the circuits blueprint
+app.register_blueprint(circuits_blueprint, url_prefix='/circuits')
 
 os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 
