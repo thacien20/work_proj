@@ -1,6 +1,6 @@
 // ui.js
 import { state, FS } from './state.js';
-import { generateSignal } from './signal.js';
+import { generateSignal, simulateRCCircuit } from './signal.js';
 import { plotAll } from './plotting.js';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -116,6 +116,40 @@ window.addEventListener('DOMContentLoaded', () => {
             // Instead of reassigning the const, just set the value
             this.value = val;
             document.getElementById('generateBtn').click();
+        });
+    }
+
+    // RC Circuit Simulation button event listener
+    const rcSimBtn = document.getElementById('rcSimBtn');
+    if (rcSimBtn) {
+        rcSimBtn.addEventListener('click', async () => {
+            const R = parseFloat(document.getElementById('rcR').value);
+            const C = parseFloat(document.getElementById('rcC').value);
+            const V_in = parseFloat(document.getElementById('rcVin').value);
+            const duration = parseFloat(document.getElementById('rcDuration').value);
+            const points = parseInt(document.getElementById('rcPoints').value);
+            if (isNaN(R) || isNaN(C) || isNaN(V_in) || isNaN(duration) || isNaN(points)) {
+                alert('Please enter valid RC circuit parameters.');
+                return;
+            }
+            try {
+                const result = await simulateRCCircuit(R, C, V_in, duration, points);
+                // Plot RC circuit response using Plotly
+                Plotly.newPlot('plot', [{
+                    x: result.t,
+                    y: result.V_out,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'RC Step Response',
+                    line: { color: '#0074D9' }
+                }], {
+                    title: 'RC Circuit Step Response',
+                    xaxis: { title: 'Time (s)' },
+                    yaxis: { title: 'V_out (V)' }
+                });
+            } catch (err) {
+                alert('RC Circuit Error: ' + err.message);
+            }
         });
     }
 });
@@ -729,4 +763,54 @@ if (!window._generateSignalPatched) {
         }
     };
     window._generateSignalPatched = true;
+}
+
+// RC Circuit Simulation button event listener
+const rcSimBtn = document.getElementById('rcSimBtn');
+if (rcSimBtn) {
+    rcSimBtn.addEventListener('click', async () => {
+        const R = parseFloat(document.getElementById('rcR').value);
+        const C = parseFloat(document.getElementById('rcC').value);
+        const V_in = parseFloat(document.getElementById('rcVin').value);
+        const duration = parseFloat(document.getElementById('rcDuration').value);
+        const points = parseInt(document.getElementById('rcPoints').value);
+        if (isNaN(R) || isNaN(C) || isNaN(V_in) || isNaN(duration) || isNaN(points)) {
+            alert('Please enter valid RC circuit parameters.');
+            return;
+        }
+        try {
+            const result = await simulateRCCircuit(R, C, V_in, duration, points);
+            // Plot RC circuit response using Plotly
+            Plotly.newPlot('plot', [{
+                x: result.t,
+                y: result.V_out,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'RC Step Response',
+                line: { color: '#0074D9' }
+            }], {
+                title: 'RC Circuit Step Response',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'V_out (V)' }
+            });
+        } catch (err) {
+            alert('RC Circuit Error: ' + err.message);
+        }
+    });
+}
+
+// Section toggle logic
+const signalSection = document.getElementById('signal-section');
+const circuitSection = document.getElementById('rc-circuit-section');
+const showSignalBtn = document.getElementById('showSignalBtn');
+const showCircuitBtn = document.getElementById('showCircuitBtn');
+if (showSignalBtn && showCircuitBtn && signalSection && circuitSection) {
+    showSignalBtn.addEventListener('click', () => {
+        signalSection.style.display = '';
+        circuitSection.style.display = 'none';
+    });
+    showCircuitBtn.addEventListener('click', () => {
+        signalSection.style.display = 'none';
+        circuitSection.style.display = '';
+    });
 }

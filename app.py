@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 from functools import lru_cache
 import numpy as np
 import os
 from werkzeug.utils import secure_filename
+from scipy import signal  # Add this import for RC circuit simulation
 
 from config import Config
 from signal_generation import generate_signal  # <-- updated import
@@ -12,6 +13,9 @@ from waveforms import get_waveforms
 from Filters import apply_filter
 from filters_view import filter_visualization
 from deconvolution import deconvolve_signal
+from circuits import rc_circuit_step_response, rl_circuit_step_response
+from circuits import rlc_circuit_step_response  # Add RLC import
+from circuit_diagrams import draw_rc_circuit, draw_rl_circuit, draw_rlc_circuit
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
@@ -226,6 +230,89 @@ def deconvolve_endpoint():
         'deconv_freq_axis': result['deconv_freq_axis'].tolist(),
         'unstable': result['unstable']
     })
+
+@app.route('/api/rc_circuit', methods=['POST'])
+def rc_circuit_simulation():
+    """
+    Simulate the step response of an RC circuit.
+    Expects JSON: {"R": float, "C": float, "V_in": float, "duration": float, "points": int}
+    Returns: {"t": [...], "V_out": [...]}
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        R = float(data.get('R', 1000))  # Ohms
+        C = float(data.get('C', 1e-6))  # Farads
+        V_in = float(data.get('V_in', 1.0))  # Input step voltage
+        duration = float(data.get('duration', 0.05))  # seconds
+        points = int(data.get('points', 500))
+        t, V_out = rc_circuit_step_response(R, C, V_in, duration, points)
+    except Exception:
+        return jsonify({'error': 'Invalid or missing parameters'}), 400
+    return jsonify({'t': t.tolist(), 'V_out': V_out.tolist()})
+
+@app.route('/api/rl_circuit', methods=['POST'])
+def rl_circuit_simulation():
+    """
+    Simulate the step response of an RL circuit.
+    Expects JSON: {"R": float, "L": float, "V_in": float, "duration": float, "points": int}
+    Returns: {"t": [...], "I_out": [...]}
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        R = float(data.get('R', 1000))  # Ohms
+        L = float(data.get('L', 1e-3))  # Henrys
+        V_in = float(data.get('V_in', 1.0))  # Input step voltage
+        duration = float(data.get('duration', 0.05))  # seconds
+        points = int(data.get('points', 500))
+        t, I_out = rl_circuit_step_response(R, L, V_in, duration, points)
+    except Exception:
+        return jsonify({'error': 'Invalid or missing parameters'}), 400
+    return jsonify({'t': t.tolist(), 'I_out': I_out.tolist()})
+
+@app.route('/api/rlc_circuit', methods=['POST'])
+def rlc_circuit_simulation():
+    """
+    Simulate the step response of a series RLC circuit.
+    Expects JSON: {"R": float, "L": float, "C": float, "V_in": float, "duration": float, "points": int}
+    Returns: {"t": [...], "V_out": [...]}
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        R = float(data.get('R', 1000))
+        L = float(data.get('L', 1e-3))
+        C = float(data.get('C', 1e-6))
+        V_in = float(data.get('V_in', 1.0))
+        duration = float(data.get('duration', 0.05))
+        points = int(data.get('points', 500))
+        t, V_out = rlc_circuit_step_response(R, L, C, V_in, duration, points)
+    except Exception:
+        return jsonify({'error': 'Invalid or missing parameters'}), 400
+    return jsonify({'t': t.tolist(), 'V_out': V_out.tolist()})
+
+@app.route('/api/diagram/<circuit_type>')
+def serve_circuit_diagram(circuit_type):
+    if circuit_type == 'rc':
+        filename = os.path.join(app.static_folder, 'diagrams', 'rc_circuit.png')
+        draw_rc_circuit(filename)
+    elif circuit_type == 'rl':
+        filename = os.path.join(app.static_folder, 'diagrams', 'rl_circuit.png')
+        draw_rl_circuit(filename)
+    elif circuit_type == 'rlc':
+        filename = os.path.join(app.static_folder, 'diagrams', 'rlc_circuit.png')
+        draw_rlc_circuit(filename)
+    else:
+        return jsonify({'error': 'Unknown circuit type'}), 400
+    return send_file(filename, mimetype='image/png')
+
+@app.route('/circuits')
+def serve_circuits():
+    return render_template('circuits.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -345,3 +345,58 @@ canvas:not(:supported) + .canvas-fallback {
     margin: 0 auto;
     pointer-events: none;
 }
+
+#circuit-section {
+    position: absolute;
+    left: 0;
+    top: 200px; /* Moved up by 50px from previous 440px */
+    transform: translateY(0); /* No upward shift, start at X axis */
+    max-width: 160px;
+    width: 160px;
+    padding-left: 0;
+    z-index: 20;
+}
+#circuit-section .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: 10px;
+    padding: 0;
+    gap: 2px;
+}
+#circuit-section label {
+    font-weight: 500;
+    text-align: right;
+    min-width: 90px;
+    margin-bottom: 2px;
+}
+#circuit-section input,
+#circuit-section select {
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    font-size: 13px;
+    width: 90px;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+#circuitSimBtn {
+    margin-top: 8px;
+    padding: 6px 10px;
+    width: 90px;
+    min-width: 90px;
+    max-width: 100px;
+    font-size: 14px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: block;
+    margin-left:450px;
+    margin-right: auto;
+}
+#circuitSimBtn:hover, #circuitSimBtn:focus {
+    background: linear-gradient(90deg, #5a67d8 0%, #6b47b6 100%);
+}
