@@ -165,4 +165,29 @@ export async function signalToSignalOperation(signal1, signal2, operation, fs) {
     return result;
 }
 
+export async function simulateRCCircuit(R, C, V_in, duration, points) {
+    const payload = { R, C, V_in, duration, points };
+    const response = await fetch('/api/rc_circuit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'RC circuit simulation failed');
+    return result; // { t: [...], V_out: [...] }
+}
+
+async function simulateRLCCircuit(R, L, C, V_in, duration, points) {
+    const payload = { R, L, C, V_in, duration, points };
+    const response = await fetch('/api/rlc_circuit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'RLC circuit simulation failed');
+    return result;
+}
+export { simulateRLCCircuit };
+
 window.signalToSignalOperation = signalToSignalOperation;
