@@ -20,6 +20,7 @@
             <button class="header-btn" id="economicsBtn">Economics</button>
             <button class="header-btn" id="aiBtn">AI</button>
             <button class="header-btn" id="businessBtn">Business</button>
+            <a href="/circuits" class="header-btn" style="text-decoration:none;">Circuits Lab</a>
         </nav>
         <!-- Main application title -->
         <h1 style="margin: 20;">Tech & Data </h1>
@@ -505,6 +506,32 @@
                 
                 <!-- Warning display for multi-signal type issues -->
                 <div id="multi-warning" style="display:none;"></div>
+                
+                <!-- ===== RC CIRCUIT SIMULATION CONTROLS ===== -->
+                <section id="rc-circuit-section" style="display:none; margin-top:30px; padding:15px; background:rgba(240,240,255,0.12); border-radius:10px; max-width:500px;">
+                    <h3>RC Circuit Step Response</h3>
+                    <div class="form-group">
+                        <label for="rcR">Resistance R (Ohms):</label>
+                        <input type="number" id="rcR" min="1" max="1000000" value="1000" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcC">Capacitance C (Farads):</label>
+                        <input type="number" id="rcC" min="1e-9" max="1" value="1e-6" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcVin">Input Voltage V<sub>in</sub> (V):</label>
+                        <input type="number" id="rcVin" min="0.01" max="100" value="1.0" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcDuration">Duration (seconds):</label>
+                        <input type="number" id="rcDuration" min="0.001" max="10" value="0.05" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcPoints">Points:</label>
+                        <input type="number" id="rcPoints" min="10" max="2000" value="500" step="1">
+                    </div>
+                    <button type="button" id="rcSimBtn" class="processing-btn" style="width:100%;margin-top:10px;">Simulate RC Circuit</button>
+                </section>
             </section>
         </div>
     </main>
@@ -852,6 +879,39 @@
             // Deconvolution button
             document.getElementById('deconvBtn2').addEventListener('click', function() {
                 document.getElementById('deconvBtn').click();
+            });
+        });
+        
+        // ===== PAGE SECTION TOGGLE =====
+        // Show/hide sections based on toggle button clicks
+        document.addEventListener('DOMContentLoaded', function() {
+            const signalSection = document.getElementById('signal-section');
+            const rcCircuitSection = document.getElementById('rc-circuit-section');
+            const showSignalBtn = document.getElementById('showSignalBtn');
+            const showCircuitBtn = document.getElementById('showCircuitBtn');
+            
+            // Initially show signal processing section, hide circuits lab
+            signalSection.style.display = '';
+            rcCircuitSection.style.display = 'none';
+            
+            // Signal Processing button click
+            showSignalBtn.addEventListener('click', function() {
+                signalSection.style.display = '';
+                rcCircuitSection.style.display = 'none';
+                
+                // Update button styles
+                showSignalBtn.classList.add('active');
+                showCircuitBtn.classList.remove('active');
+            });
+            
+            // Circuits Lab button click
+            showCircuitBtn.addEventListener('click', function() {
+                signalSection.style.display = 'none';
+                rcCircuitSection.style.display = '';
+                
+                // Update button styles
+                showSignalBtn.classList.remove('active');
+                showCircuitBtn.classList.add('active');
             });
         });
     </script>
