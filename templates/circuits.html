@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuits Lab - RC Simulation</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
+        <nav style="display: flex; gap: 15px;">
+            <a href="/" class="header-btn" style="text-decoration:none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff;">Signal Processing</a>
+            <a href="/circuits" class="header-btn" style="text-decoration:none; background: #fff; color: #333;">Circuits Lab</a>
+        </nav>
+        <h1 style="margin: 20;">Circuits Lab</h1>
+    </header>
+    <main style="display: flex; flex-direction: column; align-items: center; margin-top: 40px;">
+        <section id="circuit-section" style="margin-top:10px; padding:15px; background:rgba(240,240,255,0.12); border-radius:10px; max-width:500px; width:100%;">
+            <div class="form-group">
+                <label for="circuitType">Circuit:</label>
+                <select id="circuitType">
+                  <option value="rc">RC (Resistor-Capacitor)</option>
+                  <option value="rl">RL (Resistor-Inductor)</option>
+                  <option value="rlc">RLC (Resistor-Inductor-Capacitor)</option>
+                </select>
+            </div>
+            <div class="form-group" id="rc-fields">
+                <label for="rcR">R (ohm):</label>
+                <input type="number" id="rcR" min="1" max="1000000" value="1000" step="1">
+                <label for="rcC">C (farads):</label>
+                <input type="number" id="rcC" min="1e-9" max="1" value="1e-6" step="any">
+            </div>
+            <div class="form-group" id="rl-fields" style="display:none;">
+                <label for="rlR">R (ohm):</label>
+                <input type="number" id="rlR" min="1" max="1000000" value="1000" step="1">
+                <label for="rlL">L (H):</label>
+                <input type="number" id="rlL" min="1e-6" max="10" value="0.001" step="any">
+            </div>
+            <div class="form-group" id="rlc-fields" style="display:none;">
+                <label for="rlcR">R (ohm):</label>
+                <input type="number" id="rlcR" min="1" max="1000000" value="1000" step="1">
+                <label for="rlcL">L (H):</label>
+                <input type="number" id="rlcL" min="1e-6" max="10" value="0.001" step="any">
+                <label for="rlcC">C (farads):</label>
+                <input type="number" id="rlcC" min="1e-9" max="1" value="1e-6" step="any">
+            </div>
+            <div class="form-group">
+                <label for="circuitVin">Vin (V):</label>
+                <input type="number" id="circuitVin" min="0.01" max="100" value="1.0" step="any">
+            </div>
+            <div class="form-group">
+                <label for="circuitDuration">Time (s):</label>
+                <input type="number" id="circuitDuration" min="0.001" max="10" value="0.05" step="any">
+            </div>
+            <div class="form-group">
+                <label for="circuitPoints">Points:</label>
+                <input type="number" id="circuitPoints" min="10" max="2000" value="500" step="1">
+            </div>
+            <button type="button" id="circuitSimBtn" class="processing-btn" style="width:100%;margin-top:10px;">Simulate Circuit</button>
+        </section>
+        <div id="circuit-plot" style="width:700px; height:400px; margin-top:30px;"></div>
+        <section id="circuit-info" style="margin-top:20px; padding:10px; background:rgba(255,255,255,0.95); border-radius:8px; max-width:700px; width:100%;">
+            <h4>About This Circuit</h4>
+            <div id="equation-area">
+                <b>Equation:</b> <span id="equation-text">Select a circuit type to see its equation.</span>
+            </div>
+            <div id="diagram-area" style="margin-top:10px;">
+                <b>Diagram:</b>
+                <button id="showDiagramBtn" type="button" style="margin-left:10px;">Show Diagram</button>
+                <br>
+                <img id="circuit-diagram-img" src="" alt="Circuit Diagram" style="display:none; margin-top:10px; max-width:300px; border:1px solid #ccc; border-radius:6px; background:#fff;" />
+            </div>
+        </section>
+    </main>
+    <script type="module" src="/static/js/circuit_frontEnd.js"></script>
+    <script type="module" src="/static/js/circuit_ui.js"></script>
+  </body>
+</html>
