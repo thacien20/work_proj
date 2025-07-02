@@ -3,32 +3,37 @@ import { state, FS } from './state.js';
 import { plotAll } from './plotting.js';
 
 export function generateSignal() {
-    const frequency = parseFloat(document.getElementById('frequency').value);
-    let points = parseInt(document.getElementById('points').value);
-    const noise = parseFloat(document.getElementById('noise').value);
-    const signalType = document.getElementById('signalType').value;
+    // Use only in-plot controls for all parameters
+    const freqInput = document.getElementById('frequency_inplot');
+    const signalType = document.getElementById('signalType_inplot').value;
+    let frequency, frequencies = null;
+    if (signalType === 'multi') {
+        // Accept both comma and/or space as separators for frequencies
+        frequencies = freqInput.value.split(/[\s,]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
+    } else {
+        frequency = parseFloat(freqInput.value);
+    }
+    let points = parseInt(document.getElementById('points_inplot').value);
+    const noise = parseFloat(document.getElementById('noise_inplot').value);
 
     // Multi-frequency fields
-    let frequencies = null;
     let amplitudes = null;
     if (signalType === 'multi') {
-        const freqStr = document.getElementById('multiFrequencies').value;
         const ampStr = document.getElementById('multiAmplitudes').value;
-        // Accept both comma and/or space as separators for frequencies
-        frequencies = freqStr.split(/[,\s]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
         // Accept both comma and/or space as separators for amplitudes
         if (ampStr.trim() !== '') {
             amplitudes = ampStr.split(/[,\s]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x));
         }
-        if (!frequencies.length) {
-            alert('Please enter at least one valid frequency for multi-frequency signal.');
-            return;
-        }
     }
 
     // Validation
-    if (!frequency || frequency <= 0.1 || frequency > 1000) {
-        if (signalType !== 'multi') {
+    if (signalType === 'multi') {
+        if (!frequencies || !frequencies.length) {
+            alert('Please enter at least one valid frequency for multi-frequency signal.');
+            return;
+        }
+    } else {
+        if (!frequency || frequency <= 0.1 || frequency > 1000) {
             alert('Please enter a valid frequency between 0.1 and 1000 Hz.');
             return;
         }
@@ -56,7 +61,7 @@ export function generateSignal() {
         // Clamp to allowed range
         if (adjustedPoints < 1024) adjustedPoints = 1024;
         if (adjustedPoints > 10000) adjustedPoints = 10500;
-        document.getElementById('points').value = adjustedPoints;
+        document.getElementById('points_inplot').value = adjustedPoints;
         console.log(`Multi: minFreq=${minFreq}, minDuration=${minDuration}, adjustedPoints=${adjustedPoints}`);
     } else {
         if (frequency > 1000) {
@@ -66,48 +71,18 @@ export function generateSignal() {
         // For single-type signals, use the points value directly from the HTML input (unrestricted)
         // Do not assign FS here! Just use adjustedPoints = points;
         adjustedPoints = points;
-        // Do not adjust or clamp points for single-type signals
-        document.getElementById('points').value = adjustedPoints;
+        document.getElementById('points_inplot').value = adjustedPoints;
         console.log(`Single: freq=${frequency}, points=${adjustedPoints}`);
     }
     console.log(`Using FS: ${FS} Hz, points: ${adjustedPoints}`);
 
     // Prepare payload
-    const payload = { frequency, points: adjustedPoints, noise, signalType, fs: FS };
+    const payload = { points: adjustedPoints, noise, signalType, fs: FS };
     if (signalType === 'multi') {
         payload.frequencies = frequencies;
         if (amplitudes) payload.amplitudes = amplitudes;
-    } else if (signalType === 'expdecay') {
-        // For exponential decay, get tau value from input
-        let tau = 0.05;
-        const tauInput = document.getElementById('tauValue');
-        if (tauInput) tau = parseFloat(tauInput.value) || 0.05;
-        payload.tau = tau;
-        // Optionally allow amplitude (default 1.0)
-        // let amplitude = 1.0;
-        // const ampInput = document.getElementById('amplitudeValue');
-        // if (ampInput) amplitude = parseFloat(ampInput.value) || 1.0;
-        // payload.amplitude = amplitude;
-        // No phase for expdecay
-    } else if (signalType === 'random' || signalType === 'gaussian') {
-        // For noise types, optionally allow amplitude and noise_type
-        let amplitude = 1.0;
-        // const ampInput = document.getElementById('amplitudeValue');
-        // if (ampInput) amplitude = parseFloat(ampInput.value) || 1.0;
-        payload.amplitude = amplitude;
-        // Set noise_type for backend
-        if (signalType === 'random') {
-            payload.noise_type = 'uniform';
-        } else if (signalType === 'gaussian') {
-            payload.noise_type = 'gaussian';
-        }
     } else {
-        let phase = 0;
-        if (signalType !== 'multi') {
-            const phaseInput = document.getElementById('phaseValue');
-            if (phaseInput) phase = parseInt(phaseInput.value, 10) || 0;
-        }
-        payload.phase = phase;
+        payload.frequency = frequency;
     }
 
     fetch('/api/signal', {

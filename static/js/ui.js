@@ -21,6 +21,35 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('generateBtn').onclick = generateSignal;
     document.getElementById('addOverlayBtn').onclick = addOverlay;
 
+    // In-plot Generate Signal button
+    const generateBtnInplot = document.getElementById('generateBtn_inplot');
+    if (generateBtnInplot) {
+        generateBtnInplot.addEventListener('click', generateSignal);
+    }
+
+    // In-plot Add Overlay, Live Plot, and Deconvolution buttons
+    const addOverlayBtnInplot = document.getElementById('addOverlayBtn_inplot');
+    if (addOverlayBtnInplot) {
+        addOverlayBtnInplot.addEventListener('click', function() {
+            const btn = document.getElementById('addOverlayBtn');
+            if (btn) btn.click();
+        });
+    }
+    const livePlotBtnInplot = document.getElementById('livePlotBtn_inplot');
+    if (livePlotBtnInplot) {
+        livePlotBtnInplot.addEventListener('click', function() {
+            const btn = document.getElementById('livePlotBtn');
+            if (btn) btn.click();
+        });
+    }
+    const deconvBtnInplot = document.getElementById('deconvBtn_inplot');
+    if (deconvBtnInplot) {
+        deconvBtnInplot.addEventListener('click', function() {
+            const btn = document.getElementById('deconvBtn');
+            if (btn) btn.click();
+        });
+    }
+
     // Files dropdown setup
     const filesBtn = document.getElementById('filesBtn');
     const fileDropdown = document.querySelector('.file-dropdown');
@@ -56,66 +85,18 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filterBtn_bandPass').onclick = () => applyFilter('bandpass');
     }
 
-    // Set default values for multi-frequency fields when multi is selected
-    const signalTypeSelect = document.getElementById('signalType');
-    const multiFreqInput = document.getElementById('multiFrequencies');
-    const multiAmpInput = document.getElementById('multiAmplitudes');
-    const addOverlayBtn = document.getElementById('addOverlayBtn');
-    const freqSingleGroup = document.getElementById('frequency').closest('.form-group');
-    const multiFreqGroup = document.getElementById('multiFreqGroup');
-    const multiAmpGroup = document.getElementById('multiAmpGroup');
-    const phaseGroup = document.getElementById('phaseGroup');
-    const phaseValue = document.getElementById('phaseValue');
-    const freqInput = document.getElementById('frequency');
-
-    if (signalTypeSelect && multiFreqInput && multiAmpInput && addOverlayBtn && freqSingleGroup && multiFreqGroup && multiAmpGroup && phaseGroup && phaseValue) {
-        signalTypeSelect.addEventListener('change', function() {
+    // --- In-plot signal type logic for multi ---
+    const signalTypeInplot = document.getElementById('signalType_inplot');
+    const freqInput = document.getElementById('frequency_inplot');
+    if (signalTypeInplot && freqInput) {
+        signalTypeInplot.addEventListener('change', function() {
             if (this.value === 'multi') {
-                // Only set if empty or user hasn't changed
-                if (!multiFreqInput.value.trim()) multiFreqInput.value = '120, 200, 300';
-                if (!multiAmpInput.value.trim()) multiAmpInput.value = '1 1 1';
-                // addOverlayBtn.style.display = 'none'; // REMOVE THIS LINE
-                freqSingleGroup.style.display = 'none';
-                multiFreqGroup.style.display = '';
-                multiAmpGroup.style.display = '';
-                phaseGroup.style.display = 'none';
+                freqInput.value = '120, 200, 300';
+                freqInput.placeholder = 'e.g., 120, 200, 300';
             } else {
-                addOverlayBtn.style.display = '';
-                freqSingleGroup.style.display = '';
-                multiFreqGroup.style.display = 'none';
-                multiAmpGroup.style.display = 'none';
-                phaseGroup.style.display = '';
-                phaseValue.value = '0';
+                freqInput.value = '50.12';
+                freqInput.placeholder = 'Frequency (Hz)';
             }
-            // Add: update UI for noise signal types
-            if (this.value === 'random' || this.value === 'gaussian') {
-                // Hide frequency and phase for noise types
-                freqSingleGroup.style.display = 'none';
-                phaseGroup.style.display = 'none';
-                multiFreqGroup.style.display = 'none';
-                multiAmpGroup.style.display = 'none';
-            }
-        });
-        // On page load, set correct visibility
-        if (signalTypeSelect.value === 'multi') {
-            // addOverlayBtn.style.display = 'none'; // REMOVE THIS LINE
-            freqSingleGroup.style.display = 'none';
-            multiFreqGroup.style.display = '';
-            multiAmpGroup.style.display = '';
-            phaseGroup.style.display = 'none';
-        } else {
-            multiFreqGroup.style.display = 'none';
-            multiAmpGroup.style.display = 'none';
-            phaseGroup.style.display = '';
-            phaseValue.value = '0';
-        }
-        phaseValue.addEventListener('input', function() {
-            let val = parseInt(phaseValue.value, 10) || 0;
-            if (val < 0) val = 0;
-            if (val > 360) val = 360;
-            // Instead of reassigning the const, just set the value
-            this.value = val;
-            document.getElementById('generateBtn').click();
         });
     }
 

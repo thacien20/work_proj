@@ -19,7 +19,7 @@ def generate_multi_sine(t, frequencies, amplitudes=None):
         signal += a * np.sin(2 * np.pi * f * t)
     return signal
 
-def generate_exponential_decay(t, tau=0.05, amplitude=1.0):
+def generate_exponential_decay(t, tau=0.03, amplitude=1.0):
     """Generate an exponential decay signal: amplitude * exp(-t / tau)"""
     return amplitude * np.exp(-t / tau)
 

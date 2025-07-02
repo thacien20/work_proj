@@ -141,7 +141,7 @@ export function plotAll() {
         height: 600,
         width: 900,
         showlegend: true, // Enable Plotly legend for all traces
-        margin: { l: 80, r: 40, t: 40, b: 80 }, // Increased margins for axis labels
+        margin: { l: 210, r: 40, t: 60, b: 80 }, // Increased left margin for more space
         xaxis: { title: 'Time (s)' }, // Top subplot x-axis
         yaxis: { title: 'Intensity' }, // Top subplot y-axis
         xaxis2: { title: 'Frequency (Hz)', range: fftRange || undefined }, // Bottom subplot x-axis, auto-zoomed

@@ -80,6 +80,12 @@
 
     <!-- ===== CUSTOM STYLES ===== -->
     <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        
         /* Rwanda flag container hover effect */
         #rwanda-canvas-container:hover {
             background:rgba(0,0,0,0.2);
@@ -191,6 +197,31 @@
         .plot-undo-btn:active {
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Processing controls container - flex column layout */
+        #processingControls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            width: 150px;
+        }
+        
+        /* In-plot control button styling - matches compact controls design */
+        #plot-controls button {
+            margin-top: 8px;
+            width: 90px;
+            align-self: center;
+            background: #1f77b4;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 0;
+            font-size: 13px;
+            cursor: pointer;
         }
         
         /* Dropdown content styling - hidden by default */
@@ -388,16 +419,18 @@
                 <form id="signalForm">
                     
                     <!-- Basic frequency input (0.1-1000 Hz range) -->
-                    <div class="form-group">
+                    <!-- Former frequency input removed: now handled in-plot -->
+                    <!-- <div class="form-group">
                         <label for="frequency">Frequency (Hz, 0.1–1000):</label>
                         <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="any" value="50.12" required>
-                    </div>
+                    </div> -->
                     
                     <!-- Phase control - hidden for multi-frequency signals -->
-                    <div class="form-group" id="phaseGroup" style="display:none;">
+                    <!-- Former phase input removed: now handled in-plot -->
+                    <!-- <div class="form-group" id="phaseGroup" style="display:none;">
                         <label for="phaseValue">Phase (degrees):</label>
                         <input type="number" id="phaseValue" name="phaseValue" min="0" max="360" step="10" value="0" style="width:70px; text-align:center;">
-                    </div>
+                    </div> -->
                     
                     <!-- Multi-frequency support - shown only for 'multi' signal type -->
                     <div class="form-group" id="multiFreqGroup" style="display:none;">
@@ -410,19 +443,22 @@
                     </div>
                     
                     <!-- Data points configuration (affects resolution and processing time) -->
-                    <div class="form-group">
+                    <!-- Former points input removed: now handled in-plot -->
+                    <!-- <div class="form-group">
                         <label for="points">Points (1024–65000):</label>
                         <input type="number" id="points" name="points" min="1024" max="65000" step="64" value="1024" required>
-                    </div>
+                    </div> -->
                     
-                    <!-- Noise level control (0-1 scale) -->
-                    <div class="form-group">
-                        <label for="noise">Noise Level (0–1):</label>
+                    <!-- Noise configuration -->
+                    <!-- Former noise input removed: now handled in-plot -->
+                    <!-- <div class="form-group">
+                        <label for="noise">Noise (0–1):</label>
                         <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required>
-                    </div>
+                    </div> -->
                     
-                    <!-- Signal type selector - controls which parameters are shown -->
-                    <div class="form-group">
+                    <!-- Signal type selection -->
+                    <!-- Former signal type select removed: now handled in-plot -->
+                    <!-- <div class="form-group">
                         <label for="signalType">Signal Type:</label>
                         <select id="signalType" name="signalType">
                             <option value="sine">Sine</option>
@@ -433,12 +469,12 @@
                             <option value="random">Random Noise</option>
                             <option value="gaussian">Gaussian Noise</option>
                         </select>
-                    </div>
+                    </div> -->
                     
                     <!-- Tau (decay constant) input - shown only for exponential decay signals -->
                     <div class="form-group" id="tauGroup" style="display:none;">
                         <label for="tauValue">Decay Constant τ (seconds):</label>
-                        <input type="number" id="tauValue" name="tauValue" min="0.001" max="10" step="0.001" value="0.05" style="width:90px; text-align:center;">
+                        <input type="number" id="tauValue" name="tauValue" min="0.001" max="10" step="0.001" value="0.02" style="width:90px; text-align:center;">
                     </div>
                     
                     <!-- Primary action buttons for signal generation - Hidden, functionality moved to draggable canvas -->
@@ -493,7 +529,98 @@
                     </div>
                     
                     <!-- Main plot container - uses Plotly.js for interactive visualization -->
-                    <div id="plot" style="width:750px;height:600px; flex: 1;"></div>
+                    <div id="plot" style="width:750px;height:600px; flex: 1; position:relative;">
+                        <div id="plot-controls" style="
+                            position: absolute;
+                            top: 40px;
+                            left: 10px;
+                            z-index: 10;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                            background: rgba(40,40,60,0.92);
+                            border-radius: 8px;
+                            padding: 7px 6px 7px 8px;
+                            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+                            min-width: 90px;
+                            max-width: 110px;
+                            align-items: flex-start;
+                        ">
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;" id="frequency_inplot_label">Frequency
+                                <input type="text" id="frequency_inplot" value="50.12" style="width:70px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Noise
+                                <input type="number" id="noise_inplot" min="0" max="1" step="0.01" value="0.1" style="width:44px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Points
+                                <input type="number" id="points_inplot" min="1024" max="65000" step="64" value="1024" style="width:54px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Signal Type
+                                <select id="signalType_inplot" style="width:62px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                                    <option value="sine">Sine</option>
+                                    <option value="square">Square</option>
+                                    <option value="triangle">Triangle</option>
+                                    <option value="multi">Multi</option>
+                                    <option value="expdecay">Exponential Decay</option>
+                                    <option value="random">Random Noise</option>
+                                    <option value="gaussian">Gaussian Noise</option>
+                                </select>
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Phase
+                                <input type="number" id="phase_inplot" min="0" max="360" step="10" value="0" style="width:44px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <!-- In-plot Generate Signal button -->
+                            <button type="button" id="generateBtn_inplot" style="
+                                margin-top:8px;
+                                width:90px;
+                                align-self:center;
+                                background:#1f77b4;
+                                color:#fff;
+                                border:none;
+                                border-radius:4px;
+                                padding:4px 0;
+                                font-size:13px;
+                                cursor:pointer;
+                            ">Generate Signal</button>
+                            <button type="button" id="addOverlayBtn_inplot" style="
+                                margin-top:4px;
+                                width:90px;
+                                align-self:center;
+                                background:#6c3483;
+                                color:#fff;
+                                border:none;
+                                border-radius:4px;
+                                padding:4px 0;
+                                font-size:13px;
+                                cursor:pointer;
+                            ">Add Overlay</button>
+                            <button type="button" id="livePlotBtn_inplot" style="
+                                margin-top:4px;
+                                width:90px;
+                                align-self:center;
+                                background:#229954;
+                                color:#fff;
+                                border:none;
+                                border-radius:4px;
+                                padding:4px 0;
+                                font-size:13px;
+                                cursor:pointer;
+                            ">Live Plot</button>
+                            <button type="button" id="deconvBtn_inplot" style="
+                                margin-top:4px;
+                                width:90px;
+                                align-self:center;
+                                background:#b9770e;
+                                color:#fff;
+                                border:none;
+                                border-radius:4px;
+                                padding:4px 0;
+                                font-size:13px;
+                                cursor:pointer;
+                                display:none;
+                            ">Deconvolution</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- ===== DECONVOLUTION CONTROLS ===== -->
@@ -542,14 +669,6 @@
         <button type="button" id="clearBtn" class="canvas-btn">Clear</button>
         <button type="button" id="undo-btn" class="canvas-btn">Undo</button>
         <button type="button" id="showStateBtn" class="canvas-btn">Show Data Status</button>
-    </div>
-    
-    <!-- ===== VERTICAL SIGNAL CONTROLS CANVAS ===== -->
-    <div class="vertical-signal-canvas" id="signalCanvas">
-        <button type="button" id="generateBtn2">Generate Signal</button>
-        <button type="button" id="addOverlayBtn2">Add Overlay</button>
-        <button type="button" id="livePlotBtn2">Live Plot</button>
-        <button type="button" id="deconvBtn2" style="display:none;">Deconvolution</button>
     </div>
     
     <!-- ===== EXTERNAL JAVASCRIPT MODULES ===== -->
@@ -680,6 +799,12 @@
             // Update fields when signal type changes
             signalType.addEventListener('change', updateFields);
             // Set initial field visibility
+                tauGroup.style.display = (signalType.value === 'expdecay') ? '' : 'none';
+            }
+            
+            // Update fields when signal type changes
+            signalType.addEventListener('change', updateFields);
+            // Set initial field visibility
             updateFields();
         });
         
@@ -699,12 +824,6 @@
                 startX = e.clientX;
                 startY = e.clientY;
                 
-                // Get current absolute position
-                const rect = buttonCanvas.getBoundingClientRect();
-                initialLeft = rect.left + window.scrollX;
-                initialTop = rect.top + window.scrollY;
-                
-                buttonCanvas.style.cursor = 'grabbing';
                 e.preventDefault();
             });
             
@@ -742,6 +861,7 @@
                 startX = touch.clientX;
                 startY = touch.clientY;
                 
+                // Get current absolute position
                 const rect = buttonCanvas.getBoundingClientRect();
                 initialLeft = rect.left + window.scrollX;
                 initialTop = rect.top + window.scrollY;
@@ -768,117 +888,6 @@
             
             document.addEventListener('touchend', function() {
                 isDragging = false;
-            });
-        });
-        
-        // ===== VERTICAL SIGNAL CANVAS DRAGGING =====
-        // Make the vertical signal canvas draggable around the screen
-        document.addEventListener('DOMContentLoaded', function() {
-            const signalCanvas = document.getElementById('signalCanvas');
-            let isDragging = false;
-            let startX, startY, initialLeft, initialTop;
-            
-            // Mouse down event - start dragging
-            signalCanvas.addEventListener('mousedown', function(e) {
-                // Don't drag if clicking on a button
-                if (e.target.tagName === 'BUTTON') return;
-                
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                
-                // Get current absolute position
-                const rect = signalCanvas.getBoundingClientRect();
-                initialLeft = rect.left + window.scrollX;
-                initialTop = rect.top + window.scrollY;
-                
-                signalCanvas.style.cursor = 'grabbing';
-                e.preventDefault();
-            });
-            
-            // Mouse move event - drag the canvas
-            document.addEventListener('mousemove', function(e) {
-                if (!isDragging) return;
-                
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
-                
-                const newLeft = initialLeft + deltaX;
-                const newTop = initialTop + deltaY;
-                
-                // Set absolute position directly
-                signalCanvas.style.position = 'absolute';
-                signalCanvas.style.left = newLeft + 'px';
-                signalCanvas.style.top = newTop + 'px';
-                signalCanvas.style.transform = 'none';
-            });
-            
-            // Mouse up event - stop dragging
-            document.addEventListener('mouseup', function() {
-                if (isDragging) {
-                    isDragging = false;
-                    signalCanvas.style.cursor = 'move';
-                }
-            });
-            
-            // Touch events for mobile support
-            signalCanvas.addEventListener('touchstart', function(e) {
-                if (e.target.tagName === 'BUTTON') return;
-                
-                isDragging = true;
-                const touch = e.touches[0];
-                startX = touch.clientX;
-                startY = touch.clientY;
-                
-                const rect = signalCanvas.getBoundingClientRect();
-                initialLeft = rect.left + window.scrollX;
-                initialTop = rect.top + window.scrollY;
-                
-                e.preventDefault();
-            });
-            
-            document.addEventListener('touchmove', function(e) {
-                if (!isDragging) return;
-                
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - startX;
-                const deltaY = touch.clientY - startY;
-                
-                const newLeft = initialLeft + deltaX;
-                const newTop = initialTop + deltaY;
-                
-                signalCanvas.style.position = 'absolute';
-                signalCanvas.style.left = newLeft + 'px';
-                signalCanvas.style.top = newTop + 'px';
-                signalCanvas.style.transform = 'none';
-                e.preventDefault();
-            });
-            
-            document.addEventListener('touchend', function() {
-                isDragging = false;
-            });
-            
-            // ===== CONNECT NEW BUTTONS TO EXISTING FUNCTIONALITY =====
-            // Connect the new draggable buttons to the original button functions
-            
-            // Generate Signal button
-            document.getElementById('generateBtn2').addEventListener('click', function() {
-                document.getElementById('generateBtn').click();
-            });
-            
-            // Add Overlay button  
-            document.getElementById('addOverlayBtn2').addEventListener('click', function() {
-                document.getElementById('addOverlayBtn').click();
-            });
-            
-            // Live Plot button
-            document.getElementById('livePlotBtn2').addEventListener('click', function() {
-                document.getElementById('livePlotBtn').click();
-            });
-            
-            // Deconvolution button
-            document.getElementById('deconvBtn2').addEventListener('click', function() {
-                document.getElementById('deconvBtn').click();
             });
         });
         
