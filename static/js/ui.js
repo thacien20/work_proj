@@ -18,9 +18,6 @@ window.addEventListener('DOMContentLoaded', () => {
     setupAnalyzeDropdown();
     setupOperationsDropdown();
 
-    document.getElementById('generateBtn').onclick = generateSignal;
-    document.getElementById('addOverlayBtn').onclick = addOverlay;
-
     // In-plot Generate Signal button
     const generateBtnInplot = document.getElementById('generateBtn_inplot');
     if (generateBtnInplot) {
@@ -31,15 +28,16 @@ window.addEventListener('DOMContentLoaded', () => {
     const addOverlayBtnInplot = document.getElementById('addOverlayBtn_inplot');
     if (addOverlayBtnInplot) {
         addOverlayBtnInplot.addEventListener('click', function() {
-            const btn = document.getElementById('addOverlayBtn');
-            if (btn) btn.click();
+            // Implement overlay logic here or call the correct function
+            if (typeof addOverlay === 'function') addOverlay();
+            else console.warn('addOverlay function not defined');
         });
     }
     const livePlotBtnInplot = document.getElementById('livePlotBtn_inplot');
     if (livePlotBtnInplot) {
         livePlotBtnInplot.addEventListener('click', function() {
-            const btn = document.getElementById('livePlotBtn');
-            if (btn) btn.click();
+            if (typeof livePlot === 'function') livePlot();
+            else console.warn('livePlot function not defined');
         });
     }
     const deconvBtnInplot = document.getElementById('deconvBtn_inplot');
@@ -134,6 +132,8 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+const signalTypeSelect = document.getElementById('signalType_inplot');
 
 let lastSignalSnapshot = null;
 let waitingForOverlay = false;
@@ -381,6 +381,17 @@ if (filterViewBtn) {
             return [mag * Math.cos(phase), mag * Math.sin(phase)]; // [real, imag]
         });
         filterViewActive = true;
+        // Show the modal and modal buttons
+        const filterViewModal = document.getElementById('filterViewModal');
+        if (filterViewModal) filterViewModal.style.display = 'block';
+        if (applyFilterBtn) applyFilterBtn.style.display = '';
+        // Do NOT show deconvBtnModal yet
+        // Hide deconvolution buttons by default (main, modal, draggable)
+        const deconvBtn = document.getElementById('deconvBtn');
+        const deconvBtn2 = document.getElementById('deconvBtn2');
+        if (deconvBtn) deconvBtn.style.display = 'none';
+        if (deconvBtn2) deconvBtn2.style.display = 'none';
+        if (deconvBtnModal) deconvBtnModal.style.display = 'none';
         // Change Add Overlay button to Apply (both original and draggable versions)
         const addOverlayBtn = document.getElementById('addOverlayBtn');
         const addOverlayBtn2 = document.getElementById('addOverlayBtn2');
@@ -482,99 +493,81 @@ if (filterViewBtn) {
                     xaxis2: {title: 'Frequency (Hz)'},
                     yaxis2: {title: 'Magnitude'}
                 });
-                // Show Deconvolution button
-                const deconvBtn = document.getElementById('deconvBtn');
-                const deconvSliderContainer = document.getElementById('deconv-slider-container');
-                const deconvRegSlider = document.getElementById('deconvRegSlider');
-                const deconvRegValue = document.getElementById('deconvRegValue');
+                // Show Deconvolution button(s) only after filter is applied
+                if (deconvBtn) {
+                    deconvBtn.style.display = '';
+                }
+                if (deconvBtn2) {
+                    deconvBtn2.style.display = '';
+                }
+                if (deconvBtnModal) {
+                    deconvBtnModal.style.display = '';
+                }
                 let lastDeconvParams = {
                     filtered: result.filtered,
                     filter_impulse: data.impulse,
                     epsilon: 1e-6
                 };
-                function updateDeconvRegValue() {
-                    const exp = parseFloat(deconvRegSlider.value);
-                    const val = Math.pow(10, exp);
-                    deconvRegValue.textContent = '1e' + exp;
-                    return val;
-                }
-                if (deconvBtn && deconvSliderContainer && deconvRegSlider && deconvRegValue) {
-                    deconvBtn.style.display = '';
-                    // Also show the deconvolution button in the draggable canvas
-                    const deconvBtn2 = document.getElementById('deconvBtn2');
-                    if (deconvBtn2) {
-                        deconvBtn2.style.display = '';
-                    }
-                    deconvSliderContainer.style.display = '';
-                    deconvRegSlider.value = '-6';
-                    deconvRegValue.textContent = '1e-6';
-                    let callDeconv = async (epsilon) => {
-                        try {
-                            const resp = await fetch('/api/deconvolve', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    filtered: lastDeconvParams.filtered,
-                                    filter_impulse: lastDeconvParams.filter_impulse,
-                                    epsilon: epsilon
-                                })
-                            });
-                            const deconv = await resp.json();
-                            if (deconv.error) {
-                                alert('Deconvolution error: ' + deconv.error);
-                                return;
-                            }
-                            const deconvColor = '#2ca02c';
-                            Plotly.newPlot('plot', [
-                                {
-                                    x: Array.from({length: deconv.deconvolved.length}, (_, i) => i / FS),
-                                    y: deconv.deconvolved,
-                                    type: 'scatter',
-                                    mode: 'lines',
-                                    name: 'Deconvolved Signal',
-                                    line: { color: deconvColor },
-                                    xaxis: 'x1',
-                                    yaxis: 'y1'
-                                },
-                                {
-                                    x: deconv.deconv_freq_axis, // <-- use correct key from backend
-                                    y: deconv.deconv_fft,       // <-- use correct key from backend
-                                    type: 'scatter',
-                                    mode: 'lines',
-                                    name: 'Deconvolved FFT',
-                                    line: { color: deconvColor },
-                                    xaxis: 'x2',
-                                    yaxis: 'y2',
-                                    showlegend: true // show legend for FFT
-                                }
-                            ], {
-                                grid: {rows: 2, columns: 1, pattern: 'independent'},
-                                height: 700,
-                                width: 900,
-                                showlegend: true,
-                                margin: { l: 80, r: 40, t: 40, b: 70 },
-                                xaxis: {title: 'Time (s)'},
-                                yaxis: {title: 'Amplitude'},
-                                xaxis2: {title: 'Frequency (Hz)'},
-                                yaxis2: {title: 'Magnitude'}
-                            });
-                            if (deconv.unstable) {
-                                alert('Warning: Deconvolution result may be unstable or noisy.');
-                            }
-                        } catch (err) {
-                            alert('Deconvolution failed: ' + err.message);
+                let callDeconv = async () => {
+                    try {
+                        const resp = await fetch('/api/deconvolve', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                filtered: lastDeconvParams.filtered,
+                                filter_impulse: lastDeconvParams.filter_impulse,
+                                epsilon: 1e-6 // Always use default epsilon
+                            })
+                        });
+                        const deconv = await resp.json();
+                        if (deconv.error) {
+                            alert('Deconvolution error: ' + deconv.error);
+                            return;
                         }
-                    };
-                    deconvBtn.onclick = async function() {
-                        const epsilon = updateDeconvRegValue();
-                        await callDeconv(epsilon);
-                    };
-                    deconvRegSlider.oninput = async function() {
-                        const epsilon = updateDeconvRegValue();
-                        await callDeconv(epsilon);
-                    };
-                }
-                
+                        const deconvColor = '#2ca02c';
+                        Plotly.newPlot('plot', [
+                            {
+                                x: Array.from({length: deconv.deconvolved.length}, (_, i) => i / FS),
+                                y: deconv.deconvolved,
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Deconvolved Signal',
+                                line: { color: deconvColor },
+                                xaxis: 'x1',
+                                yaxis: 'y1'
+                            },
+                            {
+                                x: deconv.deconv_freq_axis, // <-- use correct key from backend
+                                y: deconv.deconv_fft,       // <-- use correct key from backend
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Deconvolved FFT',
+                                line: { color: deconvColor },
+                                xaxis: 'x2',
+                                yaxis: 'y2',
+                                showlegend: true // show legend for FFT
+                            }
+                        ], {
+                            grid: {rows: 2, columns: 1, pattern: 'independent'},
+                            height: 700,
+                            width: 900,
+                            showlegend: true,
+                            margin: { l: 80, r: 40, t: 40, b: 70 },
+                            xaxis: {title: 'Time (s)'},
+                            yaxis: {title: 'Amplitude'},
+                            xaxis2: {title: 'Frequency (Hz)'},
+                            yaxis2: {title: 'Magnitude'}
+                        });
+                        if (deconv.unstable) {
+                            alert('Warning: Deconvolution result may be unstable or noisy.');
+                        }
+                    } catch (err) {
+                        alert('Deconvolution failed: ' + err.message);
+                    }
+                };
+                if (deconvBtn) deconvBtn.onclick = callDeconv;
+                if (deconvBtn2) deconvBtn2.onclick = callDeconv;
+                if (deconvBtnModal) deconvBtnModal.onclick = callDeconv;
                 // Restore Add Overlay button functionality
                 restoreAddOverlayButton();
             } else {
@@ -584,9 +577,10 @@ if (filterViewBtn) {
             }
         };
         
-        // Assign the apply function to both buttons
+        // Assign the apply function to all Apply buttons (modal and draggable)
         if (addOverlayBtn) addOverlayBtn.onclick = applyFunction;
         if (addOverlayBtn2) addOverlayBtn2.onclick = applyFunction;
+        if (applyFilterBtn) applyFilterBtn.onclick = applyFunction;
     };
 }
 
@@ -795,3 +789,40 @@ if (showSignalBtn && showCircuitBtn && signalSection && circuitSection) {
         circuitSection.style.display = '';
     });
 }
+
+// Modal Apply and Deconvolution buttons
+const applyFilterBtn = document.getElementById('applyFilterBtn');
+const deconvBtnModal = document.getElementById('deconvBtn_modal');
+
+// Attach event handler for Apply in modal (reuse applyFunction if available)
+if (applyFilterBtn) {
+    // Wait for filterViewBtn to define applyFunction
+    let lastApplyFunction = null;
+    const origFilterViewBtn = document.getElementById('filterBtn_view');
+    if (origFilterViewBtn) {
+        const origOnClick = origFilterViewBtn.onclick;
+        origFilterViewBtn.onclick = async function(...args) {
+            if (typeof origOnClick === 'function') await origOnClick.apply(this, args);
+            // Find the applyFunction defined in filterViewBtn.onclick
+            if (typeof window.applyFunction === 'function') {
+                lastApplyFunction = window.applyFunction;
+            } else if (typeof applyFunction === 'function') {
+                lastApplyFunction = applyFunction;
+            }
+            if (lastApplyFunction) {
+                applyFilterBtn.onclick = lastApplyFunction;
+            }
+        };
+    }
+}
+// Attach event handler for Deconvolution in modal
+if (deconvBtnModal) {
+    // Try to find the main deconvBtn and copy its onclick
+    const deconvBtn = document.getElementById('deconvBtn');
+    if (deconvBtn && typeof deconvBtn.onclick === 'function') {
+        deconvBtnModal.onclick = deconvBtn.onclick;
+    }
+}
+
+// Defensive: wrap all addEventListener in null checks for inline/HTML script
+// (If you have any other direct addEventListener calls in index.html, wrap them in null checks)

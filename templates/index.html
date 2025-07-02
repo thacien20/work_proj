@@ -228,15 +228,27 @@
         .dropdown-content {
             display: none;
             position: absolute;
-            background-color: white;
+            background-color: yellow; /* DEBUG: changed from white to yellow */
             min-width: 180px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
             border-radius: 6px;
-            z-index: 1;
+            z-index: 1002; /* DEBUG: increased z-index */
             top: 100%;
             left: 0;
             margin-top: 5px;
+            border: 2px solid red; /* DEBUG: visible border for troubleshooting */
         }
+        
+        /* DEBUG: Make dropdown content always visible for testing */
+        .dropdown-content {
+            background: yellow !important;
+            color: red !important;
+            border: 2px solid red !important;
+            z-index: 9999 !important;
+        }
+        
+        /* DEBUG: Show dropdown content even if not active (for testing) */
+        /* .dropdown-content { display: block !important; } */
         
         /* Show dropdown content when dropdown is active */
         .dropdown.active .dropdown-content {
@@ -438,7 +450,7 @@
                         <input type="text" id="multiFrequencies" name="multiFrequencies" placeholder="e.g., 120 200 300" value="120, 200, 300">
                     </div>
                     <div class="form-group" id="multiAmpGroup" style="display:none;">
-                        <label for="multiAmplitudes">Amplitudes (optional):</label>
+                        <label for="multiAmplitudes">Amplitudes</label>
                         <input type="text" id="multiAmplitudes" name="multiAmplitudes" placeholder="e.g., 1 1 1" value="1 1 1">
                     </div>
                     
@@ -478,12 +490,8 @@
                     </div>
                     
                     <!-- Primary action buttons for signal generation - Hidden, functionality moved to draggable canvas -->
-                    <div class="button-group" style="display:none;">
-                        <button type="button" id="generateBtn">Generate Signal</button>
-                        <button type="button" id="livePlotBtn">Live Plot</button>
-                        <button type="button" id="addOverlayBtn">Add Overlay</button>
-                        <!-- Deconvolution button - shown only when applicable -->
-                        <button type="button" id="deconvBtn" style="display:none; margin-left:10px;">Deconvolution</button>
+                    <div class="button-group">
+                        <!-- No buttons here: all signal actions are in the plot controls, and Apply/Deconvolution are in the modal only -->
                     </div>
                 </form>
                 
@@ -727,6 +735,7 @@
             
             dropdownButtons.forEach(button => {
                 button.addEventListener('click', function(e) {
+                    console.log('Dropdown button clicked:', this.id); // DEBUG: log click
                     e.preventDefault();
                     e.stopPropagation();
                     
@@ -786,7 +795,7 @@
             const multiFreqGroup = document.getElementById('multiFreqGroup');
             const phaseGroup = document.getElementById('phaseGroup');
             const tauGroup = document.getElementById('tauGroup');
-            
+
             function updateFields() {
                 // Show multi-frequency fields only for 'multi' signal type
                 multiFreqGroup.style.display = (signalType.value === 'multi') ? '' : 'none';
@@ -795,13 +804,7 @@
                 // Show tau field only for exponential decay signals
                 tauGroup.style.display = (signalType.value === 'expdecay') ? '' : 'none';
             }
-            
-            // Update fields when signal type changes
-            signalType.addEventListener('change', updateFields);
-            // Set initial field visibility
-                tauGroup.style.display = (signalType.value === 'expdecay') ? '' : 'none';
-            }
-            
+
             // Update fields when signal type changes
             signalType.addEventListener('change', updateFields);
             // Set initial field visibility
@@ -934,6 +937,11 @@
             <h2>Filter Visualization</h2>
             <!-- Container for filter frequency response plots -->
             <div id="filter-view-plot"></div>
+            <!-- Apply and Deconvolution buttons, initially hidden, shown only after filter plots are displayed -->
+            <div id="filter-modal-actions" style="margin-top:18px; display:flex; gap:18px;">
+                <button id="applyFilterBtn" style="display:none; background:#229954; color:#fff; border:none; border-radius:6px; padding:10px 24px; font-size:16px; cursor:pointer;">Apply</button>
+                <button id="deconvBtn_modal" style="display:none; background:#b9770e; color:#fff; border:none; border-radius:6px; padding:10px 24px; font-size:16px; cursor:pointer;">Deconvolution</button>
+            </div>
         </div>
     </div>
 </body>
