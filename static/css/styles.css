@@ -1,11 +1,22 @@
+/*
+Main body styling: sets the font, background color, and layout padding for the entire app.
+Prevents horizontal scrolling and ensures a visually distinct background for the workspace.
+All page content inherits these base styles for a consistent look.
+*/
 body {
+
     font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
+    margin: 80px;
+    padding: 50px;
+    background-color:green;
     overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
+/*
+Header styling: styles the top navigation bar and title area.
+Ensures the header stands out with a dark background and centered text.
+Provides padding for visual separation from the rest of the page.
+*/
 header {
     background-color: #333;
     color: #fff;
@@ -13,13 +24,24 @@ header {
     padding: 1em 0;
 }
 
+/*
+Main content area: uses flex layout for main content and sidebar.
+Sets a max width and centers the main app area on the page.
+Applies a subtle background for content separation.
+*/
 main {
     display: flex;
     padding: 2em;
     max-width: 800px;
     margin: 0 auto;
+    background: grey(255, 255, 255, 0.95);
 }
 
+/*
+Sidebar styling: vertical navigation and dropdowns.
+Defines width, layout, and button appearance for sidebar controls.
+Ensures sidebar remains visually distinct and functional.
+*/
 .sidebar {
     width: 50px;
     flex-shrink: 0;
@@ -29,11 +51,22 @@ main {
     gap: 2px;
 }
 
+/*
+Signal section: main area for signal controls and forms.
+Allows the section to grow and align with the main content.
+Removes left margin for flush alignment with the sidebar.
+*/
 #signal-section {
     flex-grow:1;
     margin-left: 0px;
+
 }
 
+/*
+Form styling: sets spacing, border, and appearance for all form elements.
+Ensures consistent look for labels, inputs, selects, and buttons.
+Improves usability and visual clarity for user input areas.
+*/
 form {
     margin: 1em 0;
 }
@@ -66,6 +99,11 @@ form button:hover, form button:focus {
     outline: none;
 }
 
+/*
+Canvas container and canvas styling: wraps and styles all <canvas> elements.
+Ensures canvases are block-level, have a border, and fill their container.
+Adds hover/focus effects for better user feedback during interactions.
+*/
 .canvas-container {
     position: relative;
     
@@ -79,6 +117,8 @@ canvas {
     height: 100%;
     background: #fff;
     cursor: crosshair; /* Better for zoom rectangle drawing */
+    
+
 }
 
 canvas:hover, canvas:focus {
@@ -86,6 +126,10 @@ canvas:hover, canvas:focus {
     outline: none;
 }
 
+/*
+Zoom instructions and fallback: styles for zoom help text and fallback messages.
+Improves accessibility and user guidance for interactive canvas features.
+*/
 .zoom-instructions {
     font-size: 12px;
     color: #555;
@@ -102,8 +146,13 @@ canvas:not(:supported) + .canvas-fallback {
     display: block;
 }
 
+/*
+Sidebar button and dropdown styling: styles for main sidebar buttons and dropdown menus.
+Ensures dropdowns are visually distinct, easy to use, and accessible.
+Provides hover and active states for better interactivity.
+*/
 .sidebar .main-btn {
-    background-color: #007bff;
+    background-color: grey#007bff;
     color: #fff;
     border: none;
     padding: 10px 18px;
@@ -136,7 +185,7 @@ canvas:not(:supported) + .canvas-fallback {
     position: absolute;
     left: 0;
     top: 100%;
-    background-color: #f9f9f9;
+    background-color: red;
     min-width: 170px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
     z-index: 2;
@@ -148,7 +197,7 @@ canvas:not(:supported) + .canvas-fallback {
 }
 
 .sidebar .dropdown-content button {
-    background: none;
+    background:re;
     border: none;
     color: #333;
     padding: 10px 18px;
@@ -162,6 +211,11 @@ canvas:not(:supported) + .canvas-fallback {
     background-color: #e0e0e0;
 }
 
+/*
+File dropdown styling: styles for the file import/export dropdown.
+Positions the dropdown and its button, and ensures the menu is easy to use.
+Provides hover effects for better usability.
+*/
 .file-dropdown {
     position: absolute;
     top: 40px;
@@ -173,6 +227,7 @@ canvas:not(:supported) + .canvas-fallback {
 .file-dropdown .file-button {
     width: 100%;
     text-align: left;
+    background-color:white
 }
 
 .file-dropdown-content {
@@ -180,7 +235,7 @@ canvas:not(:supported) + .canvas-fallback {
     position: absolute;
     left: 0;
     top: 100%;
-    background-color: #f9f9f9;
+    background-color: white;
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
     z-index: 202;
@@ -207,6 +262,11 @@ canvas:not(:supported) + .canvas-fallback {
     display: flex;
 }
 
+/*
+Button stack and plot control buttons: positions and styles clear/undo buttons.
+Ensures these controls are always visible and easy to access.
+Adds hover/focus effects for better feedback.
+*/
 .button-stack {
     position: absolute;
     bottom: 10px;
@@ -235,7 +295,11 @@ canvas:not(:supported) + .canvas-fallback {
     background-color: #0056b3;
 }
 
-/* Custom legend styles */
+/*
+Custom legend styling: styles for the custom legend area below plots.
+Ensures legend items are visually grouped, easy to read, and interactive.
+Adds color-coded lines and remove buttons for each legend entry.
+*/
 #custom-legend {
     display: flex;
     flex-wrap: wrap;
@@ -307,6 +371,11 @@ canvas:not(:supported) + .canvas-fallback {
     background: #c0392b;
 }
 
+/*
+Multi-warning styling: styles the warning message for multi-signal issues.
+Ensures the warning is visually distinct and easy to notice.
+Adds padding, border, and shadow for emphasis.
+*/
 #multi-warning {
     display: none;
     background: #fff3cd;
@@ -322,7 +391,11 @@ canvas:not(:supported) + .canvas-fallback {
     z-index: 100;
 }
 
-/* Galaxy sidebar: small, fixed, always in view */
+/*
+Galaxy sidebar: fixed-position animated sidebar for visual flair.
+Ensures the galaxy canvas is always visible and styled appropriately.
+Prevents the sidebar from blocking UI interactions.
+*/
 #galaxy-sidebar {
     position: fixed;
     left: 0; /* or -10px for slightly off-screen */
@@ -346,6 +419,11 @@ canvas:not(:supported) + .canvas-fallback {
     pointer-events: none;
 }
 
+/*
+Circuit section and controls: styles for the RC circuit simulation area.
+Aligns form elements, buttons, and section layout for clarity and usability.
+Adds gradients and hover effects for interactive controls.
+*/
 #circuit-section {
     position: absolute;
     left: 0;
@@ -441,4 +519,19 @@ canvas:not(:supported) + .canvas-fallback {
 #circuitType:focus {
     border: 1.5px solid #185a9d;
     outline: none;
+}
+
+/*
+Main plot container: sets the size, position, and background for the main Plotly plot.
+Ensures the plot is sized and positioned consistently with the app layout.
+Background color helps the plot stand out from the rest of the UI.
+*/
+#plot {
+    width: 750px;
+    height: 600px;
+    top:-90px;
+    left:-20px;
+    flex: 1;
+    position: relative;
+    background-color:grey
 }

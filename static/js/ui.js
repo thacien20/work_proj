@@ -3,6 +3,14 @@ import { state, FS } from './state.js';
 import { generateSignal, simulateRCCircuit } from './signal.js';
 import { plotAll } from './plotting.js';
 
+// === Plotly layout constants for consistent sizing ===
+const PLOT_HEIGHT = 600;
+const PLOT_WIDTH = 900;
+const FILTER_PLOT_HEIGHT = 400;
+const FILTER_PLOT_WIDTH = 600;
+const PLOT_MARGIN = { l: 60, r: 40, t: 60, b: 60 };
+const FILTER_PLOT_MARGIN = { l: 50, r: 30, t: 40, b: 40 };
+
 window.addEventListener('DOMContentLoaded', () => {
     console.log('ui.js loaded');
     // No canvas or initZoom needed for Plotly
@@ -124,7 +132,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 }], {
                     title: 'RC Circuit Step Response',
                     xaxis: { title: 'Time (s)' },
-                    yaxis: { title: 'V_out (V)' }
+                    yaxis: { title: 'V_out (V)' },
+                    margin: PLOT_MARGIN
                 });
             } catch (err) {
                 alert('RC Circuit Error: ' + err.message);
@@ -332,8 +341,9 @@ if (filterViewBtn) {
             alert('Error: ' + data.error);
             return;
         }
-        // Plot impulse, magnitude, and phase responses in the main plot area
-        const plotDiv = document.getElementById('plot');
+        // Plot impulse, magnitude, and phase responses in the modal plot area
+        //this is where you set all the plot parameters
+        const plotDiv = document.getElementById('filter-view-plot');
         Plotly.newPlot(plotDiv, [
             {
                 x: data.impulse_x,
@@ -364,16 +374,16 @@ if (filterViewBtn) {
             }
         ], {
             grid: {rows: 3, columns: 1, pattern: 'independent'},
-            height: 800,
-            width: 900,
+            height: FILTER_PLOT_HEIGHT, // Modal plot: small
+            width: FILTER_PLOT_WIDTH,
             showlegend: true,
-            margin: { l: 80, r: 40, t: 40, b: 70 }, // Added margin for axis labels
+            margin: FILTER_PLOT_MARGIN,
             xaxis: {title: 'Sample (n)'},
             yaxis: {title: 'Amplitude'},
-            xaxis2: {title: 'Frequency (Hz)'},
+            
             yaxis2: {title: 'Magnitude'},
-            xaxis3: {title: 'Frequency (Hz)'},
-            yaxis3: {title: 'Phase (radians)'}
+            xaxis3: {title: 'Freq (Hz)'},
+            yaxis3: {title: 'Phase (rad)'}
         });
         // Store the filter's frequency response for later use
         lastFilterFreqResponse = data.magnitude.map((mag, i) => {
@@ -484,10 +494,10 @@ if (filterViewBtn) {
                     }
                 ], {
                     grid: {rows: 2, columns: 1, pattern: 'independent'},
-                    height: 700,
-                    width: 900,
+                    height: 600, // Main plot: large
+                    width: 750,
                     showlegend: true,
-                    margin: { l: 80, r: 40, t: 40, b: 70 },
+                    margin: { t: 40, l: 200, r: 30, b: 10 }, // Standardized for in-plot controls
                     xaxis: {title: 'Time (s)'},
                     yaxis: {title: 'Amplitude'},
                     xaxis2: {title: 'Frequency (Hz)'},
@@ -549,10 +559,10 @@ if (filterViewBtn) {
                             }
                         ], {
                             grid: {rows: 2, columns: 1, pattern: 'independent'},
-                            height: 700,
-                            width: 900,
+                            height: PLOT_HEIGHT,
+                            width: PLOT_WIDTH,
                             showlegend: true,
-                            margin: { l: 80, r: 40, t: 40, b: 70 },
+                            margin: PLOT_MARGIN,
                             xaxis: {title: 'Time (s)'},
                             yaxis: {title: 'Amplitude'},
                             xaxis2: {title: 'Frequency (Hz)'},
@@ -618,7 +628,7 @@ if (livePlotBtn) {
             y: [],
             mode: 'lines',
             line: {color: 'red'}
-        }], {margin: {t: 20}});
+        }], {margin: PLOT_MARGIN});
         function animate() {
             if (current <= y.length) {
                 Plotly.react('plot', [{
@@ -626,7 +636,7 @@ if (livePlotBtn) {
                     y: Array.from(y).slice(0, current),
                     mode: 'lines',
                     line: {color: 'red'}
-                }], {margin: {t: 20}});
+                }], {margin: PLOT_MARGIN});
                 current += chunk;
                 setTimeout(animate, 30); // Adjust speed here
             }
@@ -766,7 +776,8 @@ if (rcSimBtn) {
             }], {
                 title: 'RC Circuit Step Response',
                 xaxis: { title: 'Time (s)' },
-                yaxis: { title: 'V_out (V)' }
+                yaxis: { title: 'V_out (V)' },
+                margin: PLOT_MARGIN
             });
         } catch (err) {
             alert('RC Circuit Error: ' + err.message);

@@ -138,8 +138,8 @@ export function plotAll() {
     // --- Define Plotly layout with two subplots (signal and FFT) ---
     const layout = {
         grid: { rows: 2, columns: 1, pattern: 'independent' }, // 2 rows, 1 column
-        height: 600,
-        width: 900,
+        height: 580,
+        width: 700,
         showlegend: true, // Enable Plotly legend for all traces
         margin: { l: 210, r: 40, t: 60, b: 80 }, // Increased left margin for more space
         xaxis: { title: 'Time (s)' }, // Top subplot x-axis
@@ -149,7 +149,7 @@ export function plotAll() {
     };
 
     // --- Render the plot using Plotly ---
-    Plotly.newPlot('plot', traces, layout, {responsive: true});
+    Plotly.newPlot('plot', traces, layout, {responsive: true });
 
     // --- Update custom legend ---
     // (No longer needed, Plotly legend is now enabled)
