@@ -1,54 +1,92 @@
 // circuit_ui.js
 // Handles all UI logic for Circuits Lab (DOM, events, info, export)
-import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator, simulateModulation, plotModulation } from './circuit_frontEnd.js';
+import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, plotDifferentiator, plotIntegrator, simulateModulation, plotModulation } from './circuit_frontEnd.js';
 
 function setupCircuitLabUI() {
+    const analysisType = document.getElementById('analysisType');
+    const circuitAnalysisSection = document.getElementById('circuit-analysis-section');
+    const communicationsSection = document.getElementById('communications-section');
     const circuitType = document.getElementById('circuitType');
+    const commType = document.getElementById('commType');
     const rcFields = document.getElementById('rc-fields');
     const rlFields = document.getElementById('rl-fields');
     const rlcFields = document.getElementById('rlc-fields');
     const modulationFields = document.getElementById('modulation-fields');
     const equationText = document.getElementById('equation-text');
     const showCurrentCheckbox = document.getElementById('showCurrentCheckbox');
-    circuitType.addEventListener('change', function() {
-        if (this.value === 'rc') {
-            rcFields.style.display = '';
-            rlFields.style.display = 'none';
-            rlcFields.style.display = 'none';
-            modulationFields.style.display = 'none';
-            equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - e<sup>-t/RC</sup>)';
-        } else if (this.value === 'rl') {
-            rcFields.style.display = 'none';
-            rlFields.style.display = '';
-            rlcFields.style.display = 'none';
-            modulationFields.style.display = 'none';
-            equationText.innerHTML = 'I<sub>out</sub>(t) = (V<sub>in</sub>/R)(1 - e<sup>-Rt/L</sup>)';
-        } else if (this.value === 'rlc') {
-            rcFields.style.display = 'none';
-            rlFields.style.display = 'none';
-            rlcFields.style.display = '';
-            modulationFields.style.display = 'none';
-            equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - (1/\sqrt{1-\zeta^2})e^{-\zeta\omega_n t} \sin(\omega_d t + \phi))';
-        } else if (this.value === 'differentiator') {
-            rcFields.style.display = '';
-            rlFields.style.display = 'none';
-            rlcFields.style.display = 'none';
-            modulationFields.style.display = 'none';
-            equationText.innerHTML = 'V<sub>out</sub>(t) = RC \, (dV_{in}/dt)';
-        } else if (this.value === 'integrator') {
-            rcFields.style.display = '';
-            rlFields.style.display = 'none';
-            rlcFields.style.display = 'none';
-            modulationFields.style.display = 'none';
-            equationText.innerHTML = 'V<sub>out</sub>(t) = (1/RC) \int V_{in}(t) dt';
-        } else if (this.value === 'modulation') {
-            rcFields.style.display = 'none';
-            rlFields.style.display = 'none';
-            rlcFields.style.display = 'none';
-            modulationFields.style.display = '';
-            equationText.innerHTML = 'AM: y(t) = (1 + m·cos(2πf<sub>m</sub>t)) · cos(2πf<sub>c</sub>t)<br>FM: y(t) = cos(2πf<sub>c</sub>t + β·sin(2πf<sub>m</sub>t))';
+    
+    // Handle analysis type change (Circuit vs Communications)
+    analysisType.addEventListener('change', function() {
+        const showCurrentContainer = document.getElementById('show-current-container');
+        const circuitInfoSection = document.getElementById('circuit-info'); // The "About This Circuit" section
+        
+        if (this.value === 'circuit') {
+            circuitAnalysisSection.style.display = '';
+            communicationsSection.style.display = 'none';
+            // Show circuit-specific elements
+            if (showCurrentContainer) showCurrentContainer.style.display = 'flex';
+            if (circuitInfoSection) circuitInfoSection.style.display = 'block';
+            // Reset to default circuit type
+            circuitType.value = 'rc';
+            handleCircuitTypeChange();
+        } else if (this.value === 'communications') {
+            circuitAnalysisSection.style.display = 'none';
+            communicationsSection.style.display = '';
+            // Hide circuit-specific elements
+            if (showCurrentContainer) showCurrentContainer.style.display = 'none';
+            if (circuitInfoSection) circuitInfoSection.style.display = 'none';
+            // Reset to default communications type
+            commType.value = 'modulation';
+            handleCommTypeChange();
         }
     });
+    
+    // Handle circuit type changes
+    circuitType.addEventListener('change', handleCircuitTypeChange);
+    
+    // Handle communications type changes
+    commType.addEventListener('change', handleCommTypeChange);
+    
+    function handleCircuitTypeChange() {
+        const type = circuitType.value;
+        // Hide all field groups first
+        rcFields.style.display = 'none';
+        rlFields.style.display = 'none';
+        rlcFields.style.display = 'none';
+        modulationFields.style.display = 'none';
+        
+        if (type === 'rc') {
+            rcFields.style.display = '';
+            equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - e<sup>-t/RC</sup>)';
+        } else if (type === 'rl') {
+            rlFields.style.display = '';
+            equationText.innerHTML = 'I<sub>out</sub>(t) = (V<sub>in</sub>/R)(1 - e<sup>-Rt/L</sup>)';
+        } else if (type === 'rlc') {
+            rlcFields.style.display = '';
+            equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - (1/\sqrt{1-\zeta^2})e^{-\zeta\omega_n t} \sin(\omega_d t + \phi))';
+        } else if (type === 'differentiator') {
+            rcFields.style.display = '';
+            equationText.innerHTML = 'V<sub>out</sub>(t) = RC \, (dV_{in}/dt)';
+        } else if (type === 'integrator') {
+            rcFields.style.display = '';
+            equationText.innerHTML = 'V<sub>out</sub>(t) = (1/RC) \int V_{in}(t) dt';
+        }
+    }
+    
+    function handleCommTypeChange() {
+        const type = commType.value;
+        // Hide all field groups first
+        rcFields.style.display = 'none';
+        rlFields.style.display = 'none';
+        rlcFields.style.display = 'none';
+        modulationFields.style.display = 'none';
+        
+        if (type === 'modulation') {
+            modulationFields.style.display = '';
+            // Update equation text for communications (this will be hidden anyway)
+            equationText.innerHTML = 'AM: y(t) = (1 + m·cos(2πf<sub>m</sub>t)) · cos(2πf<sub>c</sub>t)<br>FM: y(t) = cos(2πf<sub>c</sub>t + β·sin(2πf<sub>m</sub>t))<br>PM: y(t) = cos(2πf<sub>c</sub>t + β·cos(2πf<sub>m</sub>t))';
+        }
+    }
     // Default info
     equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - e<sup>-t/RC</sup>)';
 
@@ -77,11 +115,22 @@ function setupCircuitLabUI() {
 
     // Button event
     document.getElementById('circuitSimBtn').addEventListener('click', async () => {
-        const type = circuitType.value;
+        const analysisType = document.getElementById('analysisType').value;
         const V_in = parseFloat(document.getElementById('circuitVin').value);
         const duration = parseFloat(document.getElementById('circuitDuration').value);
         const points = parseInt(document.getElementById('circuitPoints').value);
         const showCurrent = isShowCurrent();
+        
+        if (analysisType === 'circuit') {
+            const type = document.getElementById('circuitType').value;
+            await handleCircuitSimulation(type, V_in, duration, points, showCurrent);
+        } else if (analysisType === 'communications') {
+            const type = document.getElementById('commType').value;
+            await handleCommunicationsSimulation(type, duration, points);
+        }
+    });
+    
+    async function handleCircuitSimulation(type, V_in, duration, points, showCurrent) {
         if (type === 'rc') {
             const R = parseFloat(document.getElementById('rcR').value);
             const C = parseFloat(document.getElementById('rcC').value);
@@ -160,7 +209,11 @@ function setupCircuitLabUI() {
             } catch (err) {
                 alert('Integrator Error: ' + err.message);
             }
-        } else if (type === 'modulation') {
+        }
+    }
+    
+    async function handleCommunicationsSimulation(type, duration, points) {
+        if (type === 'modulation') {
             const modulationType = document.getElementById('modulationType').value;
             const carrierFreq = parseFloat(document.getElementById('carrierFreq').value);
             const modulatingFreq = parseFloat(document.getElementById('modulatingFreq').value);
@@ -176,7 +229,7 @@ function setupCircuitLabUI() {
                 alert('Modulation Error: ' + err.message);
             }
         }
-    });
+    }
 
     // Listen for checkbox changes to update plot
     if (showCurrentCheckbox) {
@@ -191,6 +244,12 @@ function setupCircuitLabUI() {
     const circuitDiagramImg = document.getElementById('circuit-diagram-img');
     if (showDiagramBtn && circuitDiagramImg && circuitType) {
         showDiagramBtn.addEventListener('click', function() {
+            // Only show diagrams for circuit analysis, not communications
+            const analysisTypeValue = document.getElementById('analysisType').value;
+            if (analysisTypeValue !== 'circuit') {
+                return; // Do nothing if not in circuit mode
+            }
+            
             const type = circuitType.value;
             let url = '';
             if (type === 'rc') url = '/api/diagram/rc';
