@@ -11,12 +11,12 @@ def generate_triangle(t, frequency, phase=0):
     # Triangle with phase shift
     return 2 * np.abs(2 * (((t + phase/360/frequency) * frequency) % 1) - 1) - 1
 
-def generate_multi_sine(t, frequencies, amplitudes=None):
+def generate_multi_sine(t, frequencies, amplitudes=None, phase=0):
     if amplitudes is None:
         amplitudes = [1.0] * len(frequencies)
     signal = np.zeros_like(t)
     for f, a in zip(frequencies, amplitudes):
-        signal += a * np.sin(2 * np.pi * f * t)
+        signal += a * np.sin(2 * np.pi * f * t + np.deg2rad(phase))
     return signal
 
 def generate_exponential_decay(t, tau=0.03, amplitude=1.0):
@@ -44,7 +44,7 @@ def generate_signal(t, frequency, signal_type, frequencies=None, amplitudes=None
     elif normalized_type == "multi":
         if frequencies is None:
             raise ValueError("Frequencies list required for multi signal type")
-        return generate_multi_sine(t, frequencies, amplitudes)
+        return generate_multi_sine(t, frequencies, amplitudes, phase)
     elif normalized_type == "expdecay":
         return generate_exponential_decay(t, tau=tau, amplitude=amplitude)
     elif normalized_type in ["random", "gaussian"]:

@@ -15,6 +15,7 @@ export function generateSignal() {
     }
     let points = parseInt(document.getElementById('points_inplot').value);
     const noise = parseFloat(document.getElementById('noise_inplot').value);
+    const phase = parseFloat(document.getElementById('phase_inplot').value) || 0; // Get phase value
 
     // Multi-frequency fields
     let amplitudes = null;
@@ -77,7 +78,7 @@ export function generateSignal() {
     console.log(`Using FS: ${FS} Hz, points: ${adjustedPoints}`);
 
     // Prepare payload
-    const payload = { points: adjustedPoints, noise, signalType, fs: FS };
+    const payload = { points: adjustedPoints, noise, signalType, fs: FS, phase }; // Include phase
     if (signalType === 'multi') {
         payload.frequencies = frequencies;
         if (amplitudes) payload.amplitudes = amplitudes;
@@ -123,6 +124,18 @@ export function generateSignal() {
         }
         state.fftMagnitudes = new Float32Array(data.fft);
         state.fftFreqAxis = new Float32Array(data.freq_axis);
+        
+        // Store complex FFT data for inverse FFT
+        if (data.fft_complex_real && data.fft_complex_imag) {
+            const fftReal = new Float32Array(data.fft_complex_real);
+            const fftImag = new Float32Array(data.fft_complex_imag);
+            // Create complex array (real + imaginary)
+            state.fftComplex = [];
+            for (let i = 0; i < fftReal.length; i++) {
+                state.fftComplex.push([fftReal[i], fftImag[i]]); // [real, imag] pairs
+            }
+        }
+        
         plotAll();
     })
     .catch(err => {

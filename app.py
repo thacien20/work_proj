@@ -6,7 +6,7 @@ from scipy import signal  # Add this import for RC circuit simulation
 
 from config import Config
 from signal_generation import generate_signal  # <-- updated import
-from signal_processing import compute_fft, FS
+from signal_processing import compute_fft, compute_complex_fft, FS
 from file_utils import allowed_file
 from waveforms import get_waveforms
 from Filters import apply_filter
@@ -40,6 +40,7 @@ def generate_signal_endpoint():
         points = int(data['points'])
         noise = float(data.get('noise', 0.0))
         signal_type = data.get('signalType', 'sine')
+        phase = float(data.get('phase', 0.0))  # Extract phase parameter
         # Multi-frequency support
         frequencies = data.get('frequencies', None)
         amplitudes = data.get('amplitudes', None)
@@ -66,13 +67,13 @@ def generate_signal_endpoint():
 
     try:
         if signal_type == 'expdecay':
-            signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes, tau=tau, amplitude=amplitude)
+            signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes, phase=phase, tau=tau, amplitude=amplitude)
         elif signal_type in ['random', 'gaussian']:
             # Map frontend types to backend logic
             noise_type = data.get('noise_type', 'gaussian')
-            signal = generate_signal(t, frequency, signal_type, None, None, amplitude=amplitude, noise_type=noise_type)
+            signal = generate_signal(t, frequency, signal_type, None, None, phase=phase, amplitude=amplitude, noise_type=noise_type)
         else:
-            signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes)
+            signal = generate_signal(t, frequency, signal_type, frequencies, amplitudes, phase=phase)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
@@ -80,11 +81,17 @@ def generate_signal_endpoint():
         signal += (np.random.rand(points) - 0.5) * noise
 
     fft_magnitude, freq_axis = compute_fft(signal, FS)
+    
+    # Also compute simple FFT (no windowing) for potential inverse FFT use
+    from signal_processing import compute_simple_fft
+    fft_real, fft_imaginary, _, _ = compute_simple_fft(signal, FS)
 
     return jsonify({
         'signal': signal.tolist(),
         'fft': fft_magnitude.tolist(),
-        'freq_axis': freq_axis.tolist()
+        'freq_axis': freq_axis.tolist(),
+        'fft_complex_real': fft_real.tolist(),
+        'fft_complex_imag': fft_imaginary.tolist()
     })
 
 @app.route('/api/upload', methods=['POST'])
@@ -315,6 +322,68 @@ def serve_circuit_diagram(circuit_type):
 @app.route('/circuits')
 def serve_circuits():
     return render_template('circuits.html')
+
+@app.route('/api/real_fft', methods=['POST'])
+def real_fft_endpoint():
+    """Compute and return real and imaginary FFT components."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    try:
+        signal = np.array(data['signal'])
+        fs = data.get('fs', FS)
+    except (KeyError, ValueError):
+        return jsonify({'error': 'Invalid or missing signal data'}), 400
+    
+    if len(signal) == 0:
+        return jsonify({'error': 'Signal cannot be empty'}), 400
+    
+    try:
+        from signal_processing import compute_complex_fft
+        fft_real, fft_imaginary, fft_magnitude, freq_axis = compute_complex_fft(signal, fs)
+        
+        return jsonify({
+            'fft_real': fft_real.tolist(),
+            'fft_imaginary': fft_imaginary.tolist(),
+            'fft_magnitude': fft_magnitude.tolist(),
+            'freq_axis': freq_axis.tolist()
+        })
+    except Exception as e:
+        return jsonify({'error': f'FFT computation failed: {str(e)}'}), 500
+
+@app.route('/api/ifft', methods=['POST'])
+def ifft_endpoint():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    try:
+        # Get complex FFT data from the request
+        fft_complex_real = data['fft_complex_real']
+        fft_complex_imag = data['fft_complex_imag']
+        original_length = int(data['original_length'])
+        fs = float(data.get('fs', FS))
+        
+        # Reconstruct complex FFT data
+        fft_complex = np.array(fft_complex_real) + 1j * np.array(fft_complex_imag)
+        
+    except (KeyError, ValueError):
+        return jsonify({'error': 'Invalid or missing complex FFT data'}), 400
+    
+    if len(fft_complex_real) == 0:
+        return jsonify({'error': 'FFT data cannot be empty'}), 400
+    
+    try:
+        from signal_processing import compute_inverse_fft
+        reconstructed_signal, time_axis = compute_inverse_fft(fft_complex, original_length, fs)
+        
+        return jsonify({
+            'reconstructed_signal': reconstructed_signal.tolist(),
+            'time_axis': time_axis.tolist()
+        })
+    except Exception as e:
+        return jsonify({'error': f'Inverse FFT computation failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

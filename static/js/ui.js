@@ -107,6 +107,15 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Phase input event listener ---
+    const phaseInputInplot = document.getElementById('phase_inplot');
+    if (phaseInputInplot) {
+        phaseInputInplot.addEventListener('input', function() {
+            // Regenerate signal when phase changes
+            generateSignal();
+        });
+    }
+
     // RC Circuit Simulation button event listener
     const rcSimBtn = document.getElementById('rcSimBtn');
     if (rcSimBtn) {
@@ -182,6 +191,30 @@ function setupAnalyzeDropdown() {
                 analyzeDropdown.classList.remove('show');
             }
         });
+        
+        // Add Real FFT button event listener
+        const realFFTBtn = document.getElementById('realFFTBtn');
+        if (realFFTBtn) {
+            realFFTBtn.addEventListener('click', async () => {
+                await showRealFFT();
+            });
+        }
+        
+        // Add iFFT button event listener
+        const ifftBtn = document.getElementById('ifftBtn');
+        if (ifftBtn) {
+            ifftBtn.addEventListener('click', async () => {
+                await performIFFT();
+            });
+        }
+        
+        // Add Results button event listener
+        const resultsBtn = document.getElementById('resultsBtn');
+        if (resultsBtn) {
+            resultsBtn.addEventListener('click', async () => {
+                await showResults();
+            });
+        }
     }
 }
 
@@ -216,6 +249,13 @@ function setupOperationsDropdown() {
                             op,
                             state.fs
                         );
+                        
+                        // Store the result for Results view instead of replacing main signal
+                        state.resultSignal = new Float32Array(result.signal);
+                        state.resultFFT = new Float32Array(result.fft);
+                        state.resultFreqAxis = new Float32Array(result.freq_axis);
+                        
+                        // Still update main signal for backward compatibility
                         state.signalData = new Float32Array(result.signal);
                         state.fftMagnitudes = new Float32Array(result.fft);
                         state.fftFreqAxis = new Float32Array(result.freq_axis);
@@ -225,6 +265,9 @@ function setupOperationsDropdown() {
                             state.time_axis[i] = i / FS;
                         }
                         plotAll();
+                        
+                        // Notify user that Results view is available
+                        alert(`${op.charAt(0).toUpperCase() + op.slice(1)} operation completed! Use "Analyze → Results" to see detailed comparison.`);
                     } catch (error) {
                         alert(error.message);
                     }
@@ -241,13 +284,18 @@ document.getElementById('clearBtn').onclick = function() {
     state.time_axis = new Float32Array();
     state.fftMagnitudes = new Float32Array();
     state.fftFreqAxis = new Float32Array();
+    state.fftComplex = null; // Clear complex FFT data
     state.overlays = [];
+    state.resultSignal = null; // Clear operation results
+    state.resultFFT = null; // Clear result FFT
+    state.resultFreqAxis = null; // Clear result frequency axis
     state.filteredSignal = undefined;
     state.filteredActive = false;
     state.filteredFft = undefined;
     state.filteredFftFreq = undefined;
     state.filterResponse = null; // Clear filter response
     state.filterImpulse = null; // Clear stored filter impulse
+    state.realFFT = null; // Clear Real FFT data
     updateApplyFilterButtonVisibility(); // Update button visibility
     updateDeconvolutionButtonVisibility(); // Update deconvolution button visibility
     plotAll();
@@ -674,5 +722,382 @@ async function applyDeconvolution() {
     } catch (error) {
         console.error('Error applying deconvolution:', error);
         alert('Error applying deconvolution: ' + error.message);
+    }
+}
+
+// Show Real FFT analysis - displays real and imaginary components
+async function showRealFFT() {
+    // Check if we have signal data
+    if (!state.signalData || state.signalData.length === 0) {
+        alert('Please generate a signal before analyzing Real FFT.');
+        return;
+    }
+    
+    try {
+        // Send signal to backend for Real FFT computation
+        const response = await fetch('/api/real_fft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                signal: Array.from(state.signalData),
+                fs: FS
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Real FFT Error: ' + data.error);
+            return;
+        }
+        
+        // Store the Real FFT data in state for plotting
+        state.realFFT = {
+            real: new Float32Array(data.fft_real),
+            imaginary: new Float32Array(data.fft_imaginary),
+            magnitude: new Float32Array(data.fft_magnitude),
+            freq: new Float32Array(data.freq_axis)
+        };
+        
+        // Update the plot to show Real FFT components
+        plotRealFFT();
+        
+    } catch (error) {
+        console.error('Error computing Real FFT:', error);
+        alert('Error computing Real FFT: ' + error.message);
+    }
+}
+
+// Plot Real FFT components as subplots
+function plotRealFFT() {
+    if (!state.realFFT) {
+        console.error('No Real FFT data available');
+        return;
+    }
+    
+    const plotDiv = document.getElementById('plot');
+    if (!plotDiv) {
+        console.error('Plot div not found');
+        return;
+    }
+    
+    // Create traces for real, imaginary, and magnitude components
+    const traces = [
+        {
+            x: state.realFFT.freq,
+            y: state.realFFT.real,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Real Part',
+            line: { color: '#1f77b4' },
+            xaxis: 'x1',
+            yaxis: 'y1'
+        },
+        {
+            x: state.realFFT.freq,
+            y: state.realFFT.imaginary,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Imaginary Part',
+            line: { color: '#ff7f0e' },
+            xaxis: 'x2',
+            yaxis: 'y2'
+        },
+        {
+            x: state.realFFT.freq,
+            y: state.realFFT.magnitude,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Magnitude',
+            line: { color: '#2ca02c' },
+            xaxis: 'x3',
+            yaxis: 'y3'
+        }
+    ];
+    
+    // Define layout with 3 subplots
+    const layout = {
+        grid: { rows: 3, columns: 1, pattern: 'independent' },
+        showlegend: true,
+        autosize: true,
+        margin: { l: 200, r: 60, t: 160, b: 150 },
+        title: 'Real FFT Analysis',
+        xaxis: { 
+            title: { text: '', standoff: 20 }, 
+            titlefont: { size: 12 }
+        },
+        yaxis: { 
+            title: { text: 'Real Part', standoff: 30 }, 
+            titlefont: { size: 12 }
+        },
+        xaxis2: { 
+            title: { text: '', standoff: 20 }, 
+            titlefont: { size: 12 }
+        },
+        yaxis2: { 
+            title: { text: 'Imaginary Part', standoff: 30 }, 
+            titlefont: { size: 12 }
+        },
+        xaxis3: { 
+            title: { text: 'Frequency (Hz)', standoff: 20 }, 
+            titlefont: { size: 12 }
+        },
+        yaxis3: { 
+            title: { text: 'Magnitude', standoff: 30 }, 
+            titlefont: { size: 12 }
+        }
+    };
+    
+    // Clear and render the plot
+    Plotly.purge('plot');
+    Plotly.newPlot('plot', traces, layout, {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false
+    });
+    
+    console.log('Real FFT analysis plotted successfully');
+}
+
+// Perform inverse FFT on the current FFT data
+async function performIFFT() {
+    // Check if we have complex FFT data to convert back
+    if (!state.fftComplex || state.fftComplex.length === 0) {
+        alert('No complex FFT data available for inverse FFT. Generate a signal first.');
+        return;
+    }
+    
+    try {
+        // Extract real and imaginary parts from complex data
+        const fftReal = state.fftComplex.map(c => c[0]);
+        const fftImag = state.fftComplex.map(c => c[1]);
+        
+        // Prepare the data for the backend
+        const response = await fetch('/api/ifft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fft_complex_real: fftReal,
+                fft_complex_imag: fftImag,
+                original_length: state.signalData ? state.signalData.length : 1024,
+                fs: FS
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('iFFT error: ' + data.error);
+            return;
+        }
+        
+        // Store the reconstructed signal as an overlay for comparison
+        if (!state.overlays) {
+            state.overlays = [];
+        }
+        
+        // Convert the reconstructed signal to overlay
+        const reconstructedSignal = new Float32Array(data.reconstructed_signal);
+        const timeAxis = new Float32Array(data.time_axis);
+        
+        // Compute FFT of the reconstructed signal for display
+        const fftResponse = await fetch('/api/real_fft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                signal: Array.from(reconstructedSignal),
+                fs: FS
+            })
+        });
+        const fftData = await fftResponse.json();
+        
+        // Add as overlay
+        state.overlays = [{
+            signal: reconstructedSignal,
+            time_axis: timeAxis,
+            fft: new Float32Array(fftData.fft_magnitude),
+            freq: new Float32Array(fftData.freq_axis)
+        }];
+        
+        // Track for undo
+        state.plotHistory.push({ type: 'overlay' });
+        
+        // Re-plot with the reconstructed signal as overlay
+        plotAll();
+        
+        alert('Inverse FFT completed! Reconstructed signal shown as overlay (red) for comparison.');
+        
+    } catch (error) {
+        console.error('Error performing inverse FFT:', error);
+        alert('Error performing inverse FFT: ' + error.message);
+    }
+}
+
+// Show comprehensive results view with original signals, result signal, and all FFTs
+async function showResults() {
+    // Check if we have the necessary data
+    if (!state.resultSignal || state.resultSignal.length === 0) {
+        alert('No operation results available. Perform an operation (Add, Subtract, Multiply, Divide) first.');
+        return;
+    }
+    
+    if (!state.overlays || state.overlays.length === 0) {
+        alert('No overlay signals available for comparison.');
+        return;
+    }
+    
+    try {
+        // Get the plot div
+        const plotDiv = document.getElementById('plot');
+        if (!plotDiv) {
+            console.error('Plot div not found');
+            return;
+        }
+        
+        // Prepare traces for comprehensive results view
+        const traces = [];
+        
+        // Original signal (main)
+        if (state.signalData && state.signalData.length > 0) {
+            traces.push({
+                x: state.time_axis,
+                y: state.signalData,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Signal 1',
+                line: { color: '#000000' },
+                xaxis: 'x1',
+                yaxis: 'y1',
+                showlegend: true
+            });
+        }
+        
+        // Overlay signal (second signal)
+        const overlay = state.overlays[state.overlays.length - 1];
+        if (overlay && overlay.signal) {
+            traces.push({
+                x: overlay.time_axis || state.time_axis,
+                y: overlay.signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Signal 2',
+                line: { color: '#d62728' },
+                xaxis: 'x1',
+                yaxis: 'y1',
+                showlegend: true
+            });
+        }
+        
+        // Result signal (subplot)
+        if (state.resultSignal) {
+            traces.push({
+                x: state.time_axis,
+                y: state.resultSignal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Operation Result',
+                line: { color: '#2ca02c' },
+                xaxis: 'x2',
+                yaxis: 'y2',
+                showlegend: true
+            });
+        }
+        
+        // FFTs - Main signal FFT
+        if (state.fftMagnitudes && state.fftFreqAxis) {
+            traces.push({
+                x: state.fftFreqAxis,
+                y: state.fftMagnitudes,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'FFT Signal 1',
+                line: { color: '#1f77b4' },
+                xaxis: 'x3',
+                yaxis: 'y3',
+                showlegend: true
+            });
+        }
+        
+        // FFT - Overlay signal FFT
+        if (overlay && overlay.fft && overlay.freq) {
+            traces.push({
+                x: overlay.freq,
+                y: overlay.fft,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'FFT Signal 2',
+                line: { color: '#ff7f0e' },
+                xaxis: 'x3',
+                yaxis: 'y3',
+                showlegend: true
+            });
+        }
+        
+        // FFT - Result signal FFT
+        if (state.resultFFT && state.resultFreqAxis) {
+            traces.push({
+                x: state.resultFreqAxis,
+                y: state.resultFFT,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'FFT Result',
+                line: { color: '#9467bd' },
+                xaxis: 'x3',
+                yaxis: 'y3',
+                showlegend: true
+            });
+        }
+        
+        // Layout for 3 subplots
+        const layout = {
+            grid: { rows: 3, columns: 1, pattern: 'independent' },
+            showlegend: true,
+            autosize: true,
+            margin: { l: 200, r: 60, t: 160, b: 150 },
+            
+            // Time domain signals (top)
+            xaxis: { 
+                title: { text: 'Time (s)', standoff: 20 },
+                titlefont: { size: 12 }
+            },
+            yaxis: { 
+                title: { text: 'Amplitude', standoff: 30 },
+                titlefont: { size: 12 }
+            },
+            
+            // Result signal (middle)
+            xaxis2: { 
+                title: { text: 'Time (s)', standoff: 20 },
+                titlefont: { size: 12 }
+            },
+            yaxis2: { 
+                title: { text: 'Result Amplitude', standoff: 30 },
+                titlefont: { size: 12 }
+            },
+            
+            // FFT comparison (bottom)
+            xaxis3: { 
+                title: { text: 'Frequency (Hz)', standoff: 20 },
+                titlefont: { size: 12 }
+            },
+            yaxis3: { 
+                title: { text: 'FFT Magnitude', standoff: 30 },
+                titlefont: { size: 12 }
+            }
+        };
+        
+        // Clear and render the comprehensive results plot
+        Plotly.purge('plot');
+        Plotly.newPlot('plot', traces, layout, {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false
+        });
+        
+        console.log('Results view displayed successfully');
+        
+    } catch (error) {
+        console.error('Error displaying results:', error);
+        alert('Error displaying results: ' + error.message);
     }
 }
