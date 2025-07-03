@@ -8,6 +8,8 @@ export const state = {
     fftReal: new Float32Array(), // FFT real part (for proper iFFT)
     fftImaginary: new Float32Array(), // FFT imaginary part (for proper iFFT)
     frequency: null, // Input frequency (Hz) from UI, set by signal.js
+    originalSignal: null, // Store the original signal when adding overlays
+    waitingForOverlay: false, // Track if we're waiting for an overlay to be generated
     overlays: [], // Array of overlay signals {signal, time_axis, fft, freq}
     filteredActive: false, // Track if a filter is active (if not already present)
     filteredSignal: null,  // Store filtered signal (if not already present)

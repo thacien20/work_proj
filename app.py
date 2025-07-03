@@ -127,15 +127,18 @@ def signal_operation():
     except (KeyError, ValueError):
         return jsonify({'error': 'Invalid or missing parameters'}), 400
     try:
-        from signal_processing import signal_to_signal_operation, compute_fft
+        from signal_processing import signal_to_signal_operation, compute_fft, compute_complex_fft
         result_signal = signal_to_signal_operation(signal1, signal2, operation)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     fft_magnitude, freq_axis = compute_fft(result_signal, FS)
+    fft_real, fft_imaginary, fft_magnitude_complex, freq_axis_complex = compute_complex_fft(result_signal, FS)
     return jsonify({
         'signal': result_signal.tolist(),
         'fft': fft_magnitude.tolist(),
-        'freq_axis': freq_axis.tolist()
+        'freq_axis': freq_axis.tolist(),
+        'fft_real': fft_real.tolist(),
+        'fft_imaginary': fft_imaginary.tolist()
     })
 
 @app.route('/api/filter', methods=['POST'])

@@ -114,21 +114,67 @@ export function generateSignal() {
     })
     .then(data => {
         if (!data) return;
-        state.signalData = new Float32Array(data.signal);
-        state.frequency = frequency;
-        // Always use FS for time axis, and match length to returned signal
-        const n = data.signal.length;
-        state.time_axis = new Float32Array(n);
-        for (let i = 0; i < n; i++) {
-            state.time_axis[i] = i / FS;
-        }
-        state.fftMagnitudes = new Float32Array(data.fft);
-        state.fftFreqAxis = new Float32Array(data.freq_axis);
         
-        // Store complex FFT data for proper iFFT
-        if (data.fft_real && data.fft_imaginary) {
-            state.fftReal = new Float32Array(data.fft_real);
-            state.fftImaginary = new Float32Array(data.fft_imaginary);
+        // Check if we're waiting for an overlay signal
+        if (state.waitingForOverlay) {
+            // The new signal becomes an overlay, restore the original as main
+            if (state.originalSignal) {
+                // Add the new signal as overlay
+                state.overlays = [{
+                    signal: new Float32Array(data.signal),
+                    time_axis: (() => {
+                        const n = data.signal.length;
+                        const timeAxis = new Float32Array(n);
+                        for (let i = 0; i < n; i++) {
+                            timeAxis[i] = i / FS;
+                        }
+                        return timeAxis;
+                    })(),
+                    fft: new Float32Array(data.fft),
+                    freq: new Float32Array(data.freq_axis)
+                }];
+                
+                // Restore the original signal as main
+                state.signalData = state.originalSignal.signal;
+                state.time_axis = state.originalSignal.time_axis;
+                state.fftMagnitudes = state.originalSignal.fft;
+                state.fftFreqAxis = state.originalSignal.freq;
+                if (state.originalSignal.fftReal && state.originalSignal.fftImaginary) {
+                    state.fftReal = state.originalSignal.fftReal;
+                    state.fftImaginary = state.originalSignal.fftImaginary;
+                }
+            }
+            
+            // Reset overlay waiting state
+            state.waitingForOverlay = false;
+            window.waitingForOverlay = false;
+            
+            // Reset button appearance
+            const addOverlayBtn = document.getElementById('addOverlayBtn_inplot');
+            if (addOverlayBtn) {
+                addOverlayBtn.textContent = 'Add Overlay';
+                addOverlayBtn.style.backgroundColor = '';
+            }
+            
+            alert('New signal added as overlay. Original signal restored as main signal.');
+        } else {
+            // Normal signal generation
+            state.signalData = new Float32Array(data.signal);
+            state.frequency = frequency;
+            // Always use FS for time axis, and match length to returned signal
+            const n = data.signal.length;
+            state.time_axis = new Float32Array(n);
+            for (let i = 0; i < n; i++) {
+                state.time_axis[i] = i / FS;
+            }
+            state.fftMagnitudes = new Float32Array(data.fft);
+            state.fftFreqAxis = new Float32Array(data.freq_axis);
+            
+            // Store complex FFT data for proper iFFT
+            if (data.fft_real && data.fft_imaginary) {
+                state.fftReal = new Float32Array(data.fft_real);
+                state.fftImaginary = new Float32Array(data.fft_imaginary);
+            }
         }
         
         plotAll();

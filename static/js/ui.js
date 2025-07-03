@@ -155,24 +155,39 @@ window.addEventListener('DOMContentLoaded', () => {
 const signalTypeSelect = document.getElementById('signalType_inplot');
 
 let lastSignalSnapshot = null;
-let waitingForOverlay = false;
-
+// Add Overlay logic
 function addOverlay() {
     if (!state.signalData.length || !state.fftMagnitudes.length || !state.fftFreqAxis.length) {
         alert('Generate a main signal first before adding an overlay.');
         return;
     }
-    // Save the current signal as the overlay (replace any previous overlay)
-    state.overlays = [{
-        signal: new Float32Array(state.signalData),
-        time_axis: new Float32Array(state.time_axis),
-        fft: new Float32Array(state.fftMagnitudes),
-        freq: new Float32Array(state.fftFreqAxis)
-    }];
+    
+    // Set flag to indicate we're waiting for the next signal to be an overlay
+    state.waitingForOverlay = true;
+    window.waitingForOverlay = true;
+    
+    // Save the current signal as the original/main signal (backup)
+    if (!state.originalSignal) {
+        state.originalSignal = {
+            signal: new Float32Array(state.signalData),
+            time_axis: new Float32Array(state.time_axis),
+            fft: new Float32Array(state.fftMagnitudes),
+            freq: new Float32Array(state.fftFreqAxis),
+            fftReal: state.fftReal ? new Float32Array(state.fftReal) : null,
+            fftImaginary: state.fftImaginary ? new Float32Array(state.fftImaginary) : null
+        };
+    }
+    
     state.plotHistory.push({type: 'overlay'}); // Track overlay for undo
-    // Do NOT clear or replace the main signal here!
-    plotAll();
-    alert('Signal saved as overlay. Now generate a new signal to compare.');
+    
+    // Change UI to indicate waiting for overlay
+    const addOverlayBtn = document.getElementById('addOverlayBtn_inplot');
+    if (addOverlayBtn) {
+        addOverlayBtn.textContent = 'Waiting for Overlay...';
+        addOverlayBtn.style.backgroundColor = '#ff9500';
+    }
+    
+    alert('Current signal will remain as main signal. Now generate a new signal to add as overlay.');
 }
 
 // Patch generateSignal to show multi warning
@@ -240,18 +255,21 @@ function setupOperationsDropdown() {
         operationButtons.forEach(({ id, op }) => {
             const button = document.getElementById(id);
             button.addEventListener('click', async () => {
-                if (state.overlays.length > 0) {
+                if (state.originalSignal && state.overlays.length > 0) {
                     const overlay = state.overlays[state.overlays.length - 1];
                     try {
                         const result = await window.signalToSignalOperation(
-                            state.signalData,
+                            state.originalSignal.signal,
                             overlay.signal,
                             op,
-                            state.fs
+                            FS
                         );
+                        // Update main signal with operation result
                         state.signalData = new Float32Array(result.signal);
                         state.fftMagnitudes = new Float32Array(result.fft);
                         state.fftFreqAxis = new Float32Array(result.freq_axis);
+                        state.fftReal = new Float32Array(result.fft_real);
+                        state.fftImaginary = new Float32Array(result.fft_imaginary);
                         const points = state.signalData.length;
                         state.time_axis = new Float32Array(points);
                         for (let i = 0; i < points; i++) {
@@ -262,7 +280,7 @@ function setupOperationsDropdown() {
                         alert(error.message);
                     }
                 } else {
-                    alert('You must add an overlay before using Operations.');
+                    alert('You must have an original signal and add an overlay before using Operations.');
                 }
             });
         });
@@ -276,6 +294,7 @@ document.getElementById('clearBtn').onclick = function() {
     state.fftFreqAxis = new Float32Array();
     state.fftReal = new Float32Array();
     state.fftImaginary = new Float32Array();
+    state.originalSignal = null; // Clear original signal backup
     state.overlays = [];
     state.filteredSignal = undefined;
     state.filteredActive = false;
@@ -284,6 +303,18 @@ document.getElementById('clearBtn').onclick = function() {
     state.filterResponse = null; // Clear filter response
     state.filterImpulse = null; // Clear stored filter impulse
     state.realFFT = null; // Clear Real FFT data
+    
+    // Reset overlay waiting state
+    state.waitingForOverlay = false;
+    window.waitingForOverlay = false;
+    
+    // Reset button appearance
+    const addOverlayBtn = document.getElementById('addOverlayBtn_inplot');
+    if (addOverlayBtn) {
+        addOverlayBtn.textContent = 'Add Overlay';
+        addOverlayBtn.style.backgroundColor = '';
+    }
+    
     updateApplyFilterButtonVisibility(); // Update button visibility
     updateDeconvolutionButtonVisibility(); // Update deconvolution button visibility
     plotAll();
@@ -407,6 +438,16 @@ if (undoBtn) {
         if (!lastAction) return;
         if (lastAction.type === 'overlay') {
             state.overlays = [];
+            state.originalSignal = null; // Clear the original signal backup
+            
+            // Reset overlay waiting state and button
+            state.waitingForOverlay = false;
+            window.waitingForOverlay = false;
+            const addOverlayBtn = document.getElementById('addOverlayBtn_inplot');
+            if (addOverlayBtn) {
+                addOverlayBtn.textContent = 'Add Overlay';
+                addOverlayBtn.style.backgroundColor = '';
+            }
         } else if (lastAction.type === 'filter') {
             state.filteredActive = false;
             state.filteredSignal = null;
@@ -440,11 +481,16 @@ if (showStateBtn) {
     showStateBtn.onclick = function() {
         let msg = '';
         const mainLen = state.signalData && state.signalData.length ? state.signalData.length : 0;
+        const originalLen = (state.originalSignal && state.originalSignal.signal.length) ? state.originalSignal.signal.length : 0;
         const overlayLen = (state.overlays && state.overlays.length && state.overlays[state.overlays.length-1].signal.length) ? state.overlays[state.overlays.length-1].signal.length : 0;
-        msg += 'Main signal: ' + (mainLen ? `${mainLen} points` : 'none') + '\n';
-        msg += 'Overlay: ' + (overlayLen ? `${overlayLen} points` : 'none') + '\n';
+        
+        msg += 'Current main signal: ' + (mainLen ? `${mainLen} points` : 'none') + '\n';
+        msg += 'Original signal: ' + (originalLen ? `${originalLen} points` : 'none') + '\n';
+        msg += 'Overlay signals: ' + (overlayLen ? `${overlayLen} points` : 'none') + '\n';
         msg += 'Filtered signal: ' + (state.filteredSignal && state.filteredSignal.length ? `${state.filteredSignal.length} points` : 'none') + '\n';
         msg += 'Filtered active: ' + (state.filteredActive ? 'yes' : 'no') + '\n';
+        msg += 'Waiting for overlay: ' + (window.waitingForOverlay ? 'yes' : 'no') + '\n';
+        
         if (state.filteredActive && state.filteredSignal && state.filteredSignal.length) {
             msg += '\nIf you apply a filter now, it will act on the main signal (not the overlay or filtered signal).';
         } else if (mainLen) {
@@ -452,13 +498,18 @@ if (showStateBtn) {
         } else {
             msg += '\nNo main signal present: filtering is not possible.';
         }
-        if (state.overlays && state.overlays.length) {
-            msg += '\nIf you perform an operation (add, subtract, etc), it will use both the main signal and the overlay.';
+        
+        if (state.originalSignal && state.overlays && state.overlays.length) {
+            msg += '\nIf you perform an operation (add, subtract, etc), it will use the original signal and the overlay.';
+        } else if (window.waitingForOverlay) {
+            msg += '\nWaiting for overlay: Generate a new signal to create an overlay.';
         }
+        
         // Compare lengths and show warning if different
-        if (mainLen && overlayLen && mainLen !== overlayLen) {
-            msg += '\n\n%RED%Different sample size detected ! Operations might not work !%ENDRED%';
+        if (originalLen && overlayLen && originalLen !== overlayLen) {
+            msg += '\n\n%RED%Different sample size detected between original and overlay! Operations might not work!%ENDRED%';
         }
+        
         // Show as plain alert, but replace %RED%...%ENDRED% with red text if possible
         if (msg.includes('%RED%')) {
             // Try to show as HTML if possible
@@ -961,95 +1012,188 @@ async function showIFFT() {
 
 // Show a comprehensive results view with all current data
 async function showResults() {
-    // Show a comprehensive results view with all current data
+    // Show a comprehensive 3-row results view: Original signals, Results, FFT comparison
     if (!state.signalData || state.signalData.length === 0) {
         alert('No signal data available. Please generate a signal first.');
         return;
     }
     
+    if (!state.originalSignal || !state.overlays || state.overlays.length === 0) {
+        alert('Please add an overlay and perform an operation to see results.');
+        return;
+    }
+    
     try {
-        // Compute basic statistics
-        const signal = Array.from(state.signalData);
-        const n = signal.length;
-        const mean = signal.reduce((a, b) => a + b, 0) / n;
-        const variance = signal.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
-        const std = Math.sqrt(variance);
-        const min = Math.min(...signal);
-        const max = Math.max(...signal);
-        const rms = Math.sqrt(signal.reduce((a, b) => a + b * b, 0) / n);
-        
-        // Peak frequency from FFT
-        let peakFreq = 0;
-        let peakMag = 0;
-        if (state.fftMagnitudes && state.fftFreqAxis) {
-            const fftMag = Array.from(state.fftMagnitudes);
-            const fftFreq = Array.from(state.fftFreqAxis);
-            for (let i = 0; i < fftMag.length; i++) {
-                if (fftMag[i] > peakMag) {
-                    peakMag = fftMag[i];
-                    peakFreq = fftFreq[i];
-                }
-            }
+        const plotDiv = document.getElementById('plot');
+        if (!plotDiv) {
+            console.error('Plot div not found');
+            return;
         }
         
-        // Duration
-        const duration = state.time_axis.length > 0 ? state.time_axis[state.time_axis.length - 1] : 0;
+        // Get the original signal and latest overlay
+        const originalSig = state.originalSignal;
+        const overlay = state.overlays[state.overlays.length - 1];
         
-        // Create results summary
-        const resultsHTML = `
-            <div style="background: white; color: black; padding: 20px; border-radius: 8px; font-family: monospace; line-height: 1.6;">
-                <h3 style="color: #333; margin-top: 0;">Signal Analysis Results</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div>
-                        <h4 style="color: #555; margin-bottom: 10px;">Time Domain Statistics</h4>
-                        <p><strong>Sample Count:</strong> ${n}</p>
-                        <p><strong>Duration:</strong> ${duration.toFixed(4)} seconds</p>
-                        <p><strong>Mean:</strong> ${mean.toFixed(6)}</p>
-                        <p><strong>Standard Deviation:</strong> ${std.toFixed(6)}</p>
-                        <p><strong>RMS:</strong> ${rms.toFixed(6)}</p>
-                        <p><strong>Min Value:</strong> ${min.toFixed(6)}</p>
-                        <p><strong>Max Value:</strong> ${max.toFixed(6)}</p>
-                        <p><strong>Peak-to-Peak:</strong> ${(max - min).toFixed(6)}</p>
-                    </div>
-                    <div>
-                        <h4 style="color: #555; margin-bottom: 10px;">Frequency Domain Statistics</h4>
-                        <p><strong>Peak Frequency:</strong> ${peakFreq.toFixed(2)} Hz</p>
-                        <p><strong>Peak Magnitude:</strong> ${peakMag.toFixed(6)}</p>
-                        <p><strong>Sampling Rate:</strong> ${FS} Hz</p>
-                        <p><strong>Nyquist Frequency:</strong> ${FS/2} Hz</p>
-                        <p><strong>Frequency Resolution:</strong> ${(FS/n).toFixed(2)} Hz</p>
-                        <p><strong>Filtered Signal:</strong> ${state.filteredActive ? 'Yes' : 'No'}</p>
-                        <p><strong>Overlays:</strong> ${state.overlays.length}</p>
-                        <p><strong>Complex FFT Data:</strong> ${(state.fftReal && state.fftReal.length > 0) ? 'Available' : 'Not available'}</p>
-                    </div>
-                </div>
-                <div style="margin-top: 20px; text-align: center;">
-                    <button onclick="window.close()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
-                </div>
-            </div>
-        `;
+        // Create traces for 3-row layout
+        const traces = [
+            // ROW 1 - LEFT: Original main signal
+            {
+                x: originalSig.time_axis,
+                y: originalSig.signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Original Signal',
+                line: { color: '#1f77b4' },
+                xaxis: 'x1',
+                yaxis: 'y1'
+            },
+            // ROW 1 - RIGHT: Second signal (overlay)
+            {
+                x: overlay.time_axis,
+                y: overlay.signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Overlay Signal',
+                line: { color: '#ff7f0e' },
+                xaxis: 'x2',
+                yaxis: 'y2'
+            },
+            // ROW 2 - FULL WIDTH: Results signal (current main signal after operation)
+            {
+                x: state.time_axis,
+                y: state.signalData,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Operation Result',
+                line: { color: '#2ca02c', width: 3 },
+                xaxis: 'x3',
+                yaxis: 'y3'
+            },
+            // ROW 3 - LEFT: FFT of original signal
+            {
+                x: originalSig.freq,
+                y: originalSig.fft,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Original FFT',
+                line: { color: '#1f77b4' },
+                xaxis: 'x4',
+                yaxis: 'y4'
+            },
+            // ROW 3 - RIGHT: FFT of results signal
+            {
+                x: state.fftFreqAxis,
+                y: state.fftMagnitudes,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Result FFT',
+                line: { color: '#2ca02c' },
+                xaxis: 'x5',
+                yaxis: 'y5'
+            }
+        ];
         
-        // Open results in a new window
-        const resultsWindow = window.open('', 'Results', 'width=800,height=600,scrollbars=yes');
-        resultsWindow.document.write(`
-            <html>
-                <head>
-                    <title>Signal Analysis Results</title>
-                    <style>
-                        body { margin: 0; padding: 20px; background: #f5f5f5; font-family: Arial, sans-serif; }
-                    </style>
-                </head>
-                <body>
-                    ${resultsHTML}
-                </body>
-            </html>
-        `);
-        resultsWindow.document.close();
+        // Add filtered signal FFT if available (instead of duplicate result FFT)
+        if (state.filteredActive && state.filteredFft && state.filteredFftFreq) {
+            // Replace the last trace with filtered FFT
+            traces[4] = {
+                x: state.filteredFftFreq,
+                y: state.filteredFft,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Filtered FFT',
+                line: { color: '#d62728' },
+                xaxis: 'x5',
+                yaxis: 'y5'
+            };
+        }
         
-        console.log('Results displayed successfully');
+        // Define 3-row subplot layout
+        const layout = {
+            title: 'Signal Operation Results - 3-Row Analysis',
+            showlegend: true,
+            autosize: true,
+            margin: { l: 80, r: 60, t: 120, b: 80 },
+            
+            // ROW 1 - Original signals (top row, 2 columns)
+            xaxis: {
+                title: 'Time (s)',
+                titlefont: { size: 10 },
+                domain: [0, 0.48],
+                anchor: 'y1'
+            },
+            yaxis: {
+                title: 'Amplitude',
+                titlefont: { size: 10 },
+                domain: [0.72, 1.0],
+                anchor: 'x1'
+            },
+            xaxis2: {
+                title: 'Time (s)',
+                titlefont: { size: 10 },
+                domain: [0.52, 1.0],
+                anchor: 'y2'
+            },
+            yaxis2: {
+                title: 'Amplitude',
+                titlefont: { size: 10 },
+                domain: [0.72, 1.0],
+                anchor: 'x2'
+            },
+            
+            // ROW 2 - Results signal (middle row, full width)
+            xaxis3: {
+                title: 'Time (s)',
+                titlefont: { size: 10 },
+                domain: [0, 1.0],
+                anchor: 'y3'
+            },
+            yaxis3: {
+                title: 'Result Amplitude',
+                titlefont: { size: 10 },
+                domain: [0.38, 0.66],
+                anchor: 'x3'
+            },
+            
+            // ROW 3 - FFT comparison (bottom row, 2 columns)
+            xaxis4: {
+                title: 'Frequency (Hz)',
+                titlefont: { size: 10 },
+                domain: [0, 0.48],
+                anchor: 'y4'
+            },
+            yaxis4: {
+                title: 'Magnitude',
+                titlefont: { size: 10 },
+                domain: [0, 0.32],
+                anchor: 'x4'
+            },
+            xaxis5: {
+                title: 'Frequency (Hz)',
+                titlefont: { size: 10 },
+                domain: [0.52, 1.0],
+                anchor: 'y5'
+            },
+            yaxis5: {
+                title: 'Magnitude',
+                titlefont: { size: 10 },
+                domain: [0, 0.32],
+                anchor: 'x5'
+            }
+        };
+        
+        // Clear and render the plot
+        Plotly.purge('plot');
+        Plotly.newPlot('plot', traces, layout, {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false
+        });
+        
+        console.log('3-row results analysis plotted successfully');
         
     } catch (error) {
-        console.error('Error computing results:', error);
-        alert('Error computing results: ' + error.message);
+        console.error('Error displaying results:', error);
+        alert('Error displaying results: ' + error.message);
     }
 }
