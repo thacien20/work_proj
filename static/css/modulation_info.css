@@ -1,0 +1,196 @@
+/* Modulation Information Styles */
+.modulation-info {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+.modulation-info h3 {
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.modulation-info h4 {
+    color: #34495e;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.formula-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #3498db;
+}
+
+.formula-box {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    margin: 10px 0;
+    overflow-x: auto;
+}
+
+.modulation-index-section {
+    background: #f1f8ff;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #2980b9;
+}
+
+.characteristics-section {
+    background: #f0f8f0;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #27ae60;
+}
+
+.applications-section {
+    background: #fff8f0;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #f39c12;
+}
+
+.pros-cons-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.advantages {
+    background: #f0f8f0;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #27ae60;
+}
+
+.disadvantages {
+    background: #fff0f0;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #e74c3c;
+}
+
+.modulation-info ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.modulation-info li {
+    margin: 8px 0;
+    padding: 2px 0;
+}
+
+/* Modal styles for modulation info */
+.modulation-info-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.modulation-info-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modulation-info-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+}
+
+.modulation-info-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s ease;
+}
+
+.modulation-info-close:hover {
+    color: #000;
+}
+
+.modulation-info-button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: background 0.3s ease;
+}
+
+.modulation-info-button:hover {
+    background: #2980b9;
+}
+
+.modulation-info-button:active {
+    background: #21618c;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .pros-cons-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .modulation-info-content {
+        max-width: 95%;
+        max-height: 95%;
+        padding: 15px;
+    }
+    
+    .modulation-info {
+        padding: 15px;
+    }
+}
+
+/* Animation keyframes */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

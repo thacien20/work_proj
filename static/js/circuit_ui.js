@@ -1,12 +1,13 @@
 // circuit_ui.js
 // Handles all UI logic for Circuits Lab (DOM, events, info, export)
-import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator } from './circuit_frontEnd.js';
+import { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator, simulateModulation, plotModulation } from './circuit_frontEnd.js';
 
 function setupCircuitLabUI() {
     const circuitType = document.getElementById('circuitType');
     const rcFields = document.getElementById('rc-fields');
     const rlFields = document.getElementById('rl-fields');
     const rlcFields = document.getElementById('rlc-fields');
+    const modulationFields = document.getElementById('modulation-fields');
     const equationText = document.getElementById('equation-text');
     const showCurrentCheckbox = document.getElementById('showCurrentCheckbox');
     circuitType.addEventListener('change', function() {
@@ -14,31 +15,45 @@ function setupCircuitLabUI() {
             rcFields.style.display = '';
             rlFields.style.display = 'none';
             rlcFields.style.display = 'none';
+            modulationFields.style.display = 'none';
             equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - e<sup>-t/RC</sup>)';
         } else if (this.value === 'rl') {
             rcFields.style.display = 'none';
             rlFields.style.display = '';
             rlcFields.style.display = 'none';
+            modulationFields.style.display = 'none';
             equationText.innerHTML = 'I<sub>out</sub>(t) = (V<sub>in</sub>/R)(1 - e<sup>-Rt/L</sup>)';
         } else if (this.value === 'rlc') {
             rcFields.style.display = 'none';
             rlFields.style.display = 'none';
             rlcFields.style.display = '';
+            modulationFields.style.display = 'none';
             equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - (1/\sqrt{1-\zeta^2})e^{-\zeta\omega_n t} \sin(\omega_d t + \phi))';
         } else if (this.value === 'differentiator') {
             rcFields.style.display = '';
             rlFields.style.display = 'none';
             rlcFields.style.display = 'none';
+            modulationFields.style.display = 'none';
             equationText.innerHTML = 'V<sub>out</sub>(t) = RC \, (dV_{in}/dt)';
         } else if (this.value === 'integrator') {
             rcFields.style.display = '';
             rlFields.style.display = 'none';
             rlcFields.style.display = 'none';
+            modulationFields.style.display = 'none';
             equationText.innerHTML = 'V<sub>out</sub>(t) = (1/RC) \int V_{in}(t) dt';
+        } else if (this.value === 'modulation') {
+            rcFields.style.display = 'none';
+            rlFields.style.display = 'none';
+            rlcFields.style.display = 'none';
+            modulationFields.style.display = '';
+            equationText.innerHTML = 'AM: y(t) = (1 + m·cos(2πf<sub>m</sub>t)) · cos(2πf<sub>c</sub>t)<br>FM: y(t) = cos(2πf<sub>c</sub>t + β·sin(2πf<sub>m</sub>t))';
         }
     });
     // Default info
     equationText.innerHTML = 'V<sub>out</sub>(t) = V<sub>in</sub>(1 - e<sup>-t/RC</sup>)';
+
+    // Setup modulation info button
+    setupModulationInfoButton();
 
     // Default plot on load (RC)
     document.addEventListener('DOMContentLoaded', async () => {
@@ -145,6 +160,21 @@ function setupCircuitLabUI() {
             } catch (err) {
                 alert('Integrator Error: ' + err.message);
             }
+        } else if (type === 'modulation') {
+            const modulationType = document.getElementById('modulationType').value;
+            const carrierFreq = parseFloat(document.getElementById('carrierFreq').value);
+            const modulatingFreq = parseFloat(document.getElementById('modulatingFreq').value);
+            const modulationIndex = parseFloat(document.getElementById('modulationIndex').value);
+            if (isNaN(carrierFreq) || isNaN(modulatingFreq) || isNaN(modulationIndex) || isNaN(duration) || isNaN(points)) {
+                alert('Please enter valid modulation parameters.');
+                return;
+            }
+            try {
+                const result = await simulateModulation(modulationType, carrierFreq, modulatingFreq, modulationIndex, duration, points);
+                plotModulation(result.time, result.modulated_signal, result.carrier_signal, result.modulating_signal, result.modulation_type);
+            } catch (err) {
+                alert('Modulation Error: ' + err.message);
+            }
         }
     });
 
@@ -173,6 +203,90 @@ function setupCircuitLabUI() {
         });
     }
 }
+
+/**
+ * Setup modulation information button functionality
+ */
+function setupModulationInfoButton() {
+    const modulationInfoBtn = document.getElementById('modulationInfoBtn');
+    const modulationInfoModal = document.getElementById('modulationInfoModal');
+    const closeModulationInfo = document.getElementById('closeModulationInfo');
+    const modulationInfoDisplay = document.getElementById('modulationInfoDisplay');
+
+    // Show modulation info when button is clicked
+    if (modulationInfoBtn) {
+        modulationInfoBtn.addEventListener('click', () => {
+            const modulationType = document.getElementById('modulationType').value;
+            showModulationInfo(modulationType);
+        });
+    }
+
+    // Close modal when X is clicked
+    if (closeModulationInfo) {
+        closeModulationInfo.addEventListener('click', () => {
+            hideModulationInfo();
+        });
+    }
+
+    // Close modal when clicking outside
+    if (modulationInfoModal) {
+        modulationInfoModal.addEventListener('click', (e) => {
+            if (e.target === modulationInfoModal) {
+                hideModulationInfo();
+            }
+        });
+    }
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modulationInfoModal && modulationInfoModal.classList.contains('show')) {
+            hideModulationInfo();
+        }
+    });
+}
+
+/**
+ * Show modulation information modal
+ * @param {string} modulationType - The type of modulation (AM, FM, PM)
+ */
+function showModulationInfo(modulationType) {
+    const modulationInfoModal = document.getElementById('modulationInfoModal');
+    const modulationInfoDisplay = document.getElementById('modulationInfoDisplay');
+    
+    if (!modulationInfoModal || !modulationInfoDisplay) {
+        console.error('Modulation info modal elements not found');
+        return;
+    }
+
+    // Get modulation info from the imported module
+    if (typeof formatModulationInfo === 'function') {
+        const infoHtml = formatModulationInfo(modulationType);
+        modulationInfoDisplay.innerHTML = infoHtml;
+    } else {
+        console.error('formatModulationInfo function not available');
+        modulationInfoDisplay.innerHTML = '<p>Error loading modulation information</p>';
+    }
+
+    // Show modal
+    modulationInfoModal.classList.add('show');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+}
+
+/**
+ * Hide modulation information modal
+ */
+function hideModulationInfo() {
+    const modulationInfoModal = document.getElementById('modulationInfoModal');
+    
+    if (modulationInfoModal) {
+        modulationInfoModal.classList.remove('show');
+        document.body.style.overflow = ''; // Restore scrolling
+    }
+}
+
+// Make functions available globally if needed
+window.showModulationInfo = showModulationInfo;
+window.hideModulationInfo = hideModulationInfo;
 
 // Initialize UI logic after DOM is ready
 if (document.readyState === 'loading') {

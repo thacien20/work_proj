@@ -102,7 +102,6 @@ function setupEventListeners() {
     document.getElementById('infoBtn').addEventListener('click', handleShowInfo);
     
     // Quick Action buttons
-    document.getElementById('modulation-btn').addEventListener('click', () => handleQuickAction('modulation'));
     document.getElementById('trigonometry-btn').addEventListener('click', () => handleQuickAction('trigonometry'));
     document.getElementById('toggle-btn').addEventListener('click', () => handleQuickAction('toggle'));
     
@@ -382,8 +381,13 @@ function showPropertiesDialog() {
  */
 function hidePropertiesDialog() {
     const dialog = document.getElementById('propertiesDialog');
-    dialog.style.display = 'none';
-    dialog.querySelector('.dialog-box').classList.remove('fade-in');
+    if (dialog) {
+        dialog.style.display = 'none';
+        const dialogBox = dialog.querySelector('.dialog-box');
+        if (dialogBox) {
+            dialogBox.classList.remove('fade-in');
+        }
+    }
 }
 
 // =============================================================================
@@ -404,7 +408,9 @@ function handleShowComparison() {
  */
 function handleCloseComparison() {
     const comparisonSection = document.getElementById('comparisonSection');
-    comparisonSection.style.display = 'none';
+    if (comparisonSection) {
+        comparisonSection.style.display = 'none';
+    }
     
     // Clean up comparison plot
     if (AppState.comparisonPlot) {
@@ -634,16 +640,27 @@ function handleReset() {
         AppState.currentPlot = null;
     }
     
-    // Clear properties
-    document.getElementById('propertiesContent').innerHTML = 
-        '<p>Generate a signal to see its properties</p>';
+    // Hide properties button
+    const propertiesBtn = document.getElementById('showPropertiesBtn');
+    if (propertiesBtn) {
+        propertiesBtn.style.display = 'none';
+    }
     
-    // Clear info
-    document.getElementById('signalInfoContent').innerHTML = 
-        '<p>Select a signal type and click the info button to learn more</p>';
+    // Hide properties dialog
+    hidePropertiesDialog();
+    
+    // Clear info content
+    const infoContent = document.getElementById('signalInfoContent');
+    if (infoContent) {
+        infoContent.innerHTML = '<p>Select a signal type and click the info button to learn more</p>';
+    }
     
     // Close comparison
     handleCloseComparison();
+    
+    // Clear current signal state
+    AppState.currentSignal = null;
+    AppState.currentProperties = null;
     
     console.log('🔄 Application reset');
 }
@@ -681,10 +698,6 @@ function handleKeyboardShortcuts(event) {
  */
 function handleQuickAction(action) {
     switch (action) {
-        case 'modulation':
-            showModulationDialog();
-            break;
-            
         case 'trigonometry':
             showTrigonometryDialog();
             break;
@@ -709,186 +722,6 @@ function showAlert(title, message) {
 
 // =============================================================================
 // MODULATION FEATURE
-// =============================================================================
-
-/**
- * Show modulation dialog for AM/FM/PM demonstrations
- */
-function showModulationDialog() {
-    const dialog = document.createElement('div');
-    dialog.id = 'modulationDialog';
-    dialog.className = 'modal-overlay';
-    dialog.innerHTML = `
-        <div class="modal-content modulation-modal">
-            <div class="modal-header">
-                <h2>📡 Signal Modulation</h2>
-                <button class="close-btn" onclick="closeModulationDialog()">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="modulation-controls">
-                    <div class="control-group">
-                        <label for="modulationType">Modulation Type:</label>
-                        <select id="modulationType" class="control-input">
-                            <option value="AM">Amplitude Modulation (AM)</option>
-                            <option value="FM">Frequency Modulation (FM)</option>
-                            <option value="PM">Phase Modulation (PM)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="param-grid">
-                        <div class="param-group">
-                            <label for="carrierFreq">Carrier Frequency (Hz):</label>
-                            <input type="number" id="carrierFreq" class="control-input" value="5.0" min="1" max="20" step="0.5">
-                        </div>
-                        
-                        <div class="param-group">
-                            <label for="modulatingFreq">Modulating Frequency (Hz):</label>
-                            <input type="number" id="modulatingFreq" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
-                        </div>
-                        
-                        <div class="param-group">
-                            <label for="modulationIndex">Modulation Index:</label>
-                            <input type="number" id="modulationIndex" class="control-input" value="0.5" min="0.1" max="1.0" step="0.1">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-buttons">
-                    <button onclick="generateModulatedSignal()" class="primary-btn">Generate Modulated Signal</button>
-                    <button onclick="closeModulationDialog()" class="secondary-btn">Cancel</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(dialog);
-    
-    // Close on overlay click
-    dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) {
-            closeModulationDialog();
-        }
-    });
-}
-
-/**
- * Close modulation dialog
- */
-function closeModulationDialog() {
-    const dialog = document.getElementById('modulationDialog');
-    if (dialog) {
-        dialog.remove();
-    }
-}
-
-/**
- * Generate modulated signal based on parameters
- */
-async function generateModulatedSignal() {
-    try {
-        const modulationType = document.getElementById('modulationType').value;
-        const carrierFreq = parseFloat(document.getElementById('carrierFreq').value);
-        const modulatingFreq = parseFloat(document.getElementById('modulatingFreq').value);
-        const modulationIndex = parseFloat(document.getElementById('modulationIndex').value);
-        
-        showLoading(true);
-        
-        const response = await fetch('/basic_signals/api/modulation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                modulation_type: modulationType,
-                carrier_frequency: carrierFreq,
-                modulating_frequency: modulatingFreq,
-                modulation_index: modulationIndex,
-                duration: 2.0,
-                sample_rate: 200
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            plotModulatedSignal(data);
-            closeModulationDialog();
-        } else {
-            throw new Error(data.error || 'Modulation generation failed');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error generating modulated signal:', error);
-        showError('Modulation generation failed: ' + error.message);
-    } finally {
-        showLoading(false);
-    }
-}
-
-/**
- * Plot modulated signal with carrier and modulating components
- */
-function plotModulatedSignal(data) {
-    try {
-        // Clean up previous plot
-        if (AppState.currentPlot) {
-            Plotly.purge('signalPlot');
-        }
-        
-        const traces = [
-            {
-                x: data.time,
-                y: data.modulated_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: `${data.modulation_type} Signal`,
-                line: { color: '#007bff', width: 2 }
-            },
-            {
-                x: data.time,
-                y: data.carrier_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Carrier Signal',
-                line: { color: '#6c757d', width: 1, dash: 'dash' },
-                opacity: 0.6
-            },
-            {
-                x: data.time,
-                y: data.modulating_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Modulating Signal',
-                line: { color: '#28a745', width: 1, dash: 'dot' },
-                opacity: 0.7
-            }
-        ];
-        
-        const layout = {
-            ...DefaultPlotLayout,
-            title: `${data.modulation_type} Modulated Signal`,
-            yaxis: { title: 'Amplitude (V)' }
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-        };
-        
-        Plotly.newPlot('signalPlot', traces, layout, config);
-        AppState.currentPlot = 'signalPlot';
-        
-    } catch (error) {
-        console.error('❌ Error plotting modulated signal:', error);
-        showError('Plotting failed: ' + error.message);
-    }
-}
-
 // =============================================================================
 // TRIGONOMETRY FEATURE
 // =============================================================================

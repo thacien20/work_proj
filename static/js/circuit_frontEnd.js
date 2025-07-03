@@ -60,6 +60,25 @@ async function simulateIntegratorCircuit(R, C, V_in, duration, points) {
     return result;
 }
 
+async function simulateModulation(modulationType, carrierFreq, modulatingFreq, modulationIndex, duration, points) {
+    const payload = { 
+        modulation_type: modulationType, 
+        carrier_frequency: carrierFreq, 
+        modulating_frequency: modulatingFreq, 
+        modulation_index: modulationIndex, 
+        duration: duration, 
+        sample_rate: points 
+    };
+    const response = await fetch('/circuits/modulation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Modulation simulation failed');
+    return result;
+}
+
 function plotRC(t, V_out) {
     Plotly.newPlot('circuit-plot', [{
         x: t,
@@ -255,4 +274,51 @@ function plotIntegrator(t, V_out) {
     });
 }
 
-export { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator };
+function plotModulation(time, modulatedSignal, carrierSignal, modulatingSignal, modulationType) {
+    const traces = [
+        {
+            x: time,
+            y: modulatedSignal,
+            type: 'scatter',
+            mode: 'lines',
+            name: `${modulationType} Modulated Signal`,
+            line: { color: '#007bff', width: 2 }
+        },
+        {
+            x: time,
+            y: carrierSignal,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Carrier Signal',
+            line: { color: '#6c757d', width: 2 },
+            opacity: 0.6
+        },
+        {
+            x: time,
+            y: modulatingSignal,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Info. Signal',
+            line: { color: '#28a745', width: 3, dash: 'dot' },
+            opacity: 0.7
+        }
+    ];
+
+    const layout = {
+        title: `${modulationType} Modulation Analysis`,
+        xaxis: { title: 'Time (s)' },
+        yaxis: { title: 'Amplitude (V)' },
+        showlegend: true,
+        legend: {
+            x: 0.02,
+            y: 0.98,
+            bgcolor: 'rgba(255,255,255,0.8)',
+            bordercolor: '#333',
+            borderwidth: 1
+        }
+    };
+
+    Plotly.newPlot('circuit-plot', traces, layout);
+}
+
+export { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator, simulateModulation, plotModulation };
