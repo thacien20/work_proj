@@ -1,7 +1,12 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from circuits import differentiator_circuit_response, integrator_circuit_response
 
 circuits_blueprint = Blueprint('circuits', __name__)
+
+@circuits_blueprint.route('/')
+def circuits_home():
+    """Main circuits analysis page"""
+    return render_template('circuits.html')
 
 @circuits_blueprint.route('/differentiator', methods=['POST'])
 def simulate_differentiator():

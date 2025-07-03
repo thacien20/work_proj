@@ -1,4 +1,4 @@
 @echo off
-cd /d "C:\Users\15755\OneDrive\Desktop\project\myProject"
+cd /d "C:\Users\ngendahi\Desktop\myweb"
 python app.py
 pause

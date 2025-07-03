@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Signals - Educational Signal Processing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .signal-controls {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .control-group {
+            margin: 15px 0;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .signal-info {
+            background: rgba(0, 150, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #0096ff;
+        }
+        .analysis-results {
+            background: rgba(0, 255, 150, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #00ff96;
+        }
+        .nav-link {
+            color: #0096ff;
+            text-decoration: none;
+            margin: 10px 0;
+            display: inline-block;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #0096ff, #00b4ff);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #007acc, #0096ff);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #868e96);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #5a6268, #6c757d);
+            transform: translateY(-2px);
+        }
+        .btn-info {
+            background: linear-gradient(45deg, #17a2b8, #20c997);
+            color: white;
+        }
+        .btn-info:hover {
+            background: linear-gradient(45deg, #138496, #17a2b8);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Basic Signals</h1>
+            <p>Educational signal generation and analysis</p>
+            <a href="/" class="nav-link">← Back to Main Page</a>
+        </header>
+
+        <div class="signal-controls">
+            <h2>Basic Signals Lab</h2>
+            
+            <!-- Quick Action Buttons -->
+            <div class="control-group">
+                <h3>Quick Actions</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button id="sine-wave-btn" class="btn btn-primary">🌊 Sine Wave</button>
+                    <button id="cosine-wave-btn" class="btn btn-primary">🌀 Cosine Wave</button>
+                    <button id="animate-btn" class="btn btn-secondary">🎭 Animate</button>
+                    <button id="toggle-btn" class="btn btn-secondary">🔄 Toggle</button>
+                    <button id="trigonometry-btn" class="btn btn-info">📐 Trigonometry</button>
+                    <button id="modulation-btn" class="btn btn-info">📡 Modulation</button>
+                </div>
+            </div>
+
+            <!-- Advanced Controls -->
+            <div class="control-group">
+                <h3>Manual Signal Generator</h3>
+                <label for="signal-type">Signal Type:</label>
+                <select id="signal-type">
+                    <option value="sine">Sine Wave</option>
+                    <option value="cosine">Cosine Wave</option>
+                    <option value="square">Square Wave</option>
+                    <option value="triangle">Triangle Wave</option>
+                    <option value="sawtooth">Sawtooth Wave</option>
+                    <option value="impulse">Impulse Train</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="frequency">Frequency (Hz):</label>
+                <input type="number" id="frequency" value="1" min="0.1" max="100" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label for="amplitude">Amplitude:</label>
+                <input type="number" id="amplitude" value="1" min="0.1" max="10" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label for="phase">Phase (radians):</label>
+                <input type="number" id="phase" value="0" min="-6.28" max="6.28" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label for="duration">Duration (seconds):</label>
+                <input type="number" id="duration" value="2" min="0.1" max="10" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label for="sample-rate">Sample Rate (Hz):</label>
+                <input type="number" id="sample-rate" value="1000" min="100" max="10000" step="100">
+            </div>
+
+            <div class="control-group">
+                <button id="generate-btn" class="btn btn-primary">Generate Signal</button>
+                <button id="analyze-btn" class="btn btn-secondary">Analyze Signal</button>
+            </div>
+        </div>
+
+        <div class="signal-info" id="signal-info" style="display: none;">
+            <h3>Signal Information</h3>
+            <p id="signal-details"></p>
+        </div>
+
+        <div class="analysis-results" id="analysis-results" style="display: none;">
+            <h3>Signal Analysis</h3>
+            <div id="analysis-details"></div>
+        </div>
+
+        <div id="plot-container" style="width: 100%; height: 500px; margin: 20px 0;"></div>
+    </div>
+
+    <script>
+        let currentSignalData = null;
+
+        document.getElementById('generate-btn').addEventListener('click', generateSignal);
+        document.getElementById('analyze-btn').addEventListener('click', analyzeSignal);
+        
+        // Quick Action Button Event Handlers
+        document.getElementById('sine-wave-btn').addEventListener('click', () => quickGenerate('sine'));
+        document.getElementById('cosine-wave-btn').addEventListener('click', () => quickGenerate('cosine'));
+        document.getElementById('animate-btn').addEventListener('click', showAnimation);
+        document.getElementById('toggle-btn').addEventListener('click', showToggle);
+        document.getElementById('trigonometry-btn').addEventListener('click', showTrigonometry);
+        document.getElementById('modulation-btn').addEventListener('click', showModulation);
+
+        async function generateSignal() {
+            const signalType = document.getElementById('signal-type').value;
+            const frequency = parseFloat(document.getElementById('frequency').value);
+            const amplitude = parseFloat(document.getElementById('amplitude').value);
+            const phase = parseFloat(document.getElementById('phase').value);
+            const duration = parseFloat(document.getElementById('duration').value);
+            const sampleRate = parseInt(document.getElementById('sample-rate').value);
+
+            try {
+                const response = await fetch('/basic_signals/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: signalType,
+                        frequency: frequency,
+                        amplitude: amplitude,
+                        phase: phase,
+                        duration: duration,
+                        sample_rate: sampleRate
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSignalData = data.signal;
+                    plotSignal(data.signal);
+                    showSignalInfo(data.signal);
+                } else {
+                    alert('Error generating signal: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function analyzeSignal() {
+            if (!currentSignalData) {
+                alert('Please generate a signal first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/basic_signals/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        signal: currentSignalData.amplitude,
+                        sample_rate: currentSignalData.sample_rate
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAnalysisResults(data.analysis);
+                } else {
+                    alert('Error analyzing signal: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function plotSignal(signalData) {
+            const trace = {
+                x: signalData.time,
+                y: signalData.amplitude,
+                type: 'scatter',
+                mode: 'lines',
+                name: signalData.type.charAt(0).toUpperCase() + signalData.type.slice(1),
+                line: { color: '#0096ff', width: 2 }
+            };
+
+            const layout = {
+                title: {
+                    text: `${signalData.type.charAt(0).toUpperCase() + signalData.type.slice(1)} Wave`,
+                    font: { color: '#fff' }
+                },
+                xaxis: { 
+                    title: 'Time (s)',
+                    color: '#fff',
+                    gridcolor: '#444'
+                },
+                yaxis: { 
+                    title: 'Amplitude',
+                    color: '#fff',
+                    gridcolor: '#444'
+                },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#fff' }
+            };
+
+            Plotly.newPlot('plot-container', [trace], layout);
+        }
+
+        function showSignalInfo(signalData) {
+            const infoDiv = document.getElementById('signal-info');
+            const detailsP = document.getElementById('signal-details');
+            
+            detailsP.innerHTML = `
+                <strong>Type:</strong> ${signalData.type}<br>
+                <strong>Frequency:</strong> ${signalData.frequency} Hz<br>
+                <strong>Duration:</strong> ${signalData.duration} s<br>
+                <strong>Sample Rate:</strong> ${signalData.sample_rate} Hz<br>
+                <strong>Total Samples:</strong> ${signalData.amplitude.length}
+            `;
+            
+            infoDiv.style.display = 'block';
+        }
+
+        function showAnalysisResults(analysis) {
+            const resultsDiv = document.getElementById('analysis-results');
+            const detailsDiv = document.getElementById('analysis-details');
+            
+            detailsDiv.innerHTML = `
+                <strong>RMS Value:</strong> ${analysis.rms.toFixed(4)}<br>
+                <strong>Peak Value:</strong> ${analysis.peak.toFixed(4)}<br>
+                <strong>Mean Value:</strong> ${analysis.mean.toFixed(4)}<br>
+                <strong>Dominant Frequency:</strong> ${analysis.dominant_frequency.toFixed(2)} Hz
+            `;
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        // Quick generate function for preset signals
+        function quickGenerate(signalType) {
+            document.getElementById('signal-type').value = signalType;
+            document.getElementById('frequency').value = '1';
+            document.getElementById('amplitude').value = '1';
+            document.getElementById('phase').value = '0';
+            document.getElementById('duration').value = '2';
+            document.getElementById('sample-rate').value = '1000';
+            generateSignal();
+        }
+
+        // Animation function - will show circular motion animation
+        function showAnimation() {
+            alert('🎭 Animation Feature Coming Soon!\nThis will show:\n• Circular motion\n• Sine wave generation from rotation\n• Interactive visualization');
+        }
+
+        // Toggle function - will show interactive sine/cosine toggle
+        function showToggle() {
+            alert('🔄 Toggle Feature Coming Soon!\nThis will show:\n• Interactive sine/cosine circle\n• Real-time phase shifting\n• Relationship between sine and cosine');
+        }
+
+        // Trigonometry function - will show trig relationships
+        function showTrigonometry() {
+            alert('📐 Trigonometry Feature Coming Soon!\nThis will show:\n• Unit circle\n• Trigonometric identities\n• Interactive angle controls');
+        }
+
+        // Modulation function - will show AM/FM/PM modulation
+        function showModulation() {
+            alert('📡 Modulation Feature Coming Soon!\nThis will show:\n• Amplitude Modulation (AM)\n• Frequency Modulation (FM)\n• Phase Modulation (PM)');
+        }
+
+        // Generate default signal on page load
+        window.addEventListener('load', generateSignal);
+    </script>
+</body>
+</html>

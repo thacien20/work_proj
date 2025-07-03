@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Signals - Signal Processing Lab</title>
+    
+    <!-- Include Plotly for plotting -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <!-- Include main CSS and feature-specific CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('basic_signals.static', filename='css/basic_signals.css') }}">
+    
+    <!-- Include MathJax for mathematical expressions -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="main-header">
+            <h1>🔬 Basic Signals Laboratory</h1>
+            <p class="subtitle">Learn fundamental signal types and their properties</p>
+            
+            <!-- Navigation -->
+            <nav class="feature-nav">
+                <a href="{{ url_for('serve_index') }}" class="nav-btn">← Main Lab</a>
+                <a href="{{ url_for('circuits.circuits_home') }}" class="nav-btn">Circuit Analysis</a>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Left Column - Controls -->
+            <div class="left-column">
+                <!-- Quick Action Buttons Section -->
+                <section class="quick-actions">
+                    <h2>🚀 Quick Actions</h2>
+                    <div class="button-grid">
+                        <button id="sine-wave-btn" class="action-btn btn-primary">🌊 Sine Wave</button>
+                        <button id="modulation-btn" class="action-btn btn-info">📡 Modulation</button>
+                        <button id="trigonometry-btn" class="action-btn btn-info">📐 Trigonometry</button>
+                        <button id="toggle-btn" class="action-btn btn-secondary">🔄 Toggle</button>
+                    </div>
+                </section>
+
+                <!-- Signal Generator Section -->
+                <section class="signal-generator">
+                    <h2>📡 Signal Generator</h2>
+                    
+                    <!-- Signal Type Selection -->
+                    <div class="control-group">
+                        <label for="signalType">Signal Type:</label>
+                        <select id="signalType" class="control-input">
+                            <option value="sine">Sine Wave</option>
+                            <option value="cosine">Cosine Wave</option>
+                            <option value="square">Square Wave</option>
+                            <option value="triangle">Triangle Wave</option>
+                            <option value="sawtooth">Sawtooth Wave</option>
+                        </select>
+                        <button id="infoBtn" class="info-btn" title="Learn about this signal">ℹ️</button>
+                    </div>
+
+                    <!-- Signal Parameters -->
+                    <div class="parameters-grid">
+                        <div class="param-group">
+                            <label for="frequency">Frequency (Hz):</label>
+                            <input type="number" id="frequency" class="control-input" value="1.0" min="0.1" max="10" step="0.1">
+                            <span class="param-unit">Hz</span>
+                        </div>
+                        
+                        <div class="param-group">
+                            <label for="amplitude">Amplitude:</label>
+                            <input type="number" id="amplitude" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <span class="param-unit">V</span>
+                        </div>
+                        
+                        <div class="param-group">
+                            <label for="phase">Phase (degrees):</label>
+                            <input type="number" id="phase" class="control-input" value="0" min="-180" max="180" step="15">
+                            <span class="param-unit">°</span>
+                        </div>
+                        
+                        <div class="param-group">
+                            <label for="duration">Duration:</label>
+                            <input type="number" id="duration" class="control-input" value="2.0" min="0.5" max="10" step="0.5">
+                            <span class="param-unit">s</span>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="control-buttons">
+                        <button id="generateBtn" class="primary-btn">Generate Signal</button>
+                        <button id="compareBtn" class="secondary-btn">Compare Signals</button>
+                        <button id="resetBtn" class="secondary-btn">Reset</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column - Visualization -->
+            <div class="right-column">
+                <!-- Visualization Section -->
+                <section class="visualization">
+                    <h2>📊 Signal Visualization</h2>
+                    
+                    <!-- Plot and Properties Container -->
+                    <div class="plot-properties-container">
+                        <!-- Plot Container -->
+                        <div id="signalPlot" class="plot-container"></div>
+                        
+                        <!-- Properties Button -->
+                        <button id="showPropertiesBtn" class="properties-btn" style="display: none;">📊 Show Properties</button>
+                    </div>
+                </section>
+
+                <!-- Educational Content Section -->
+                <section class="educational-content">
+                    <h2>📚 Learn About Signals</h2>
+                    
+                    <!-- Signal Information Panel -->
+                    <div id="signalInfo" class="info-panel">
+                        <h3>Signal Information</h3>
+                        <div id="signalInfoContent">
+                            <p>Select a signal type and generate it to learn more about its properties and applications.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>Basic Signals Laboratory | Signal Processing Educational Tool</p>
+        </footer>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+        <div class="spinner"></div>
+        <p>Generating signal...</p>
+    </div>
+
+    <!-- Signal Properties Dialog -->
+    <div id="propertiesDialog" class="dialog-overlay" style="display: none;">
+        <div class="dialog-box">
+            <div class="dialog-header">
+                <h3>📊 Signal Properties</h3>
+                <button id="closePropertiesBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="dialog-content">
+                <div class="properties-grid">
+                    <div class="property-row">
+                        <span class="prop-label">Freq (Hz):</span>
+                        <span id="prop-frequency" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">T (s):</span>
+                        <span id="prop-period" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">A (a.u):</span>
+                        <span id="prop-amplitude" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">RMS:</span>
+                        <span id="prop-rms" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">Mean:</span>
+                        <span id="prop-mean" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">Rate:</span>
+                        <span id="prop-rate" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">t (s):</span>
+                        <span id="prop-duration" class="prop-value">-</span>
+                    </div>
+                    <div class="property-row">
+                        <span class="prop-label">n:</span>
+                        <span id="prop-samples" class="prop-value">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signal Comparison Section (Hidden by default) -->
+    <section id="comparisonSection" class="comparison-section" style="display: none;">
+        <div class="comparison-header">
+            <h2>📊 Signal Comparison</h2>
+            <button id="closeComparisonBtn" class="close-btn">&times;</button>
+        </div>
+        
+        <div class="comparison-controls">
+            <div class="signal-configs">
+                <div class="signal-config">
+                    <label>Signal 1:</label>
+                    <select class="comp-signal-type">
+                        <option value="sine">Sine Wave</option>
+                        <option value="cosine">Cosine Wave</option>
+                        <option value="square">Square Wave</option>
+                        <option value="triangle">Triangle Wave</option>
+                        <option value="sawtooth">Sawtooth Wave</option>
+                    </select>
+                    <input type="number" class="comp-frequency" value="1.0" min="0.1" max="10" step="0.1" placeholder="Frequency">
+                </div>
+                
+                <div class="signal-config">
+                    <label>Signal 2:</label>
+                    <select class="comp-signal-type">
+                        <option value="sine">Sine Wave</option>
+                        <option value="cosine">Cosine Wave</option>
+                        <option value="square">Square Wave</option>
+                        <option value="triangle">Triangle Wave</option>
+                        <option value="sawtooth">Sawtooth Wave</option>
+                    </select>
+                    <input type="number" class="comp-frequency" value="2.0" min="0.1" max="10" step="0.1" placeholder="Frequency">
+                </div>
+            </div>
+            
+            <button id="generateComparisonBtn" class="primary-btn">Generate Comparison</button>
+        </div>
+        
+        <div id="comparisonPlot" class="plot-container"></div>
+    </section>
+
+    <!-- Include JavaScript -->
+    <script src="{{ url_for('basic_signals.static', filename='js/basic_signals.js') }}"></script>
+</body>
+</html>
