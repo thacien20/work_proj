@@ -10,8 +10,8 @@
 </head>
 <body>
     <!-- Main header with navigation buttons and title -->
-    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
-        <!-- Navigation buttons for different categories/sections -->
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <!-- Navigation button categories/sections -->
         <nav style="display: flex; gap: 15px;">
             <button class="header-btn" id="dataBtn">Data</button>
             <button class="header-btn" id="healthBtn">Health</button>
@@ -237,6 +237,18 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.10);
         }
         
+        /* Bottom plot controls button hover and active effects */
+        #plot-controls-bottom button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.18);
+            transform: translateY(-2px);
+        }
+
+        #plot-controls-bottom button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+        }
+        
         /* Dropdown content styling - hidden by default */
         .dropdown-content {
             display: none;
@@ -394,7 +406,7 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
             position: relative;
-            min-height: 800px;
+            min-height: 900px; /* Increased to accommodate larger plot */
         }
         
         /* Big canvas container hover effect */
@@ -403,41 +415,24 @@
             box-shadow: 0 25px 60px rgba(0,0,0,0.15);
         }
         
-        /* ===== Custom: Position filter view modal next to main plot ===== */
-        #filterViewModal.modal {
-            display: none;
-            position: absolute;
-            top: 280px; /* Align with main plot top */
-            left: 1150px; /* Main plot is 750px wide + 20px gap + sidebar */
-            z-index: 2000;
-            background:white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-            padding: 0;
-            height: 440px;
-            min-width: 640px;
-            max-width: 700px;
-            
-        }
-        #filterViewModal .modal-content {
-            padding: 18px 18px 12px 18px;
-        }
-
-        /* Plot container styling - fixed size for Plotly plot */
+        /* Plot container styling - increased size with proper margins for controls */
         #plot {
-            width: 900px;
-            height: 600px;
             box-sizing: border-box;
             padding: 0;
             margin: 0;
             overflow: hidden;
             display: block;
             position: relative;
+            flex: 1;
+            min-width: 900px; /* Increased from 400px */
+            min-height: 700px; /* Will be set inline as well */
+            width: 100%;
+            height: 700px; /* Fixed height for better visibility */
         }
-        /* Filter view plot container - 2/3 size of main plot */
+        /* Filter view plot container - will be adjusted for side-by-side view */
         #filter-view-plot {
-            width: 600px;
-            height: 400px;
+            /* width: 600px; */ /* Let flexbox handle sizing */
+            /* height: 400px; */ /* Let autosize handle height */
             box-sizing: border-box;
             padding: 0;
             margin: 0 auto;
@@ -497,38 +492,6 @@
                         <input type="text" id="multiAmplitudes" name="multiAmplitudes" placeholder="e.g., 1 1 1" value="1 1 1">
                     </div>
                     
-                    <!-- Data points configuration (affects resolution and processing time) -->
-                    <!-- Former points input removed: now handled in-plot -->
-                    <!-- <div class="form-group">
-                        <label for="points">Points (1024–65000):</label>
-                        <input type="number" id="points" name="points" min="1024" max="65000" step="64" value="1024" required>
-                    </div> -->
-                    
-                    <!-- Noise configuration -->
-                    <!-- Former noise input removed: now handled in-plot -->
-                    <!-- <div class="form-group">
-                        <label for="noise">Noise (0–1):</label>
-                        <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required>
-                    </div> -->
-                    
-                    <!-- Signal type selection -->
-                    <!-- Former signal type select removed: now handled in-plot -->
-                    <!-- <div class="form-group">
-                        <label for="signalType">Signal Type:</label>
-                        <select id="signalType" name="signalType">
-                        </select>
-                    </div> -->
-                    
-                    <!-- Tau (decay constant) input - HIDDEN AND MOVED TO IN-PLOT CONTROLS -->
-                    <!-- <div class="form-group" id="tauGroup" style="display:none;">
-                        <label for="tauValue">Decay Constant τ (seconds):</label>
-                        <input type="number" id="tauValue" name="tauValue" min="0.001" max="10" step="0.001" value="0.02" style="width:90px; text-align:center;">
-                    </div> -->
-                    
-                    <!-- Primary action buttons for signal generation - Hidden, functionality moved to draggable canvas -->
-                    <div class="button-group">
-                        <!-- No buttons here: all signal actions are in the plot controls, and Apply/Deconvolution are in the modal only -->
-                    </div>
                 </form>
                 
                 <!-- ===== PLOT DISPLAY AREA ===== -->
@@ -572,12 +535,13 @@
                         </div>
                     </div>
                     
-                    <!-- Main plot container - uses Plotly.js for interactive visualization -->
-                    <div id="plot">
+                    <!-- Main plot container -->
+                    <div id="plot" style="position: relative; width: 100%; min-height: 700px;">
+                        <!-- In-plot controls are correctly inside the plot div -->
                         <div id="plot-controls" style="
                             position: absolute;
                             top: 40px;
-                            left: 10px;
+                            left: 15px;
                             z-index: 10;
                             display: flex;
                             flex-direction: column;
@@ -622,6 +586,59 @@
                             <button type="button" id="addOverlayBtn_inplot">Add Overlay</button>
                             <button type="button" id="livePlotBtn_inplot">Live Plot</button>
                             <button type="button" id="deconvBtn_inplot" style="display:none;">Deconvolution</button>
+                            <button type="button" id="applyFilterBtn_inplot" style="display:none;">Apply Filter</button>
+                        </div>
+                        
+                        <!-- Bottom-left in-plot controls (Undo, Clear, Data Status) -->
+                        <div id="plot-controls-bottom" style="
+                            position: absolute;
+                            bottom: 10px;
+                            left: 15px;
+                            z-index: 10;
+                            display: flex;
+                            flex-direction: row;
+                            gap: 6px;
+                            background: rgba(40,40,60,0.92);
+                            border-radius: 8px;
+                            padding: 7px 8px;
+                            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+                        ">
+                            <button type="button" id="clearBtn" style="
+                                width: 60px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: #fff;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                font-size: 13px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+                            ">Clear</button>
+                            <button type="button" id="undo-btn" style="
+                                width: 60px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: #fff;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                font-size: 13px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+                            ">Undo</button>
+                            <button type="button" id="showStateBtn" style="
+                                width: 80px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: #fff;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                font-size: 13px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+                            ">Data Status</button>
                         </div>
                     </div>
                 </div>
@@ -662,14 +679,8 @@
             </section>
         </div>
     </main>
+
     </div> <!-- End of big-canvas-container -->
-    
-    <!-- ===== DRAGGABLE BUTTON CANVAS ===== -->
-    <div class="draggable-button-canvas" id="buttonCanvas">
-        <button type="button" id="clearBtn" class="canvas-btn">Clear</button>
-        <button type="button" id="undo-btn" class="canvas-btn">Undo</button>
-        <button type="button" id="showStateBtn" class="canvas-btn">Data Status</button>
-    </div>
     
     <!-- ===== EXTERNAL JAVASCRIPT MODULES ===== -->
     <!-- Main UI functionality and event handlers -->
@@ -801,21 +812,6 @@
             });
     </script>
 
-    <!-- ===== MODAL DIALOGS ===== -->
-    <!-- Filter visualization modal - hidden by default, shown when filter view is requested -->
-    <div id="filterViewModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <!-- Close button for modal -->
-            <span class="close" id="closeFilterView">&times;</span>
-            <h2>Filter Visualization</h2>
-            <!-- Container for filter frequency response plots -->
-            <div id="filter-view-plot"></div>
-            <!-- Apply and Deconvolution buttons, initially hidden, shown only after filter plots are displayed -->
-            <div id="filter-modal-actions" style="margin-top:18px; display:flex; gap:18px;">
-                <button id="applyFilterBtn" style="display:none; background:#229954; color:#fff; border:none; border-radius:6px; padding:10px 24px; font-size:16px; cursor:pointer;">Apply</button>
-                <button id="deconvBtn_modal" style="display:none; background:#b9770e; color:#fff; border:none; border-radius:6px; padding:10px 24px; font-size:16px; cursor:pointer;">Deconvolution</button>
-            </div>
-        </div>
-    </div>
+    <!-- ===== MODAL DIALOGS (REMOVED) ===== -->
 </body>
 </html>

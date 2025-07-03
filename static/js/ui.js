@@ -4,12 +4,13 @@ import { generateSignal, simulateRCCircuit } from './signal.js';
 import { plotAll } from './plotting.js';
 
 // === Plotly layout constants for consistent sizing ===
-const PLOT_HEIGHT = 600;
-const PLOT_WIDTH = 900;
-const FILTER_PLOT_HEIGHT = 400;
-const FILTER_PLOT_WIDTH = 600;
-const PLOT_MARGIN = { l: 60, r: 40, t: 60, b: 60 };
-const FILTER_PLOT_MARGIN = { l: 50, r: 30, t: 40, b: 40 };
+// These are no longer needed as Plotly will autosize.
+// const PLOT_HEIGHT = 600;
+// const PLOT_WIDTH = 900;
+// const FILTER_PLOT_HEIGHT = 400;
+// const FILTER_PLOT_WIDTH = 600;
+const PLOT_MARGIN = { l: 150, r: 60, t: 160, b: 100 }; // Increased left margin to accommodate in-plot controls and Y-axis labels
+const FILTER_PLOT_MARGIN = { l: 140, r: 60, t: 160, b: 100 }; // Increased left margin to accommodate in-plot controls and Y-axis labels
 
 window.addEventListener('DOMContentLoaded', () => {
     console.log('ui.js loaded');
@@ -25,6 +26,10 @@ window.addEventListener('DOMContentLoaded', () => {
     generateSignal();
     setupAnalyzeDropdown();
     setupOperationsDropdown();
+    
+    // Initialize button visibility
+    updateApplyFilterButtonVisibility();
+    updateDeconvolutionButtonVisibility();
 
     // In-plot Generate Signal button
     const generateBtnInplot = document.getElementById('generateBtn_inplot');
@@ -50,10 +55,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     const deconvBtnInplot = document.getElementById('deconvBtn_inplot');
     if (deconvBtnInplot) {
-        deconvBtnInplot.addEventListener('click', function() {
-            const btn = document.getElementById('deconvBtn');
-            if (btn) btn.click();
-        });
+        deconvBtnInplot.addEventListener('click', applyDeconvolution);
+    }
+    
+    // Apply Filter button - applies the currently displayed filter response to the original signal
+    const applyFilterBtnInplot = document.getElementById('applyFilterBtn_inplot');
+    if (applyFilterBtnInplot) {
+        applyFilterBtnInplot.addEventListener('click', applyDisplayedFilter);
     }
 
     // Files dropdown setup
@@ -165,18 +173,8 @@ function addOverlay() {
     alert('Signal saved as overlay. Now generate a new signal to compare.');
 }
 
-// Patch generateSignal to clear overlays if not waiting for overlay and show multi warning
-if (!window._generateSignalPatched) {
-    const originalGenerateSignal = generateSignal;
-    window.generateSignal = async function(...args) {
-        await originalGenerateSignal.apply(this, args);
-        // Do not touch overlays unless addOverlay was just used
-        if (signalTypeSelect && signalTypeSelect.value === 'multi') {
-            showMultiWarning();
-        }
-    };
-    window._generateSignalPatched = true;
-}
+// Patch generateSignal to show multi warning
+// This is handled later, so this block is removed.
 
 function setupAnalyzeDropdown() {
     const analyzeBtn = document.getElementById('analyzeBtn');
@@ -255,6 +253,10 @@ document.getElementById('clearBtn').onclick = function() {
     state.filteredActive = false;
     state.filteredFft = undefined;
     state.filteredFftFreq = undefined;
+    state.filterResponse = null; // Clear filter response
+    state.filterImpulse = null; // Clear stored filter impulse
+    updateApplyFilterButtonVisibility(); // Update button visibility
+    updateDeconvolutionButtonVisibility(); // Update deconvolution button visibility
     plotAll();
 }
 
@@ -305,6 +307,7 @@ async function applyFilter(type) {
 
 let filterViewActive = false;
 let lastFilterFreqResponse = null;
+let lastFilterParams = null; // Store the parameters of the displayed filter
 
 // --- Filter View Main Plot Logic ---
 const filterViewBtn = document.getElementById('filterBtn_view');
@@ -315,9 +318,11 @@ if (filterViewBtn) {
             alert('Please generate a signal before viewing a filter response.');
             return;
         }
+
         // Prompt user for filter type and parameters
         const filterType = prompt('Enter filter type (lowpass, highpass, bandpass):', 'lowpass');
         if (!filterType) return;
+
         let params = { filterType, fs: FS, order: 4 };
         if (filterType === 'lowpass') {
             params.cutoff = prompt('Lowpass cutoff frequency (Hz, 10-1000):', 200) || 200;
@@ -330,6 +335,8 @@ if (filterViewBtn) {
             alert('Invalid filter type.');
             return;
         }
+        lastFilterParams = params; // Save the parameters
+
         // Fetch filter visualization data from backend
         const response = await fetch('/api/filter_view', {
             method: 'POST',
@@ -341,327 +348,27 @@ if (filterViewBtn) {
             alert('Error: ' + data.error);
             return;
         }
-        // Plot impulse, magnitude, and phase responses in the modal plot area
-        //this is where you set all the plot parameters
-        const plotDiv = document.getElementById('filter-view-plot');
-        Plotly.newPlot(plotDiv, [
-            {
-                x: data.impulse_x,
-                y: data.impulse,
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: 'Impulse Response',
-                yaxis: 'y1',
-                xaxis: 'x1'
-            },
-            {
-                x: data.freq,
-                y: data.magnitude,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Magnitude',
-                yaxis: 'y2',
-                xaxis: 'x2'
-            },
-            {
-                x: data.freq,
-                y: data.phase,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Phase',
-                yaxis: 'y3',
-                xaxis: 'x3'
-            }
-        ], {
-            grid: {rows: 3, columns: 1, pattern: 'independent'},
-            height: FILTER_PLOT_HEIGHT, // Modal plot: small
-            width: FILTER_PLOT_WIDTH,
-            showlegend: true,
-            margin: FILTER_PLOT_MARGIN,
-            xaxis: {title: 'Sample (n)'},
-            yaxis: {title: 'Amplitude'},
-            
-            yaxis2: {title: 'Magnitude'},
-            xaxis3: {title: 'Freq (Hz)'},
-            yaxis3: {title: 'Phase (rad)'}
-        });
-        // Store the filter's frequency response for later use
-        lastFilterFreqResponse = data.magnitude.map((mag, i) => {
-            const phase = data.phase[i];
-            return [mag * Math.cos(phase), mag * Math.sin(phase)]; // [real, imag]
-        });
-        filterViewActive = true;
-        // Show the modal and modal buttons
-        const filterViewModal = document.getElementById('filterViewModal');
-        if (filterViewModal) filterViewModal.style.display = 'block';
-        if (applyFilterBtn) applyFilterBtn.style.display = '';
-        // Do NOT show deconvBtnModal yet
-        // Hide deconvolution buttons by default (main, modal, draggable)
-        const deconvBtn = document.getElementById('deconvBtn');
-        const deconvBtn2 = document.getElementById('deconvBtn2');
-        if (deconvBtn) deconvBtn.style.display = 'none';
-        if (deconvBtn2) deconvBtn2.style.display = 'none';
-        if (deconvBtnModal) deconvBtnModal.style.display = 'none';
-        // Change Add Overlay button to Apply (both original and draggable versions)
-        const addOverlayBtn = document.getElementById('addOverlayBtn');
-        const addOverlayBtn2 = document.getElementById('addOverlayBtn2');
-        
-        if (addOverlayBtn) addOverlayBtn.textContent = 'Apply';
-        if (addOverlayBtn2) addOverlayBtn2.textContent = 'Apply';
-        
-        const applyFunction = async function() {
-            // Prompt user for which signal to apply filter to
-            let choice = 'main';
-            if (state.overlays.length > 0) {
-                choice = prompt('Apply filter to which signal? (main/overlay)', 'main');
-            }
-            let signal = null;
-            if (choice === 'overlay') {
-                signal = Array.from(state.overlays[0].signal);
-            } else {
-                signal = Array.from(state.signalData);
-            }
-            // Zero-pad filter FFT to match signal length
-            let n = Math.max(signal.length, lastFilterFreqResponse.length);
-            let n_fft = 1;
-            while (n_fft < n) n_fft *= 2;
-            // Interpolate filter FFT to match signal FFT bins if needed
-            let filter_fft = lastFilterFreqResponse;
-            if (filter_fft.length !== n_fft) {
-                // Simple zero-padding or truncation
-                let tmp = new Array(n_fft).fill([0, 0]);
-                for (let i = 0; i < Math.min(filter_fft.length, n_fft); i++) {
-                    tmp[i] = filter_fft[i];
-                }
-                filter_fft = tmp;
-            }
-            // Call backend to apply filter in frequency domain
-            const resp = await fetch('/api/apply_filter_fft', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ signal, filter_freq: filter_fft })
-            });
-            const result = await resp.json();
-            if (result.filtered) {
-                // Plot both the original and filtered signals and their FFTs for comparison
-                // Define consistent colors
-                const originalColor = '#000000'; // black
-                const filteredColor = '#1f77b4'; // blue
-                Plotly.newPlot('plot', [
-                    // Time domain: original
-                    {
-                        x: Array.from({length: state.signalData.length}, (_, i) => i / FS),
-                        y: Array.from(state.signalData),
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Original Signal',
-                        line: { color: originalColor },
-                        xaxis: 'x1',
-                        yaxis: 'y1'
-                    },
-                    // Time domain: filtered
-                    {
-                        x: Array.from({length: result.filtered.length}, (_, i) => i / FS),
-                        y: result.filtered,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Filtered (FFT)',
-                        line: { color: filteredColor },
-                        xaxis: 'x1',
-                        yaxis: 'y1'
-                    },
-                    // Frequency domain: original
-                    {
-                        x: Array.from(state.fftFreqAxis),
-                        y: Array.from(state.fftMagnitudes),
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Original FFT',
-                        line: { color: originalColor, dash: 'dot' },
-                        xaxis: 'x2',
-                        yaxis: 'y2'
-                    },
-                    // Frequency domain: filtered
-                    {
-                        x: result.filtered_freq_axis,
-                        y: result.filtered_fft,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Filtered FFT Magnitude',
-                        line: { color: filteredColor, dash: 'dot' },
-                        xaxis: 'x2',
-                        yaxis: 'y2'
-                    }
-                ], {
-                    grid: {rows: 2, columns: 1, pattern: 'independent'},
-                    height: 600, // Main plot: large
-                    width: 750,
-                    showlegend: true,
-                    margin: { t: 40, l: 200, r: 30, b: 10 }, // Standardized for in-plot controls
-                    xaxis: {title: 'Time (s)'},
-                    yaxis: {title: 'Amplitude'},
-                    xaxis2: {title: 'Frequency (Hz)'},
-                    yaxis2: {title: 'Magnitude'}
-                });
-                // Show Deconvolution button(s) only after filter is applied
-                if (deconvBtn) {
-                    deconvBtn.style.display = '';
-                }
-                if (deconvBtn2) {
-                    deconvBtn2.style.display = '';
-                }
-                if (deconvBtnModal) {
-                    deconvBtnModal.style.display = '';
-                }
-                let lastDeconvParams = {
-                    filtered: result.filtered,
-                    filter_impulse: data.impulse,
-                    epsilon: 1e-6
-                };
-                let callDeconv = async () => {
-                    try {
-                        const resp = await fetch('/api/deconvolve', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                filtered: lastDeconvParams.filtered,
-                                filter_impulse: lastDeconvParams.filter_impulse,
-                                epsilon: 1e-6 // Always use default epsilon
-                            })
-                        });
-                        const deconv = await resp.json();
-                        if (deconv.error) {
-                            alert('Deconvolution error: ' + deconv.error);
-                            return;
-                        }
-                        const deconvColor = '#2ca02c';
-                        Plotly.newPlot('plot', [
-                            {
-                                x: Array.from({length: deconv.deconvolved.length}, (_, i) => i / FS),
-                                y: deconv.deconvolved,
-                                type: 'scatter',
-                                mode: 'lines',
-                                name: 'Deconvolved Signal',
-                                line: { color: deconvColor },
-                                xaxis: 'x1',
-                                yaxis: 'y1'
-                            },
-                            {
-                                x: deconv.deconv_freq_axis, // <-- use correct key from backend
-                                y: deconv.deconv_fft,       // <-- use correct key from backend
-                                type: 'scatter',
-                                mode: 'lines',
-                                name: 'Deconvolved FFT',
-                                line: { color: deconvColor },
-                                xaxis: 'x2',
-                                yaxis: 'y2',
-                                showlegend: true // show legend for FFT
-                            }
-                        ], {
-                            grid: {rows: 2, columns: 1, pattern: 'independent'},
-                            height: PLOT_HEIGHT,
-                            width: PLOT_WIDTH,
-                            showlegend: true,
-                            margin: PLOT_MARGIN,
-                            xaxis: {title: 'Time (s)'},
-                            yaxis: {title: 'Amplitude'},
-                            xaxis2: {title: 'Frequency (Hz)'},
-                            yaxis2: {title: 'Magnitude'}
-                        });
-                        if (deconv.unstable) {
-                            alert('Warning: Deconvolution result may be unstable or noisy.');
-                        }
-                    } catch (err) {
-                        alert('Deconvolution failed: ' + err.message);
-                    }
-                };
-                if (deconvBtn) deconvBtn.onclick = callDeconv;
-                if (deconvBtn2) deconvBtn2.onclick = callDeconv;
-                if (deconvBtnModal) deconvBtnModal.onclick = callDeconv;
-                // Restore Add Overlay button functionality
-                restoreAddOverlayButton();
-            } else {
-                alert('Error applying filter: ' + (result.error || 'Unknown error'));
-                // Also restore on error
-                restoreAddOverlayButton();
-            }
+
+        // Store filter response in state for subplot display
+        state.filterResponse = {
+            freq: data.freq,
+            mag: data.magnitude,
+            phase: data.phase,
+            impulse: data.impulse,
+            impulse_x: data.impulse_x
         };
-        
-        // Assign the apply function to all Apply buttons (modal and draggable)
-        if (addOverlayBtn) addOverlayBtn.onclick = applyFunction;
-        if (addOverlayBtn2) addOverlayBtn2.onclick = applyFunction;
-        if (applyFilterBtn) applyFilterBtn.onclick = applyFunction;
+
+        // Update Apply Filter button visibility
+        updateApplyFilterButtonVisibility();
+
+        // Re-plot everything including the new filter subplot
+        plotAll();
     };
 }
 
-// Function to restore Add Overlay button functionality
-function restoreAddOverlayButton() {
-    const addOverlayBtn = document.getElementById('addOverlayBtn');
-    const addOverlayBtn2 = document.getElementById('addOverlayBtn2');
-    
-    if (addOverlayBtn) {
-        addOverlayBtn.textContent = 'Add Overlay';
-        addOverlayBtn.onclick = addOverlay;
-    }
-    if (addOverlayBtn2) {
-        addOverlayBtn2.textContent = 'Add Overlay';
-        addOverlayBtn2.onclick = addOverlay;
-    }
-    filterViewActive = false;
-}
+// REMOVED OLD MODAL-BASED FILTER LOGIC AND SIDE VIEW APPLY BUTTON
 
-// --- Live Plot Animation ---
-const livePlotBtn = document.getElementById('livePlotBtn');
-if (livePlotBtn) {
-    livePlotBtn.onclick = function() {
-        // Use the current main signal and time axis
-        const y = state.signalData;
-        const x = state.time_axis;
-        if (!y || !x || y.length === 0 || x.length === 0) {
-            alert('Please generate a signal first!');
-            return;
-        }
-        let current = 1;
-        const chunk = 5; // Number of points to add per frame
-        Plotly.newPlot('plot', [{
-            x: [],
-            y: [],
-            mode: 'lines',
-            line: {color: 'red'}
-        }], {margin: PLOT_MARGIN});
-        function animate() {
-            if (current <= y.length) {
-                Plotly.react('plot', [{
-                    x: Array.from(x).slice(0, current),
-                    y: Array.from(y).slice(0, current),
-                    mode: 'lines',
-                    line: {color: 'red'}
-                }], {margin: PLOT_MARGIN});
-                current += chunk;
-                setTimeout(animate, 30); // Adjust speed here
-            }
-        }
-        animate();
-    };
-}
-
-// --- Custom Legend Logic ---
-function renderCustomLegend() {
-    // No-op: legend logic removed, legend will remain empty.
-    const legendDiv = document.getElementById('custom-legend');
-    if (!legendDiv) return;
-    legendDiv.innerHTML = '';
-}
-
-// Patch plotAll to also update the legend
-if (!window._plotAllPatched) {
-    const originalPlotAll = plotAll;
-    window.plotAll = function(...args) {
-        originalPlotAll.apply(this, args);
-        renderCustomLegend();
-    };
-    window._plotAllPatched = true;
-}
+// Custom legend logic is no longer used and has been removed.
 
 // Add Undo button logic for overlays and filters
 const undoBtn = document.getElementById('undo-btn');
@@ -676,7 +383,24 @@ if (undoBtn) {
             state.filteredSignal = null;
             state.filteredFft = null;
             state.filteredFftFreq = null;
+        } else if (lastAction.type === 'deconvolution') {
+            // Restore original signal and filtered signal
+            if (lastAction.originalSignal) {
+                state.signalData = lastAction.originalSignal;
+                state.fftMagnitudes = lastAction.originalFFT;
+                state.fftFreqAxis = lastAction.originalFFTFreq;
+            }
+            if (lastAction.filteredSignal) {
+                state.filteredSignal = lastAction.filteredSignal;
+                state.filteredFft = lastAction.filteredFFT;
+                state.filteredFftFreq = lastAction.filteredFFTFreq;
+                state.filteredActive = true;
+            }
+            state.overlays = [];
         }
+        // Update button visibility after undo
+        updateApplyFilterButtonVisibility();
+        updateDeconvolutionButtonVisibility();
         plotAll();
     };
 }
@@ -750,41 +474,6 @@ if (!window._generateSignalPatched) {
     window._generateSignalPatched = true;
 }
 
-// RC Circuit Simulation button event listener
-const rcSimBtn = document.getElementById('rcSimBtn');
-if (rcSimBtn) {
-    rcSimBtn.addEventListener('click', async () => {
-        const R = parseFloat(document.getElementById('rcR').value);
-        const C = parseFloat(document.getElementById('rcC').value);
-        const V_in = parseFloat(document.getElementById('rcVin').value);
-        const duration = parseFloat(document.getElementById('rcDuration').value);
-        const points = parseInt(document.getElementById('rcPoints').value);
-        if (isNaN(R) || isNaN(C) || isNaN(V_in) || isNaN(duration) || isNaN(points)) {
-            alert('Please enter valid RC circuit parameters.');
-            return;
-        }
-        try {
-            const result = await simulateRCCircuit(R, C, V_in, duration, points);
-            // Plot RC circuit response using Plotly
-            Plotly.newPlot('plot', [{
-                x: result.t,
-                y: result.V_out,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'RC Step Response',
-                line: { color: '#0074D9' }
-            }], {
-                title: 'RC Circuit Step Response',
-                xaxis: { title: 'Time (s)' },
-                yaxis: { title: 'V_out (V)' },
-                margin: PLOT_MARGIN
-            });
-        } catch (err) {
-            alert('RC Circuit Error: ' + err.message);
-        }
-    });
-}
-
 // Section toggle logic
 const signalSection = document.getElementById('signal-section');
 const circuitSection = document.getElementById('rc-circuit-section');
@@ -822,7 +511,7 @@ if (applyFilterBtn) {
             }
             if (lastApplyFunction) {
                 applyFilterBtn.onclick = lastApplyFunction;
-            }
+              }
         };
     }
 }
@@ -837,3 +526,160 @@ if (deconvBtnModal) {
 
 // Defensive: wrap all addEventListener in null checks for inline/HTML script
 // (If you have any other direct addEventListener calls in index.html, wrap them in null checks)
+
+// Apply the currently displayed filter to the original signal
+async function applyDisplayedFilter() {
+    // Check if we have a filter response displayed
+    if (!state.filterResponse || !lastFilterParams) {
+        alert('No filter response is currently displayed. Use "Filter View" first to display a filter response.');
+        return;
+    }
+    
+    // Check if we have signal data to filter
+    if (!state.signalData || state.signalData.length === 0) {
+        alert('No signal data available to filter. Generate a signal first.');
+        return;
+    }
+    
+    // Apply the filter using the stored parameters
+    try {
+        const response = await fetch('/api/filter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                signal: Array.from(state.signalData),
+                ...lastFilterParams
+            })
+        });
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Filter error: ' + data.error);
+            return;
+        }
+        
+        // Store the filtered signal in state
+        state.filteredSignal = new Float32Array(data.filtered);
+        state.filteredFft = new Float32Array(data.filtered_fft);
+        state.filteredFftFreq = new Float32Array(data.filtered_freq_axis);
+        state.filteredActive = true;
+        
+        // Store filter impulse response for deconvolution before clearing filter response
+        if (state.filterResponse && state.filterResponse.impulse) {
+            state.filterImpulse = new Float32Array(state.filterResponse.impulse);
+        }
+        
+        // Clear filter response to remove the filter subplots
+        state.filterResponse = null;
+        
+        // Update button visibility
+        updateApplyFilterButtonVisibility(); // Will hide Apply Filter button
+        updateDeconvolutionButtonVisibility(); // Will show Deconvolution button
+        
+        // Add to plot history for undo functionality
+        state.plotHistory.push({ type: 'filter' });
+        
+        // Re-plot with the filtered signal (now without filter response subplots)
+        plotAll();
+        
+        console.log('Filter applied successfully');
+    } catch (error) {
+        console.error('Error applying filter:', error);
+        alert('Error applying filter: ' + error.message);
+    }
+}
+
+// Function to update Apply Filter button visibility
+function updateApplyFilterButtonVisibility() {
+    const applyFilterBtn = document.getElementById('applyFilterBtn_inplot');
+    if (applyFilterBtn) {
+        // Show button only when filter response is present
+        applyFilterBtn.style.display = state.filterResponse ? 'block' : 'none';
+    }
+}
+
+// Function to update Deconvolution button visibility
+function updateDeconvolutionButtonVisibility() {
+    const deconvBtn = document.getElementById('deconvBtn_inplot');
+    if (deconvBtn) {
+        // Show button only when a filter has been applied (filtered signal exists)
+        deconvBtn.style.display = state.filteredActive ? 'block' : 'none';
+    }
+}
+
+// Apply deconvolution to the filtered signal to try to recover the original
+async function applyDeconvolution() {
+    // Check if we have a filtered signal to deconvolve
+    if (!state.filteredActive || !state.filteredSignal || state.filteredSignal.length === 0) {
+        alert('No filtered signal available for deconvolution. Apply a filter first.');
+        return;
+    }
+    
+    // Check if we have the filter impulse response
+    if (!state.filterImpulse || state.filterImpulse.length === 0) {
+        alert('No filter impulse response available for deconvolution. The filter must be viewed before applying.');
+        return;
+    }
+    
+    try {
+        // Apply deconvolution using the filtered signal and filter impulse response
+        const response = await fetch('/api/deconvolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filtered: Array.from(state.filteredSignal),
+                filter_impulse: Array.from(state.filterImpulse),
+                eps: 1e-6 // Regularization parameter
+            })
+        });
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Deconvolution error: ' + data.error);
+            return;
+        }
+        
+        // Replace main signal with deconvolved signal for cleaner view
+        // Store original signals in case user wants to undo
+        const originalSignal = state.signalData;
+        const originalFFT = state.fftMagnitudes;
+        const originalFFTFreq = state.fftFreqAxis;
+        
+        // Replace main signal with deconvolved signal
+        state.signalData = new Float32Array(data.deconvolved);
+        state.fftMagnitudes = new Float32Array(data.deconv_fft);
+        state.fftFreqAxis = new Float32Array(data.deconv_freq_axis);
+        
+        // Clear filtered signal and overlays to show only deconvolved
+        state.filteredActive = false;
+        state.filteredSignal = null;
+        state.filteredFft = null;
+        state.filteredFftFreq = null;
+        state.overlays = [];
+        
+        // Store original data in plot history for undo
+        state.plotHistory.push({ 
+            type: 'deconvolution',
+            originalSignal: originalSignal,
+            originalFFT: originalFFT,
+            originalFFTFreq: originalFFTFreq,
+            filteredSignal: state.filteredSignal,
+            filteredFFT: state.filteredFft,
+            filteredFFTFreq: state.filteredFftFreq
+        });
+        
+        // Update button visibility (hide deconvolution button since we're now showing deconvolved)
+        updateDeconvolutionButtonVisibility();
+        
+        // Re-plot with the deconvolved signal
+        plotAll();
+        
+        console.log('Deconvolution applied successfully');
+        if (data.unstable) {
+            alert('Warning: Deconvolution may be unstable. Results should be interpreted carefully.');
+        }
+    } catch (error) {
+        console.error('Error applying deconvolution:', error);
+        alert('Error applying deconvolution: ' + error.message);
+    }
+}

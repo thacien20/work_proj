@@ -527,11 +527,12 @@ Ensures the plot is sized and positioned consistently with the app layout.
 Background color helps the plot stand out from the rest of the UI.
 */
 #plot {
-    width: 750px;
-    height: 600px;
-    top:-90px;
-    left:-20px;
+    width: 100%;
+    min-height: 700px;
+    height: auto;
+    top: 0;
+    left: 0;
     flex: 1;
     position: relative;
-    background-color:grey
+    background-color: #f8f9fa;
 }

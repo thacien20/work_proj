@@ -135,24 +135,133 @@ export function plotAll() {
         }
     }
 
-    // --- Define Plotly layout with two subplots (signal and FFT) ---
+    const hasFilterResponse = state.filterResponse && state.filterResponse.freq && state.filterResponse.freq.length > 0;
+
+    // --- Define Plotly layout with multiple subplots ---
     const layout = {
-        grid: { rows: 2, columns: 1, pattern: 'independent' }, // 2 rows, 1 column
-        height: 580,
-        width: 700,
+        grid: { rows: hasFilterResponse ? 5 : 2, columns: 1, pattern: 'independent' }, // 2 or 5 rows, 1 column
         showlegend: true, // Enable Plotly legend for all traces
-        margin: { l: 210, r: 40, t: 60, b: 80 }, // Increased left margin for more space
-        xaxis: { title: 'Time (s)' }, // Top subplot x-axis
-        yaxis: { title: 'Intensity' }, // Top subplot y-axis
-        xaxis2: { title: 'Frequency (Hz)', range: fftRange || undefined }, // Bottom subplot x-axis, auto-zoomed
-        yaxis2: { title: 'Magnitude' } // Bottom subplot y-axis
+        autosize: true, // Let Plotly handle sizing automatically
+        margin: { l: 200, r: 60, t: 160, b: 120 }, // Increased left margin to accommodate in-plot controls and Y-axis labels
+        xaxis: { title: 'Time (s)' }, // Top subplot x-axis (signal)
+        yaxis: { title: 'Intensity' }, // Top subplot y-axis (signal)
+        xaxis2: { title: 'Frequency (Hz)', range: fftRange || undefined }, // Second subplot x-axis (FFT), auto-zoomed
+        yaxis2: { title: 'Magnitude' } // Second subplot y-axis (FFT)
     };
 
+    // --- Add filter response traces if present ---
+    if (hasFilterResponse) {
+        // Impulse Response
+        traces.push({
+            x: state.filterResponse.impulse_x,
+            y: state.filterResponse.impulse,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Impulse Response',
+            line: { color: '#ff7f0e' }, // Orange color
+            xaxis: 'x3',
+            yaxis: 'y3',
+            showlegend: true
+        });
+
+        // Magnitude Response
+        traces.push({
+            x: state.filterResponse.freq,
+            y: state.filterResponse.mag,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Magnitude Response',
+            line: { color: '#2ca02c' }, // Green color
+            xaxis: 'x4',
+            yaxis: 'y4',
+            showlegend: true
+        });
+
+        // Phase Response
+        traces.push({
+            x: state.filterResponse.freq,
+            y: state.filterResponse.phase,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Phase Response',
+            line: { color: '#9467bd' }, // Purple color
+            xaxis: 'x5',
+            yaxis: 'y5',
+            showlegend: true
+        });
+
+        // Define axes for the three filter response subplots
+        layout.xaxis3 = { title: 'Sample Index' }; // Impulse response x-axis
+        layout.yaxis3 = { title: 'Amplitude' }; // Impulse response y-axis
+        layout.xaxis4 = { title: 'Frequency (Hz)' }; // Magnitude response x-axis
+        layout.yaxis4 = { title: 'Magnitude' }; // Magnitude response y-axis
+        layout.xaxis5 = { title: 'Frequency (Hz)' }; // Phase response x-axis
+        layout.yaxis5 = { title: 'Phase (radians)' }; // Phase response y-axis
+    }
+
     // --- Render the plot using Plotly ---
-    Plotly.newPlot('plot', traces, layout, {responsive: true });
+    // Clear any existing plot data to ensure fresh rendering
+    if (plotDiv && plotDiv.data) {
+        Plotly.purge('plot'); // Clear everything
+    }
+    // Use Plotly.newPlot for a fresh start with responsive config
+    Plotly.newPlot('plot', traces, layout, {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false
+    });
 
     // --- Update custom legend ---
     // (No longer needed, Plotly legend is now enabled)
 }
 
 // In all plotting logic, use FS for any time axis calculations if needed.
+
+function createPlot(divId, traces, layout_options = {}) {
+    const layout = {
+        autosize: true, // Make the plot responsive
+        margin: { l: 140, r: 60, b: 120, t: 160, pad: 4 }, // Match the main plot margin settings
+        plot_bgcolor: "rgba(240, 240, 240, 0.95)",
+        paper_bgcolor: "rgba(0,0,0,0)",
+        xaxis: {
+            title: 'Frequency (Hz)',
+            showgrid: true,
+            zeroline: false
+        },
+        showlegend: true,
+        legend: {
+            x: 1,
+            xanchor: 'right',
+            y: 1
+        },
+        // Remove fixed width and height to allow autosizing
+        // width: 700,
+        // height: 580,
+        ...layout_options
+    };
+
+    Plotly.react(divId, traces, layout, {responsive: true});
+}
+
+// Helper function to force a complete plot refresh
+export function forceRefreshPlot() {
+    const plotDiv = document.getElementById('plot');
+    if (plotDiv) {
+        // Clear the plot completely first
+        Plotly.purge('plot');
+        // Then re-plot everything
+        plotAll();
+    }
+}
+
+// Helper function to update plot layout only (useful for margin changes)
+export function updatePlotLayout(newMargins) {
+    const plotDiv = document.getElementById('plot');
+    if (plotDiv && plotDiv.layout) {
+        const newLayout = {
+            ...plotDiv.layout,
+            margin: newMargins
+        };
+        Plotly.relayout('plot', newLayout);
+    }
+}
