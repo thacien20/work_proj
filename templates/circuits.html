@@ -3,137 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Circuits Lab - RC Simulation</title>
+    <title>Circuit Lab</title>
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/modulation_info.css">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
-    <script src="/static/js/modulation_info.js"></script>
+    <style>
+        /* Main container adjustments */
+        .main-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        /* Plot container size constraints */
+        .plot-container {
+            width: 100%;
+            height: 400px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Circuit diagram size constraints */
+        #circuit-diagram-img {
+            max-width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: contain;
+            margin: 10px auto;
+            display: block;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* Right column adjustments */
+        .right-column {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Plot section adjustments */
+        .plot-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Info section adjustments */
+        .info-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        /* Toggle button styles */
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .toggle-btn[data-active="true"] {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: rgba(0, 255, 0, 0.5);
+            color: #00ff00;
+        }
+        
+        .toggle-btn[data-active="false"] {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+    </style>
 </head>
 <body>
-    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
-        <nav style="display: flex; gap: 15px;">
-            <a href="/" class="header-btn" style="text-decoration:none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff;">Signal Processing</a>
-            <a href="/circuits" class="header-btn" style="text-decoration:none; background: #fff; color: #333;">Circuits Lab</a>
-        </nav>
-        <h1 style="margin: 20;">Circuits Lab</h1>
+    <header>
+        <h1>🔌 Circuit Analysis Lab</h1>
+        <a href="/" class="header-btn">← Back to Main</a>
     </header>
-    <main style="display: flex; flex-direction: column; align-items: center; margin-top: 40px;">
-        <section id="circuit-section" style="margin-top:10px; padding:15px; background:rgba(240,240,255,0.12); border-radius:10px; max-width:500px; width:100%;">
-            <div class="form-group">
-                <label for="analysisType">Analysis Type:</label>
-                <select id="analysisType">
-                  <option value="circuit">Circuit Analysis</option>
-                  <option value="communications">Communications</option>
-                </select>
-            </div>
-            
-            <!-- Circuit Analysis Section -->
-            <div id="circuit-analysis-section">
+
+    <div class="main-container">
+        <!-- Left Column: Controls -->
+        <div class="left-column">
+            <!-- Main Action Buttons -->
+            <div class="control-section">
+                <h2>� Lab Options</h2>
                 <div class="form-group">
-                    <label for="circuitType">Circuit:</label>
-                    <select id="circuitType">
-                      <option value="rc">RC (Resistor-Capacitor)</option>
-                      <option value="rl">RL (Resistor-Inductor)</option>
-                      <option value="rlc">RLC (Resistor-Inductor-Capacitor)</option>
-                      <option value="differentiator">Differentiator (Op-Amp)</option>
-                      <option value="integrator">Integrator (Op-Amp)</option>
-                    </select>
+                    <button type="button" id="circuit-analysis-btn" class="primary-btn" style="margin-bottom: 10px;">
+                        ⚡ Circuit Analysis
+                    </button>
                 </div>
-            </div>
-            
-            <!-- Communications Section -->
-            <div id="communications-section" style="display:none;">
                 <div class="form-group">
-                    <label for="commType">Communications Topic:</label>
-                    <select id="commType">
-                      <option value="modulation">Signal Modulation (AM/FM/PM)</option>
-                      <!-- Future options: Encoding, Filtering, etc. -->
-                    </select>
+                    <button type="button" id="electronic-signals-btn" class="primary-btn">
+                        📡 Electronic Signals
+                    </button>
                 </div>
             </div>
-            <div class="form-group" id="rc-fields">
-                <label for="rcR">R (ohm):</label>
-                <input type="number" id="rcR" min="1" max="1000000" value="1000" step="1">
-                <label for="rcC">C (farads):</label>
-                <input type="number" id="rcC" min="1e-9" max="1" value="1e-6" step="any">
-            </div>
-            <div class="form-group" id="rl-fields" style="display:none;">
-                <label for="rlR">R (ohm):</label>
-                <input type="number" id="rlR" min="1" max="1000000" value="1000" step="1">
-                <label for="rlL">L (H):</label>
-                <input type="number" id="rlL" min="1e-6" max="10" value="0.001" step="any">
-            </div>
-            <div class="form-group" id="rlc-fields" style="display:none;">
-                <label for="rlcR">R (ohm):</label>
-                <input type="number" id="rlcR" min="1" max="1000000" value="1000" step="1">
-                <label for="rlcL">L (H):</label>
-                <input type="number" id="rlcL" min="1e-6" max="10" value="0.001" step="any">
-                <label for="rlcC">C (farads):</label>
-                <input type="number" id="rlcC" min="1e-9" max="1" value="1e-6" step="any">
-            </div>
-            <div class="form-group" id="modulation-fields" style="display:none;">
-                <label for="modulationType">Modulation Type:</label>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <select id="modulationType">
-                        <option value="AM">Amplitude Modulation (AM)</option>
-                        <option value="FM">Frequency Modulation (FM)</option>
-                        <option value="PM">Phase Modulation (PM)</option>
-                    </select>
-                    <button type="button" id="modulationInfoBtn" class="modulation-info-button" title="Learn about modulation">ℹ️ Info</button>
+
+            <!-- Circuit Analysis Controls -->
+            <div id="circuit-analysis-controls" style="display: none;">
+                <div class="control-section">
+                    <h2>⚡ Circuit Parameters</h2>
+                    <div class="form-group">
+                        <label for="circuit-type">Circuit Type:</label>
+                        <select id="circuit-type" class="control-input">
+                            <option value="rc">RC Circuit</option>
+                            <option value="rl">RL Circuit</option>
+                            <option value="rlc">RLC Circuit</option>
+                            <option value="differentiator">Differentiator</option>
+                            <option value="integrator">Integrator</option>
+                        </select>
+                    </div>
+                    <!-- Dynamic fields for circuit components will be injected here by JS -->
+                    <div id="circuit-fields"></div>
                 </div>
-                <label for="carrierFreq">Carrier(Hz):</label>
-                <input type="number" id="carrierFreq" min="1" max="50" value="10.0" step="0.5">
-                <label for="modulatingFreq">Modulation (Hz):</label>
-                <input type="number" id="modulatingFreq" min="0.1" max="10" value="1.0" step="0.1">
-                <label for="modulationIndex">Modulation Index:</label>
-                <input type="number" id="modulationIndex" min="0.1" max="1.0" value="0.5" step="0.1">
             </div>
-            <div class="form-group">
-                <label for="circuitVin">Vin (V):</label>
-                <input type="number" id="circuitVin" min="0.01" max="100" value="1.0" step="any">
+
+            <!-- Electronic Signals Controls -->
+            <div id="electronic-signals-controls" style="display: none;">
+                <div class="control-section">
+                    <h2>📡 Electronic Signals</h2>
+                    <div class="form-group">
+                        <label for="signal-type">SigType:</label>
+                        <select id="signal-type" class="control-input">
+                            <option value="modulation">Modulation</option>
+                            <option value="quadrature">Quadrature Signals</option>
+                            <option value="pll">PLL</option>
+                            <option value="demodulation">Signal Demodulation</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Signal Modulation Fields -->
+                    <div id="modulation-fields">
+                        <div class="form-group">
+                            <label for="modulation-type">Modulation:</label>
+                            <div class="input-with-button">
+                                <select id="modulation-type" class="control-input">
+                                    <option value="AM">AM</option>
+                                    <option value="FM">FM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                                <button type="button" id="modulation-info-btn" class="info-btn">ℹ️</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="carrier-freq">Carrier(Hz):</label>
+                            <input type="number" id="carrier-freq" class="control-input" value="10.0" min="1" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="modulating-freq">Signal (Hz):</label>
+                            <input type="number" id="modulating-freq" class="control-input" value="1.0" min="0.1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="modulation-index">ModIndex:</label>
+                            <input type="number" id="modulation-index" class="control-input" value="0.5" min="0.1" step="0.1">
+                        </div>
+                    </div>
+
+                    <!-- Quadrature Signals Fields -->
+                    <div id="quadrature-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="quad-frequency">Base Frequency (Hz):</label>
+                            <input type="number" id="quad-frequency" class="control-input" value="5.0" min="0.1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="quad-amplitude">Amplitude (V):</label>
+                            <input type="number" id="quad-amplitude" class="control-input" value="1.0" min="0.1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="quad-phase">Phase Shift (degrees):</label>
+                            <input type="number" id="quad-phase" class="control-input" value="90" min="0" max="360" step="15">
+                        </div>
+                    </div>
+
+                    <!-- Phase Locked Loop Fields -->
+                    <div id="pll-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="pll-input-freq">Input Frequency (Hz):</label>
+                            <input type="number" id="pll-input-freq" class="control-input" value="10.0" min="1" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="pll-vco-freq">VCO Center Frequency (Hz):</label>
+                            <input type="number" id="pll-vco-freq" class="control-input" value="9.5" min="1" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="pll-loop-gain">Loop Gain:</label>
+                            <input type="number" id="pll-loop-gain" class="control-input" value="0.1" min="0.01" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Demodulation Fields -->
+                    <div id="demodulation-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="demod-type">Demodulation Type:</label>
+                            <select id="demod-type" class="control-input">
+                                <option value="AM">AM Demodulation</option>
+                                <option value="FM">FM Demodulation</option>
+                                <option value="PM">PM Demodulation</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="demod-carrier-freq">Carrier Frequency (Hz):</label>
+                            <input type="number" id="demod-carrier-freq" class="control-input" value="10.0" min="1" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="demod-signal-freq">Signal Frequency (Hz):</label>
+                            <input type="number" id="demod-signal-freq" class="control-input" value="1.0" min="0.1" step="0.1">
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="circuitDuration">Time (s):</label>
-                <input type="number" id="circuitDuration" min="0.001" max="10" value="1" step="any">
+
+            <!-- Simulation Settings - Always visible when a lab is selected -->
+            <div id="simulation-settings" style="display: none;">
+                <div class="control-section">
+                    <h2>⚙️ Simulation Settings</h2>
+                    <div class="form-group">
+                        <label for="vin">Input Voltage (V):</label>
+                        <input type="number" id="vin" class="control-input" value="1.0" min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="duration">Duration (s):</label>
+                        <input type="number" id="duration" class="control-input" value="0.01" min="0.001" step="0.001">
+                    </div>
+                    <div class="form-group">
+                        <label for="points">Sample Points:</label>
+                        <input type="number" id="points" class="control-input" value="1000" min="100" step="100">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" id="show-current-btn" class="toggle-btn" data-active="false">
+                            📊 Show Current Plot
+                        </button>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button type="button" id="simulate-btn" class="primary-btn">🚀 Simulate</button>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="circuitPoints">Points:</label>
-                <input type="number" id="circuitPoints" min="1000" max="5000" value="1000" step="1">
-            </div>
-            <button type="button" id="circuitSimBtn" class="processing-btn" style="width:100%;margin-top:10px;">Simulate</button>
-        </section>
-        <div id="show-current-container" style="width:700px; display:flex; align-items:center; gap:15px; margin-top:20px;">
-            <div style="flex:1;"></div>
-            <label style="font-size:1em; user-select:none;">
-                <input type="checkbox" id="showCurrentCheckbox" style="margin-right:6px; vertical-align:middle;">Show Current
-            </label>
         </div>
-        <div id="circuit-plot" style="width:700px; height:400px; margin-top:10px;"></div>
-        <section id="circuit-info" style="margin-top:20px; padding:10px; background:rgba(255,255,255,0.95); border-radius:8px; max-width:700px; width:100%;">
-            <h4>About This Circuit</h4>
-            <div id="equation-area">
-                <b>Equation:</b> <span id="equation-text">Select a circuit type to see its equation.</span>
+
+        <!-- Right Column: Visualization -->
+        <div class="right-column">
+            <div class="plot-section">
+                <h2>📈 Circuit Response</h2>
+                <div id="circuit-plot" class="plot-container"></div>
             </div>
-            <div id="diagram-area" style="margin-top:10px;">
-                <b>Diagram:</b>
-                <button id="showDiagramBtn" type="button" style="margin-left:10px;">Show Diagram</button>
-                <br>
-                <img id="circuit-diagram-img" src="" alt="Circuit Diagram" style="display:none; margin-top:10px; max-width:300px; border:1px solid #ccc; border-radius:6px; background:#fff;" />
-            </div>
-        </section>
-    </main>
-    
-    <!-- Modulation Information Modal -->
-    <div id="modulationInfoModal" class="modulation-info-modal">
-        <div class="modulation-info-content">
-            <span class="modulation-info-close" id="closeModulationInfo">&times;</span>
-            <div id="modulationInfoDisplay">
-                <!-- Modulation info will be loaded here -->
+            <div class="info-section" id="circuit-info-panel">
+                <h2>📖 Information</h2>
+                <div class="form-group">
+                    <label>Equation/Description:</label>
+                    <div class="equation-display">
+                        <span id="equation-text">Select a circuit or signal type to see its equation.</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Diagram:</label>
+                    <div style="margin-top: 5px;">
+                        <button id="show-diagram-btn" type="button" class="secondary-btn">View Diagram</button>
+                        <img id="circuit-diagram-img" src="" alt="Circuit Diagram" style="display:none; width:100%; margin-top:10px; border-radius:6px;" />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <script type="module" src="/static/js/circuit_frontEnd.js"></script>
-    <script type="module" src="/static/js/circuit_ui.js"></script>
-  </body>
+
+    <!-- Floating Control Canvas -->
+    <div class="vertical-signal-canvas">
+        <button id="clear-plot-btn" title="Clear Plot">🗑️ Clear</button>
+        <button id="undo-plot-btn" title="Undo Last">↶ Undo</button>
+        <button id="export-plot-btn" title="Export Plot">💾 Export</button>
+        <button id="save-plot-btn" title="Save Plot">📁 Save</button>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="/static/js/modulation_info.js"></script>
+    <script src="/static/js/circuit_frontEnd.js"></script>
+    <script src="/static/js/circuit_ui.js"></script>
+</body>
 </html>

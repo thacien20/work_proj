@@ -10,7 +10,16 @@
     margin: 0 auto;
     padding: 15px;
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #f0f8ff 0%, #e6f7ff 100%);
+    min-height: 100vh;
+}
+
+/* Body background - unified with main page */
+body {
+    background: linear-gradient(135deg, #66cbea 0%, #764ba2 100%);
+    color: #fff;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
 }
 
 /* Main Content Grid Layout */
@@ -19,7 +28,12 @@
     grid-template-columns: 1fr 1fr;
     gap: 30px;
     margin-top: 15px;
-    background-color: #6c757d;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
 /* Left Column - Controls */
@@ -90,19 +104,20 @@
 
 /* Section Styles */
 section {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    padding: 20px;
+    padding: 25px;
     margin-bottom: 20px;
-    border: 1px solid rgba(173, 216, 230, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
 }
 
 section h2 {
     color: #fff;
     margin-bottom: 15px;
     font-size: 1.3rem;
-    border-bottom: 2px solid rgba(173, 216, 230, 0.3);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
     padding-bottom: 10px;
 }
 
@@ -116,37 +131,44 @@ section h2 {
 
 .control-group label {
     font-weight: bold;
-    color: #555;
+    color: #fff;
     min-width: 120px;
 }
 
 .control-input {
     padding: 8px 12px;
-    border: 2px solid #ddd;
-    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
     font-size: 14px;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .control-input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .info-btn {
     padding: 8px 12px;
-    background: #4CAF50;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    transition: background 0.3s ease;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .info-btn:hover {
-    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 /* Parameters Grid */
@@ -165,12 +187,12 @@ section h2 {
 
 .param-group label {
     font-weight: bold;
-    color: #555;
+    color: #fff;
 }
 
 .param-unit {
     font-size: 12px;
-    color: #888;
+    color: rgba(255, 255, 255, 0.7);
     font-style: italic;
 }
 
@@ -198,38 +220,45 @@ section h2 {
 .primary-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 .secondary-btn {
     padding: 12px 24px;
-    background: #6c757d;
+    background: rgba(255, 255, 255, 0.2);
     color: white;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 25px;
     font-size: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 .secondary-btn:hover {
-    background: #5a6268;
+    background: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 /* Plot Container */
 .plot-container {
     width: 100%;
     height: 400px;
-    border: 2px solid #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 10px;
-    background: #fafafa;
+    background: rgba(255, 255, 255, 0.1);
     margin: 20px 0;
     position: relative;
+    backdrop-filter: blur(10px);
 }
 
 /* Properties Panel */
 .properties-panel {
-    background: #f8f9fa;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
     padding: 20px;
     border-radius: 10px;
     margin-top: 20px;
@@ -821,15 +850,50 @@ section h2 {
     margin-bottom: 0;
 }
 
-/* Responsive Design for Comparison Section */
-@media (max-width: 768px) {
-    .signal-configs {
-        grid-template-columns: 1fr;
-    }
-    
-    .comparison-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
+/* Quick Actions Section */
+.quick-actions {
+    margin-bottom: 25px;
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.action-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }

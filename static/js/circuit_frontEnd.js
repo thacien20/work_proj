@@ -1,7 +1,41 @@
 // circuit_frontEnd.js
-// Handles all frontend logic for Circuits Lab (RC, RL, RLC, Differentiator, Integrator)
+// Handles all frontend logic for Circuits Lab (RC, RL, RLC, Differentiator)
+function plotRC(t, V_out) {
+    const data = [{
+        x: t,
+        y: V_out,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'RC Step Response',
+        line: { color: '#0074D9' }
+    }];
+    const layout = {
+        title: 'RC Circuit Step Response',
+        xaxis: { title: 'Time (s)' },
+        yaxis: { title: 'Voltage (V)' }
+    };
+    createPlotWithHistory('circuit-plot', data, layout);
+}
 
 // Use global Plotly (already loaded in HTML)
+
+// Plot history management
+let plotHistory = [];
+let currentPlotData = null;
+
+function savePlotToHistory(data, layout) {
+    plotHistory.push({ data, layout });
+    currentPlotData = { data, layout };
+    // Keep only last 10 plots to avoid memory issues
+    if (plotHistory.length > 10) {
+        plotHistory.shift();
+    }
+}
+
+function createPlotWithHistory(elementId, data, layout) {
+    Plotly.newPlot(elementId, data, layout);
+    savePlotToHistory(data, layout);
+}
 
 async function simulateRCCircuit(R, C, V_in, duration, points) {
     const payload = { R, C, V_in, duration, points };
@@ -122,6 +156,9 @@ function plotRLC(t, V_out) {
     });
 }
 function plotRC_VI(t, V_out, I_out, showCurrent) {
+    console.log('plotRC_VI called with showCurrent:', showCurrent);
+    console.log('I_out data:', I_out);
+    
     const traces = [
         {
             x: t,
@@ -133,7 +170,8 @@ function plotRC_VI(t, V_out, I_out, showCurrent) {
             yaxis: 'y1'
         }
     ];
-    if (showCurrent) {
+    if (showCurrent && I_out) {
+        console.log('Adding current trace to plot');
         traces.push({
             x: t,
             y: I_out,
@@ -143,6 +181,8 @@ function plotRC_VI(t, V_out, I_out, showCurrent) {
             line: { color: '#FF4136', dash: 'dot' },
             yaxis: 'y2'
         });
+    } else {
+        console.log('Not adding current trace - showCurrent:', showCurrent, 'I_out:', !!I_out);
     }
     const layout = {
         title: 'RC Circuit Step Response',
@@ -163,6 +203,9 @@ function plotRC_VI(t, V_out, I_out, showCurrent) {
 }
 
 function plotRL_VI(t, I_out, V_out, showCurrent) {
+    console.log('plotRL_VI called with showCurrent:', showCurrent);
+    console.log('V_out data:', V_out);
+    
     const traces = [
         {
             x: t,
@@ -174,7 +217,8 @@ function plotRL_VI(t, I_out, V_out, showCurrent) {
             yaxis: 'y1'
         }
     ];
-    if (showCurrent) {
+    if (showCurrent && V_out) {
+        console.log('Adding voltage trace to RL plot');
         traces.push({
             x: t,
             y: V_out,
@@ -184,6 +228,8 @@ function plotRL_VI(t, I_out, V_out, showCurrent) {
             line: { color: '#0074D9', dash: 'dot' },
             yaxis: 'y2'
         });
+    } else {
+        console.log('Not adding voltage trace - showCurrent:', showCurrent, 'V_out:', !!V_out);
     }
     const layout = {
         title: 'RL Circuit Step Response',
@@ -204,6 +250,9 @@ function plotRL_VI(t, I_out, V_out, showCurrent) {
 }
 
 function plotRLC_VI(t, V_out, I_out, showCurrent) {
+    console.log('plotRLC_VI called with showCurrent:', showCurrent);
+    console.log('I_out data:', I_out);
+    
     const traces = [
         {
             x: t,
@@ -215,7 +264,8 @@ function plotRLC_VI(t, V_out, I_out, showCurrent) {
             yaxis: 'y1'
         }
     ];
-    if (showCurrent) {
+    if (showCurrent && I_out) {
+        console.log('Adding current trace to RLC plot');
         traces.push({
             x: t,
             y: I_out,
@@ -225,6 +275,8 @@ function plotRLC_VI(t, V_out, I_out, showCurrent) {
             line: { color: '#FF4136', dash: 'dot' },
             yaxis: 'y2'
         });
+    } else {
+        console.log('Not adding current trace - showCurrent:', showCurrent, 'I_out:', !!I_out);
     }
     const layout = {
         title: 'RLC Circuit Step Response',
@@ -318,7 +370,7 @@ function plotModulation(time, modulatedSignal, carrierSignal, modulatingSignal, 
         }
     };
 
+    // Clear existing plot first, then create new one
+    Plotly.purge('circuit-plot');
     Plotly.newPlot('circuit-plot', traces, layout);
 }
-
-export { simulateRCCircuit, simulateRLCircuit, simulateRLCCircuit, plotRC, plotRL, plotRLC, plotRC_VI, plotRL_VI, plotRLC_VI, simulateDifferentiatorCircuit, simulateIntegratorCircuit, plotDifferentiator, plotIntegrator, simulateModulation, plotModulation };
