@@ -791,7 +791,27 @@
                 });
             });
             
-            // --- REMOVED: Auto-update plot on decay constant change ---
+            // --- ADDED: Auto-update plot on decay constant change ---
+            const tauInput = document.getElementById('tau_inplot');
+            
+            // Add event listener for tau input changes to automatically generate signal
+            tauInput.addEventListener('input', function() {
+                const signalType = document.getElementById('signalType_inplot').value;
+                // Only auto-generate if the current signal type is exponential decay
+                if (signalType === 'expdecay') {
+                    // Small debounce to prevent excessive calls while typing
+                    clearTimeout(window.tauUpdateTimeout);
+                    window.tauUpdateTimeout = setTimeout(() => {
+                        // Import and call generateSignal
+                        // The generateSignal function already handles overlay logic properly
+                        import('./static/js/signal.js').then(module => {
+                            module.generateSignal().catch(err => {
+                                console.error('Error generating signal:', err);
+                            });
+                        });
+                    }, 300); // 300ms debounce
+                }
+            });
             
             // --- ADDED: Show/hide Decay Constant input based on signal type ---
             const signalTypeInplot = document.getElementById('signalType_inplot');
