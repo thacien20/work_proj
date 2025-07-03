@@ -201,10 +201,10 @@ function setupAnalyzeDropdown() {
         }
         
         // Add iFFT button event listener
-        const ifftBtn = document.getElementById('ifftBtn');
-        if (ifftBtn) {
-            ifftBtn.addEventListener('click', async () => {
-                await performIFFT();
+        const iFFTBtn = document.getElementById('iFFTBtn');
+        if (iFFTBtn) {
+            iFFTBtn.addEventListener('click', async () => {
+                await showIFFT();
             });
         }
         
@@ -249,13 +249,6 @@ function setupOperationsDropdown() {
                             op,
                             state.fs
                         );
-                        
-                        // Store the result for Results view instead of replacing main signal
-                        state.resultSignal = new Float32Array(result.signal);
-                        state.resultFFT = new Float32Array(result.fft);
-                        state.resultFreqAxis = new Float32Array(result.freq_axis);
-                        
-                        // Still update main signal for backward compatibility
                         state.signalData = new Float32Array(result.signal);
                         state.fftMagnitudes = new Float32Array(result.fft);
                         state.fftFreqAxis = new Float32Array(result.freq_axis);
@@ -265,9 +258,6 @@ function setupOperationsDropdown() {
                             state.time_axis[i] = i / FS;
                         }
                         plotAll();
-                        
-                        // Notify user that Results view is available
-                        alert(`${op.charAt(0).toUpperCase() + op.slice(1)} operation completed! Use "Analyze → Results" to see detailed comparison.`);
                     } catch (error) {
                         alert(error.message);
                     }
@@ -284,11 +274,9 @@ document.getElementById('clearBtn').onclick = function() {
     state.time_axis = new Float32Array();
     state.fftMagnitudes = new Float32Array();
     state.fftFreqAxis = new Float32Array();
-    state.fftComplex = null; // Clear complex FFT data
+    state.fftReal = new Float32Array();
+    state.fftImaginary = new Float32Array();
     state.overlays = [];
-    state.resultSignal = null; // Clear operation results
-    state.resultFFT = null; // Clear result FFT
-    state.resultFreqAxis = null; // Clear result frequency axis
     state.filteredSignal = undefined;
     state.filteredActive = false;
     state.filteredFft = undefined;
@@ -859,27 +847,22 @@ function plotRealFFT() {
     console.log('Real FFT analysis plotted successfully');
 }
 
-// Perform inverse FFT on the current FFT data
-async function performIFFT() {
-    // Check if we have complex FFT data to convert back
-    if (!state.fftComplex || state.fftComplex.length === 0) {
-        alert('No complex FFT data available for inverse FFT. Generate a signal first.');
+// Show Inverse FFT analysis - converts frequency domain back to time domain
+async function showIFFT() {
+    // Check if we have complex FFT data to perform inverse FFT on
+    if (!state.fftReal || state.fftReal.length === 0 || !state.fftImaginary || state.fftImaginary.length === 0) {
+        alert('Please generate a signal first to have complex FFT data for inverse FFT analysis.');
         return;
     }
     
     try {
-        // Extract real and imaginary parts from complex data
-        const fftReal = state.fftComplex.map(c => c[0]);
-        const fftImag = state.fftComplex.map(c => c[1]);
-        
-        // Prepare the data for the backend
+        // Send complex FFT data to backend for inverse FFT computation
         const response = await fetch('/api/ifft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                fft_complex_real: fftReal,
-                fft_complex_imag: fftImag,
-                original_length: state.signalData ? state.signalData.length : 1024,
+                fft_real: Array.from(state.fftReal),
+                fft_imaginary: Array.from(state.fftImaginary),
                 fs: FS
             })
         });
@@ -887,206 +870,80 @@ async function performIFFT() {
         const data = await response.json();
         
         if (data.error) {
-            alert('iFFT error: ' + data.error);
+            alert('iFFT Error: ' + data.error);
             return;
         }
         
-        // Store the reconstructed signal as an overlay for comparison
-        if (!state.overlays) {
-            state.overlays = [];
-        }
-        
-        // Convert the reconstructed signal to overlay
-        const reconstructedSignal = new Float32Array(data.reconstructed_signal);
-        const timeAxis = new Float32Array(data.time_axis);
-        
-        // Compute FFT of the reconstructed signal for display
-        const fftResponse = await fetch('/api/real_fft', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                signal: Array.from(reconstructedSignal),
-                fs: FS
-            })
-        });
-        const fftData = await fftResponse.json();
-        
-        // Add as overlay
-        state.overlays = [{
-            signal: reconstructedSignal,
-            time_axis: timeAxis,
-            fft: new Float32Array(fftData.fft_magnitude),
-            freq: new Float32Array(fftData.freq_axis)
-        }];
-        
-        // Track for undo
-        state.plotHistory.push({ type: 'overlay' });
-        
-        // Re-plot with the reconstructed signal as overlay
-        plotAll();
-        
-        alert('Inverse FFT completed! Reconstructed signal shown as overlay (red) for comparison.');
-        
-    } catch (error) {
-        console.error('Error performing inverse FFT:', error);
-        alert('Error performing inverse FFT: ' + error.message);
-    }
-}
-
-// Show comprehensive results view with original signals, result signal, and all FFTs
-async function showResults() {
-    // Check if we have the necessary data
-    if (!state.resultSignal || state.resultSignal.length === 0) {
-        alert('No operation results available. Perform an operation (Add, Subtract, Multiply, Divide) first.');
-        return;
-    }
-    
-    if (!state.overlays || state.overlays.length === 0) {
-        alert('No overlay signals available for comparison.');
-        return;
-    }
-    
-    try {
-        // Get the plot div
+        // Plot both time domain and frequency domain of the reconstructed signal
         const plotDiv = document.getElementById('plot');
         if (!plotDiv) {
             console.error('Plot div not found');
             return;
         }
         
-        // Prepare traces for comprehensive results view
-        const traces = [];
-        
-        // Original signal (main)
-        if (state.signalData && state.signalData.length > 0) {
-            traces.push({
-                x: state.time_axis,
-                y: state.signalData,
+        // Create subplot layout with time domain on top and frequency domain on bottom
+        const traces = [
+            // Time domain plot
+            {
+                x: data.time_axis,
+                y: data.reconstructed_signal,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'Signal 1',
-                line: { color: '#000000' },
-                xaxis: 'x1',
-                yaxis: 'y1',
-                showlegend: true
-            });
-        }
-        
-        // Overlay signal (second signal)
-        const overlay = state.overlays[state.overlays.length - 1];
-        if (overlay && overlay.signal) {
-            traces.push({
-                x: overlay.time_axis || state.time_axis,
-                y: overlay.signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Signal 2',
+                name: 'Reconstructed Signal (iFFT)',
                 line: { color: '#d62728' },
-                xaxis: 'x1',
-                yaxis: 'y1',
-                showlegend: true
-            });
-        }
-        
-        // Result signal (subplot)
-        if (state.resultSignal) {
-            traces.push({
-                x: state.time_axis,
-                y: state.resultSignal,
+                xaxis: 'x',
+                yaxis: 'y'
+            },
+            // Frequency domain plot
+            {
+                x: data.reconstructed_freq_axis,
+                y: data.reconstructed_fft,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'Operation Result',
-                line: { color: '#2ca02c' },
-                xaxis: 'x2',
-                yaxis: 'y2',
-                showlegend: true
-            });
-        }
-        
-        // FFTs - Main signal FFT
-        if (state.fftMagnitudes && state.fftFreqAxis) {
-            traces.push({
-                x: state.fftFreqAxis,
-                y: state.fftMagnitudes,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'FFT Signal 1',
-                line: { color: '#1f77b4' },
-                xaxis: 'x3',
-                yaxis: 'y3',
-                showlegend: true
-            });
-        }
-        
-        // FFT - Overlay signal FFT
-        if (overlay && overlay.fft && overlay.freq) {
-            traces.push({
-                x: overlay.freq,
-                y: overlay.fft,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'FFT Signal 2',
+                name: 'FFT of Reconstructed Signal',
                 line: { color: '#ff7f0e' },
-                xaxis: 'x3',
-                yaxis: 'y3',
-                showlegend: true
-            });
-        }
+                xaxis: 'x2',
+                yaxis: 'y2'
+            }
+        ];
         
-        // FFT - Result signal FFT
-        if (state.resultFFT && state.resultFreqAxis) {
-            traces.push({
-                x: state.resultFreqAxis,
-                y: state.resultFFT,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'FFT Result',
-                line: { color: '#9467bd' },
-                xaxis: 'x3',
-                yaxis: 'y3',
-                showlegend: true
-            });
-        }
-        
-        // Layout for 3 subplots
+        // Define layout with subplots
         const layout = {
-            grid: { rows: 3, columns: 1, pattern: 'independent' },
+            title: 'Inverse FFT Analysis - Time and Frequency Domain',
             showlegend: true,
             autosize: true,
-            margin: { l: 200, r: 60, t: 160, b: 150 },
+            margin: PLOT_MARGIN,
             
-            // Time domain signals (top)
-            xaxis: { 
-                title: { text: 'Time (s)', standoff: 20 },
-                titlefont: { size: 12 }
+            // Time domain subplot
+            xaxis: {
+                title: 'Time (s)',
+                titlefont: { size: 12 },
+                domain: [0, 1],
+                anchor: 'y'
             },
-            yaxis: { 
-                title: { text: 'Amplitude', standoff: 30 },
-                titlefont: { size: 12 }
-            },
-            
-            // Result signal (middle)
-            xaxis2: { 
-                title: { text: 'Time (s)', standoff: 20 },
-                titlefont: { size: 12 }
-            },
-            yaxis2: { 
-                title: { text: 'Result Amplitude', standoff: 30 },
-                titlefont: { size: 12 }
+            yaxis: {
+                title: 'Amplitude',
+                titlefont: { size: 12 },
+                domain: [0.55, 1],
+                anchor: 'x'
             },
             
-            // FFT comparison (bottom)
-            xaxis3: { 
-                title: { text: 'Frequency (Hz)', standoff: 20 },
-                titlefont: { size: 12 }
+            // Frequency domain subplot
+            xaxis2: {
+                title: 'Frequency (Hz)',
+                titlefont: { size: 12 },
+                domain: [0, 1],
+                anchor: 'y2'
             },
-            yaxis3: { 
-                title: { text: 'FFT Magnitude', standoff: 30 },
-                titlefont: { size: 12 }
+            yaxis2: {
+                title: 'Magnitude',
+                titlefont: { size: 12 },
+                domain: [0, 0.45],
+                anchor: 'x2'
             }
         };
         
-        // Clear and render the comprehensive results plot
+        // Clear and render the plot
         Plotly.purge('plot');
         Plotly.newPlot('plot', traces, layout, {
             responsive: true,
@@ -1094,10 +951,105 @@ async function showResults() {
             displaylogo: false
         });
         
-        console.log('Results view displayed successfully');
+        console.log('iFFT analysis plotted successfully');
         
     } catch (error) {
-        console.error('Error displaying results:', error);
-        alert('Error displaying results: ' + error.message);
+        console.error('Error computing iFFT:', error);
+        alert('Error computing iFFT: ' + error.message);
+    }
+}
+
+// Show a comprehensive results view with all current data
+async function showResults() {
+    // Show a comprehensive results view with all current data
+    if (!state.signalData || state.signalData.length === 0) {
+        alert('No signal data available. Please generate a signal first.');
+        return;
+    }
+    
+    try {
+        // Compute basic statistics
+        const signal = Array.from(state.signalData);
+        const n = signal.length;
+        const mean = signal.reduce((a, b) => a + b, 0) / n;
+        const variance = signal.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+        const std = Math.sqrt(variance);
+        const min = Math.min(...signal);
+        const max = Math.max(...signal);
+        const rms = Math.sqrt(signal.reduce((a, b) => a + b * b, 0) / n);
+        
+        // Peak frequency from FFT
+        let peakFreq = 0;
+        let peakMag = 0;
+        if (state.fftMagnitudes && state.fftFreqAxis) {
+            const fftMag = Array.from(state.fftMagnitudes);
+            const fftFreq = Array.from(state.fftFreqAxis);
+            for (let i = 0; i < fftMag.length; i++) {
+                if (fftMag[i] > peakMag) {
+                    peakMag = fftMag[i];
+                    peakFreq = fftFreq[i];
+                }
+            }
+        }
+        
+        // Duration
+        const duration = state.time_axis.length > 0 ? state.time_axis[state.time_axis.length - 1] : 0;
+        
+        // Create results summary
+        const resultsHTML = `
+            <div style="background: white; color: black; padding: 20px; border-radius: 8px; font-family: monospace; line-height: 1.6;">
+                <h3 style="color: #333; margin-top: 0;">Signal Analysis Results</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="color: #555; margin-bottom: 10px;">Time Domain Statistics</h4>
+                        <p><strong>Sample Count:</strong> ${n}</p>
+                        <p><strong>Duration:</strong> ${duration.toFixed(4)} seconds</p>
+                        <p><strong>Mean:</strong> ${mean.toFixed(6)}</p>
+                        <p><strong>Standard Deviation:</strong> ${std.toFixed(6)}</p>
+                        <p><strong>RMS:</strong> ${rms.toFixed(6)}</p>
+                        <p><strong>Min Value:</strong> ${min.toFixed(6)}</p>
+                        <p><strong>Max Value:</strong> ${max.toFixed(6)}</p>
+                        <p><strong>Peak-to-Peak:</strong> ${(max - min).toFixed(6)}</p>
+                    </div>
+                    <div>
+                        <h4 style="color: #555; margin-bottom: 10px;">Frequency Domain Statistics</h4>
+                        <p><strong>Peak Frequency:</strong> ${peakFreq.toFixed(2)} Hz</p>
+                        <p><strong>Peak Magnitude:</strong> ${peakMag.toFixed(6)}</p>
+                        <p><strong>Sampling Rate:</strong> ${FS} Hz</p>
+                        <p><strong>Nyquist Frequency:</strong> ${FS/2} Hz</p>
+                        <p><strong>Frequency Resolution:</strong> ${(FS/n).toFixed(2)} Hz</p>
+                        <p><strong>Filtered Signal:</strong> ${state.filteredActive ? 'Yes' : 'No'}</p>
+                        <p><strong>Overlays:</strong> ${state.overlays.length}</p>
+                        <p><strong>Complex FFT Data:</strong> ${(state.fftReal && state.fftReal.length > 0) ? 'Available' : 'Not available'}</p>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="window.close()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            </div>
+        `;
+        
+        // Open results in a new window
+        const resultsWindow = window.open('', 'Results', 'width=800,height=600,scrollbars=yes');
+        resultsWindow.document.write(`
+            <html>
+                <head>
+                    <title>Signal Analysis Results</title>
+                    <style>
+                        body { margin: 0; padding: 20px; background: #f5f5f5; font-family: Arial, sans-serif; }
+                    </style>
+                </head>
+                <body>
+                    ${resultsHTML}
+                </body>
+            </html>
+        `);
+        resultsWindow.document.close();
+        
+        console.log('Results displayed successfully');
+        
+    } catch (error) {
+        console.error('Error computing results:', error);
+        alert('Error computing results: ' + error.message);
     }
 }

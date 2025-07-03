@@ -5,12 +5,10 @@ export const state = {
     time_axis: new Float32Array(), // Time axis for signal data (seconds)
     fftMagnitudes: new Float32Array(), // FFT magnitude data
     fftFreqAxis: new Float32Array(), // Frequency axis for FFT (Hz)
-    fftComplex: null, // Store complex FFT data for inverse FFT
+    fftReal: new Float32Array(), // FFT real part (for proper iFFT)
+    fftImaginary: new Float32Array(), // FFT imaginary part (for proper iFFT)
     frequency: null, // Input frequency (Hz) from UI, set by signal.js
     overlays: [], // Array of overlay signals {signal, time_axis, fft, freq}
-    resultSignal: null, // Store result from operations for Results view
-    resultFFT: null, // Store FFT of result signal
-    resultFreqAxis: null, // Store frequency axis for result FFT
     filteredActive: false, // Track if a filter is active (if not already present)
     filteredSignal: null,  // Store filtered signal (if not already present)
     filteredFft: null,     // Store filtered FFT (if not already present)

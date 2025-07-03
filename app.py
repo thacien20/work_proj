@@ -80,18 +80,18 @@ def generate_signal_endpoint():
     if noise > 0:
         signal += (np.random.rand(points) - 0.5) * noise
 
+    # Compute both regular FFT and complex FFT
     fft_magnitude, freq_axis = compute_fft(signal, FS)
-    
-    # Also compute simple FFT (no windowing) for potential inverse FFT use
-    from signal_processing import compute_simple_fft
-    fft_real, fft_imaginary, _, _ = compute_simple_fft(signal, FS)
+    fft_real, fft_imaginary, fft_magnitude_complex, freq_axis_complex = compute_complex_fft(signal, FS)
 
     return jsonify({
         'signal': signal.tolist(),
         'fft': fft_magnitude.tolist(),
         'freq_axis': freq_axis.tolist(),
-        'fft_complex_real': fft_real.tolist(),
-        'fft_complex_imag': fft_imaginary.tolist()
+        'fft_real': fft_real.tolist(),
+        'fft_imaginary': fft_imaginary.tolist(),
+        'fft_complex_magnitude': fft_magnitude_complex.tolist(),
+        'fft_complex_freq': freq_axis_complex.tolist()
     })
 
 @app.route('/api/upload', methods=['POST'])
@@ -354,36 +354,57 @@ def real_fft_endpoint():
 
 @app.route('/api/ifft', methods=['POST'])
 def ifft_endpoint():
+    """Compute inverse FFT from frequency domain data."""
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
     
     try:
-        # Get complex FFT data from the request
-        fft_complex_real = data['fft_complex_real']
-        fft_complex_imag = data['fft_complex_imag']
-        original_length = int(data['original_length'])
-        fs = float(data.get('fs', FS))
-        
-        # Reconstruct complex FFT data
-        fft_complex = np.array(fft_complex_real) + 1j * np.array(fft_complex_imag)
-        
+        # Get the complex FFT data (real and imaginary parts)
+        fft_real = np.array(data['fft_real'])
+        fft_imaginary = np.array(data['fft_imaginary'])
+        fs = data.get('fs', FS)
     except (KeyError, ValueError):
-        return jsonify({'error': 'Invalid or missing complex FFT data'}), 400
+        return jsonify({'error': 'Invalid or missing FFT data'}), 400
     
-    if len(fft_complex_real) == 0:
+    if len(fft_real) == 0 or len(fft_imaginary) == 0:
         return jsonify({'error': 'FFT data cannot be empty'}), 400
     
     try:
-        from signal_processing import compute_inverse_fft
-        reconstructed_signal, time_axis = compute_inverse_fft(fft_complex, original_length, fs)
+        # Reconstruct the complex FFT from real and imaginary parts
+        fft_complex = fft_real + 1j * fft_imaginary
+        
+        # Since we used rfft, we need to reconstruct the full spectrum for ifft
+        # The rfft result is the positive frequency half, we need to mirror it
+        n_samples = 2 * (len(fft_complex) - 1)
+        
+        # Create the full complex spectrum
+        full_spectrum = np.zeros(n_samples, dtype=complex)
+        full_spectrum[:len(fft_complex)] = fft_complex
+        # Mirror the spectrum (conjugate symmetry for real signals)
+        # Skip DC (index 0) and Nyquist (last element if n_samples is even)
+        full_spectrum[len(fft_complex):] = np.conj(fft_complex[-2:0:-1])
+        
+        # Perform inverse FFT
+        reconstructed_signal = np.fft.ifft(full_spectrum).real
+        
+        # Create time axis
+        num_samples = len(reconstructed_signal)
+        time_axis = np.linspace(0, num_samples / fs, num_samples, endpoint=False)
+        
+        # Compute FFT of the reconstructed signal to show both domains
+        from signal_processing import compute_fft
+        reconstructed_fft_magnitude, reconstructed_freq_axis = compute_fft(reconstructed_signal, fs)
         
         return jsonify({
             'reconstructed_signal': reconstructed_signal.tolist(),
-            'time_axis': time_axis.tolist()
+            'time_axis': time_axis.tolist(),
+            'reconstructed_fft': reconstructed_fft_magnitude.tolist(),
+            'reconstructed_freq_axis': reconstructed_freq_axis.tolist(),
+            'num_samples': num_samples
         })
     except Exception as e:
-        return jsonify({'error': f'Inverse FFT computation failed: {str(e)}'}), 500
+        return jsonify({'error': f'iFFT computation failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

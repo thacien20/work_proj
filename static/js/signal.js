@@ -125,15 +125,10 @@ export function generateSignal() {
         state.fftMagnitudes = new Float32Array(data.fft);
         state.fftFreqAxis = new Float32Array(data.freq_axis);
         
-        // Store complex FFT data for inverse FFT
-        if (data.fft_complex_real && data.fft_complex_imag) {
-            const fftReal = new Float32Array(data.fft_complex_real);
-            const fftImag = new Float32Array(data.fft_complex_imag);
-            // Create complex array (real + imaginary)
-            state.fftComplex = [];
-            for (let i = 0; i < fftReal.length; i++) {
-                state.fftComplex.push([fftReal[i], fftImag[i]]); // [real, imag] pairs
-            }
+        // Store complex FFT data for proper iFFT
+        if (data.fft_real && data.fft_imaginary) {
+            state.fftReal = new Float32Array(data.fft_real);
+            state.fftImaginary = new Float32Array(data.fft_imaginary);
         }
         
         plotAll();
