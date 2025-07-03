@@ -142,11 +142,38 @@ export function plotAll() {
         grid: { rows: hasFilterResponse ? 5 : 2, columns: 1, pattern: 'independent' }, // 2 or 5 rows, 1 column
         showlegend: true, // Enable Plotly legend for all traces
         autosize: true, // Let Plotly handle sizing automatically
-        margin: { l: 200, r: 60, t: 160, b: 120 }, // Increased left margin to accommodate in-plot controls and Y-axis labels
-        xaxis: { title: 'Time (s)' }, // Top subplot x-axis (signal)
-        yaxis: { title: 'Intensity' }, // Top subplot y-axis (signal)
-        xaxis2: { title: 'Frequency (Hz)', range: fftRange || undefined }, // Second subplot x-axis (FFT), auto-zoomed
-        yaxis2: { title: 'Magnitude' } // Second subplot y-axis (FFT)
+        margin: { l: 250, r: 60, t: 160, b: 60 }, // Increased bottom margin for x-axis labels
+        xaxis: { 
+            title: { 
+                text: 'Time (s)',
+                standoff: 20,
+                side: 'bottom'
+            },
+            titlefont: { size: 12 }
+        }, // Top subplot x-axis (signal)
+        yaxis: { 
+            title: { 
+                text: 'Intensity',
+                standoff: 30
+            },
+            titlefont: { size: 12 }
+        }, // Top subplot y-axis (signal)
+        xaxis2: { 
+            title: { 
+                text: hasFilterResponse ? '' : 'Frequency (Hz)', // Only show if no filter response (bottom-most)
+                standoff: 20,
+                side: 'bottom'
+            },
+            titlefont: { size: 12 },
+            range: fftRange || undefined
+        }, // Second subplot x-axis (FFT), auto-zoomed
+        yaxis2: { 
+            title: { 
+                text: 'Magnitude',
+                standoff: 30
+            },
+            titlefont: { size: 12 }
+        } // Second subplot y-axis (FFT)
     };
 
     // --- Add filter response traces if present ---
@@ -191,12 +218,51 @@ export function plotAll() {
         });
 
         // Define axes for the three filter response subplots
-        layout.xaxis3 = { title: 'Sample Index' }; // Impulse response x-axis
-        layout.yaxis3 = { title: 'Amplitude' }; // Impulse response y-axis
-        layout.xaxis4 = { title: 'Frequency (Hz)' }; // Magnitude response x-axis
-        layout.yaxis4 = { title: 'Magnitude' }; // Magnitude response y-axis
-        layout.xaxis5 = { title: 'Frequency (Hz)' }; // Phase response x-axis
-        layout.yaxis5 = { title: 'Phase (radians)' }; // Phase response y-axis
+        layout.xaxis3 = { 
+            title: { 
+                text: 'Sample Index',
+                standoff: 10,
+                side: 'bottom'
+            },
+            titlefont: { size: 12 }
+        }; // Impulse response x-axis
+        layout.yaxis3 = { 
+            title: { 
+                text: 'Amplitude',
+                standoff: 30
+            },
+            titlefont: { size: 12 }
+        }; // Impulse response y-axis
+        layout.xaxis4 = { 
+            title: { 
+                text: '', // Remove frequency label - not the bottom-most
+                standoff: 20,
+                side: 'bottom'
+            },
+            titlefont: { size: 12 }
+        }; // Magnitude response x-axis
+        layout.yaxis4 = { 
+            title: { 
+                text: 'Magnitude',
+                standoff: 30
+            },
+            titlefont: { size: 12 }
+        }; // Magnitude response y-axis
+        layout.xaxis5 = { 
+            title: { 
+                text: 'Frequency (Hz)',
+                standoff: 20,
+                side: 'right' // Align to right side for clarity
+            },
+            titlefont: { size: 12 }
+        }; // Phase response x-axis
+        layout.yaxis5 = { 
+            title: { 
+                text: 'Phase (rad.)',
+                standoff: 30
+            },
+            titlefont: { size: 12 }
+        }; // Phase response y-axis
     }
 
     // --- Render the plot using Plotly ---

@@ -9,8 +9,8 @@ import { plotAll } from './plotting.js';
 // const PLOT_WIDTH = 900;
 // const FILTER_PLOT_HEIGHT = 400;
 // const FILTER_PLOT_WIDTH = 600;
-const PLOT_MARGIN = { l: 150, r: 60, t: 160, b: 100 }; // Increased left margin to accommodate in-plot controls and Y-axis labels
-const FILTER_PLOT_MARGIN = { l: 140, r: 60, t: 160, b: 100 }; // Increased left margin to accommodate in-plot controls and Y-axis labels
+const PLOT_MARGIN = { l: 220, r: 60, t: 160, b: 150 }; // Updated margins for better label positioning
+const FILTER_PLOT_MARGIN = { l: 220, r: 60, t: 160, b: 150 }; // Updated margins for better label positioning
 
 window.addEventListener('DOMContentLoaded', () => {
     console.log('ui.js loaded');
@@ -37,20 +37,13 @@ window.addEventListener('DOMContentLoaded', () => {
         generateBtnInplot.addEventListener('click', generateSignal);
     }
 
-    // In-plot Add Overlay, Live Plot, and Deconvolution buttons
+    // In-plot Add Overlay and Deconvolution buttons
     const addOverlayBtnInplot = document.getElementById('addOverlayBtn_inplot');
     if (addOverlayBtnInplot) {
         addOverlayBtnInplot.addEventListener('click', function() {
             // Implement overlay logic here or call the correct function
             if (typeof addOverlay === 'function') addOverlay();
             else console.warn('addOverlay function not defined');
-        });
-    }
-    const livePlotBtnInplot = document.getElementById('livePlotBtn_inplot');
-    if (livePlotBtnInplot) {
-        livePlotBtnInplot.addEventListener('click', function() {
-            if (typeof livePlot === 'function') livePlot();
-            else console.warn('livePlot function not defined');
         });
     }
     const deconvBtnInplot = document.getElementById('deconvBtn_inplot');
