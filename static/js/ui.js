@@ -1134,6 +1134,8 @@ async function showResults() {
                 domain: [0.52, 1.0],
                 anchor: 'y2'
                 
+                
+                
             },
             yaxis2: {
                 
@@ -1144,8 +1146,7 @@ async function showResults() {
             
             // ROW 2 - Results signal (middle row, full width)
             xaxis3: {
-                title: 'Time (s)',
-                titlefont: { size: 12},
+                
                 domain: [0, 1.0],
                 anchor: 'y3'
             },
