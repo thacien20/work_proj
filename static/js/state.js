@@ -20,3 +20,25 @@ export const state = {
     realFFT: null,         // Store Real FFT data {real, imaginary, magnitude, freq} for Real FFT analysis
     plotHistory: [] // Stack of plot actions for undo (e.g., {type: 'overlay'}, {type: 'filter'})
 };
+
+// Cleanup function to clear state and free memory
+export function clearState() {
+    state.signalData = new Float32Array();
+    state.time_axis = new Float32Array();
+    state.fftMagnitudes = new Float32Array();
+    state.fftFreqAxis = new Float32Array();
+    state.fftReal = new Float32Array();
+    state.fftImaginary = new Float32Array();
+    state.frequency = null;
+    state.originalSignal = null;
+    state.waitingForOverlay = false;
+    state.overlays = [];
+    state.filteredActive = false;
+    state.filteredSignal = null;
+    state.filteredFft = null;
+    state.filteredFftFreq = null;
+    state.filterResponse = null;
+    state.filterImpulse = null;
+    state.realFFT = null;
+    state.plotHistory = [];
+}

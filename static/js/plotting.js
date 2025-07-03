@@ -1,6 +1,14 @@
 // plotting.js
 import { state, FS } from './state.js';
 
+// Cleanup function for Plotly plots
+function cleanupPlotly() {
+    const plotDiv = document.getElementById('plot');
+    if (plotDiv && plotDiv.data) {
+        Plotly.purge(plotDiv);
+    }
+}
+
 // Main function to plot all data (signal and FFT, overlays, axes, labels) using Plotly.js
 export function plotAll() {
     // --- Get the plot div and check existence ---
@@ -331,3 +339,10 @@ export function updatePlotLayout(newMargins) {
         Plotly.relayout('plot', newLayout);
     }
 }
+
+// Export cleanup function
+export { cleanupPlotly };
+
+// Add cleanup on page unload
+window.addEventListener('beforeunload', cleanupPlotly);
+window.addEventListener('pagehide', cleanupPlotly);

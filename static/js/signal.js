@@ -2,8 +2,31 @@
 import { state, FS } from './state.js';
 import { plotAll } from './plotting.js';
 
+// Global abort controller for managing fetch requests
+let currentAbortController = null;
+
+// Cleanup function for ongoing requests
+function cleanup() {
+    if (currentAbortController) {
+        currentAbortController.abort();
+        currentAbortController = null;
+    }
+}
+
+// Add cleanup on page unload
+window.addEventListener('beforeunload', cleanup);
+window.addEventListener('pagehide', cleanup);
+
 export function generateSignal() {
     return new Promise((resolve, reject) => {
+        // Cancel any ongoing request
+        if (currentAbortController) {
+            currentAbortController.abort();
+        }
+        
+        // Create new abort controller for this request
+        currentAbortController = new AbortController();
+        
         // Use only in-plot controls for all parameters
         const freqInput = document.getElementById('frequency_inplot');
         const signalType = document.getElementById('signalType_inplot').value;
@@ -102,7 +125,8 @@ export function generateSignal() {
         fetch('/api/signal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: currentAbortController.signal // Attach the abort signal
         })
         .then(async response => {
             if (!response.ok) {
@@ -224,6 +248,11 @@ export function generateSignal() {
             resolve(); // Resolve the promise when done
         })
         .catch(err => {
+            // Check if the error is an AbortError (request was aborted)
+            if (err.name === 'AbortError') {
+                console.log('Request aborted');
+                return; // Ignore abort errors
+            }
             alert('Network or JS error: ' + err);
             console.error('Fetch error:', err);
             reject(err);
@@ -240,7 +269,8 @@ export async function signalToSignalOperation(signal1, signal2, operation, fs) {
             signal2: Array.from(signal2),
             operation,
             fs
-        })
+        }),
+        signal: currentAbortController.signal // Attach the abort signal
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Operation failed');
@@ -252,7 +282,8 @@ export async function simulateRCCircuit(R, C, V_in, duration, points) {
     const response = await fetch('/api/rc_circuit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: currentAbortController.signal // Attach the abort signal
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'RC circuit simulation failed');
@@ -264,7 +295,8 @@ async function simulateRLCCircuit(R, L, C, V_in, duration, points) {
     const response = await fetch('/api/rlc_circuit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: currentAbortController.signal // Attach the abort signal
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'RLC circuit simulation failed');

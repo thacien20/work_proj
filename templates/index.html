@@ -21,6 +21,7 @@
             <button class="header-btn" id="aiBtn">AI</button>
             <button class="header-btn" id="businessBtn">Business</button>
             <a href="/circuits" class="header-btn" style="text-decoration:none;">Circuits Lab</a>
+            <button class="header-btn" id="cleanupBtn" title="Clear memory and reset application">🧹 Cleanup</button>
         </nav>
         <!-- Main application title -->
         <h1 style="margin: 20px ">Tech & Data </h1>
@@ -48,7 +49,7 @@
     </div>
     
     <!-- Rwanda flag animation container - positioned on the right side -->
-    <!-- Features depth animation with scaling, rotation, and opacity effects -->
+    <!-- Features smooth floating animation with gentle depth and movement effects -->
     <div id="rwanda-canvas-container" style="
         position:absolute;
         right:10px;
@@ -62,19 +63,20 @@
         border:2px solid rgba(255,255,255,0.2);
         overflow:hidden;
     ">
-        <!-- Rwanda flag image with animated depth effect -->
-        <!-- Image is oversized (400x267) to prevent empty space during rotation -->
+        <!-- Rwanda flag image with improved floating animation -->
+        <!-- Image maintains proper aspect ratio and orientation during animation -->
         <img id="rwanda-flag" src="/static/imag/rwanda.PNG" alt="Rwanda Flag" style="
             position:absolute;
-            width:350px;
-            height:267px;
-            object-fit:cover;
+            width:320px;
+            height:240px;
+            object-fit:contain;
             object-position:center;
-            border-radius:12px;
-            box-shadow:0 10px 30px rgba(0,0,0,0.9);
+            border-radius:8px;
+            box-shadow:0 10px 25px rgba(0,0,0,0.7);
             left:50%;
             top:50%;
             transform:translate(-50%, -50%);
+            transition: box-shadow 0.3s ease;
         ">
     </div>
 
@@ -692,7 +694,8 @@
     <!-- ===== INLINE JAVASCRIPT ===== -->
     <script>
         // ===== RWANDA FLAG DEPTH ANIMATION =====
-        // Creates a "traveling through space" effect with scaling, rotation, and opacity
+        // Creates a smooth floating effect with gentle back-and-forth movement
+        // while keeping the flag properly oriented (vertical)
         function animateRwandaFlag() {
             const flag = document.getElementById('rwanda-flag');
             let animationFrame;
@@ -702,26 +705,49 @@
                 const currentTime = Date.now();
                 const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
                 
-                // Create smooth back-and-forth motion using sine wave (20-second cycle)
-                const cycle = (Math.sin(elapsed * Math.PI / 10) + 1) / 2; // 0 to 1
+                // Create smooth back-and-forth motion using sine wave (12-second cycle)
+                const depthCycle = (Math.sin(elapsed * Math.PI / 6) + 1) / 2; // 0 to 1
                 
-                // Scale: from 1.0 (fills canvas) to 2.0 (very close/zoomed in)
-                // Prevents empty space during rotation by using oversized image
-                const scale = 1.0 + (cycle * 1.0);
+                // Create gentle horizontal floating motion (8-second cycle)
+                const horizontalOffset = Math.sin(elapsed * Math.PI / 4) * 15; // ±15px movement
                 
-                // Opacity: from 0.7 (slightly faded) to 1.0 (fully visible)
-                const opacity = 0.7 + (cycle * 0.3);
+                // Create subtle vertical floating motion (10-second cycle)
+                const verticalOffset = Math.cos(elapsed * Math.PI / 5) * 8; // ±8px movement
                 
-                // Rotation: 2 degrees per second for elegant effect
-                const rotation = elapsed * 2;
+                // Scale: from 1.0 (normal size) to 1.4 (closer view)
+                // Smooth scaling creates depth illusion without rotation issues
+                const scale = 1.0 + (depthCycle * 0.4);
                 
-                // Apply all transformations simultaneously
-                flag.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`;
+                // Opacity: from 0.8 (slightly faded) to 1.0 (fully visible)
+                const opacity = 0.8 + (depthCycle * 0.2);
+                
+                // Very gentle rotation: ±3 degrees for subtle life-like movement
+                const rotation = Math.sin(elapsed * Math.PI / 7) * 3; // 14-second cycle
+                
+                // Apply transformations: maintain vertical orientation with floating movement
+                // The order matters: translate to center, then apply floating offsets, scale, and gentle rotation
+                flag.style.transform = `translate(calc(-50% + ${horizontalOffset}px), calc(-50% + ${verticalOffset}px)) scale(${scale}) rotate(${rotation}deg)`;
                 flag.style.opacity = opacity;
+                
+                // Add subtle box-shadow variation for depth effect
+                const shadowIntensity = 0.6 + (depthCycle * 0.3);
+                const shadowBlur = 20 + (depthCycle * 15);
+                flag.style.boxShadow = `0 10px ${shadowBlur}px rgba(0,0,0,${shadowIntensity})`;
                 
                 // Continue animation loop
                 animationFrame = requestAnimationFrame(animateDepth);
             }
+            
+            // Cleanup function for proper memory management
+            function cleanup() {
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            }
+            
+            // Add cleanup on page unload
+            window.addEventListener('beforeunload', cleanup);
+            window.addEventListener('pagehide', cleanup);
             
             // Start the animation when function is called
             animateDepth();

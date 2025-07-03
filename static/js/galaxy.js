@@ -125,6 +125,8 @@ window.addEventListener('DOMContentLoaded', function() {
   // --- Animation switching logic ---
   const animations = [drawGalaxy, drawSolarSystem, drawSignal, drawSquareWave];
   let cancelToken = {cancelled: false, frame: null};
+  let animationInterval;
+  
   function pickAndRun() {
     // Cancel previous animation
     cancelToken.cancelled = true;
@@ -135,6 +137,18 @@ window.addEventListener('DOMContentLoaded', function() {
     const pick = Math.floor(Math.random() * animations.length);
     animations[pick](cancelToken);
   }
+  
+  // Cleanup function for when page is unloaded
+  function cleanup() {
+    cancelToken.cancelled = true;
+    if (cancelToken.frame) cancelAnimationFrame(cancelToken.frame);
+    if (animationInterval) clearInterval(animationInterval);
+  }
+  
   pickAndRun();
-  setInterval(pickAndRun, 5000); // Switch every 5 seconds
+  animationInterval = setInterval(pickAndRun, 5000); // Switch every 5 seconds
+  
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', cleanup);
+  window.addEventListener('pagehide', cleanup);
 });
