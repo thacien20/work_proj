@@ -1110,33 +1110,34 @@ async function showResults() {
         
         // Define 3-row subplot layout
         const layout = {
-            title: 'Signal Operation Results - 3-Row Analysis',
+            title: 'Signal Operation Results ',
             showlegend: true,
             autosize: true,
-            margin: { l: 80, r: 60, t: 120, b: 80 },
+            margin: { l: 200, r: 60, t: 120, b: 80 },
             
             // ROW 1 - Original signals (top row, 2 columns)
             xaxis: {
-                title: 'Time (s)',
-                titlefont: { size: 10 },
+            
                 domain: [0, 0.48],
                 anchor: 'y1'
+                
             },
             yaxis: {
                 title: 'Amplitude',
-                titlefont: { size: 10 },
+                titlefont: { size: 12 },
                 domain: [0.72, 1.0],
                 anchor: 'x1'
             },
             xaxis2: {
                 title: 'Time (s)',
-                titlefont: { size: 10 },
+                titlefont: { size: 12 },
                 domain: [0.52, 1.0],
                 anchor: 'y2'
+                
             },
             yaxis2: {
-                title: 'Amplitude',
-                titlefont: { size: 10 },
+                
+                
                 domain: [0.72, 1.0],
                 anchor: 'x2'
             },
@@ -1144,13 +1145,13 @@ async function showResults() {
             // ROW 2 - Results signal (middle row, full width)
             xaxis3: {
                 title: 'Time (s)',
-                titlefont: { size: 10 },
+                titlefont: { size: 12},
                 domain: [0, 1.0],
                 anchor: 'y3'
             },
             yaxis3: {
-                title: 'Result Amplitude',
-                titlefont: { size: 10 },
+                title: 'Result Ampl.',
+                titlefont: { size: 12 },
                 domain: [0.38, 0.66],
                 anchor: 'x3'
             },
@@ -1158,25 +1159,23 @@ async function showResults() {
             // ROW 3 - FFT comparison (bottom row, 2 columns)
             xaxis4: {
                 title: 'Frequency (Hz)',
-                titlefont: { size: 10 },
+                titlefont: { size: 12 },
                 domain: [0, 0.48],
                 anchor: 'y4'
             },
             yaxis4: {
                 title: 'Magnitude',
-                titlefont: { size: 10 },
+                titlefont: { size: 12 },
                 domain: [0, 0.32],
                 anchor: 'x4'
             },
             xaxis5: {
-                title: 'Frequency (Hz)',
-                titlefont: { size: 10 },
+                
                 domain: [0.52, 1.0],
                 anchor: 'y5'
             },
             yaxis5: {
-                title: 'Magnitude',
-                titlefont: { size: 10 },
+                
                 domain: [0, 0.32],
                 anchor: 'x5'
             }
