@@ -85,6 +85,13 @@ export function generateSignal() {
         payload.frequency = frequency;
     }
 
+    if (signalType === 'expdecay') {
+        const tau = parseFloat(document.getElementById('tau_inplot').value);
+        if (!isNaN(tau)) {
+            payload.tau = tau;
+        }
+    }
+
     fetch('/api/signal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
