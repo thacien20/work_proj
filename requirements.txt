@@ -1,0 +1,6 @@
+flask==2.0.1
+numpy==1.22.3
+scipy==1.8.0
+sympy==1.10.1
+matplotlib==3.5.1
+werkzeug==2.0.2

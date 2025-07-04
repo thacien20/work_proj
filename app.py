@@ -19,6 +19,7 @@ from circuits_app import circuits_blueprint
 
 # Import new modular features
 from features.basic_signals import basic_signals_blueprint
+from mathlab import mathlab_bp
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
@@ -26,6 +27,7 @@ app.config.from_object(Config)
 # Register blueprints for modular features
 app.register_blueprint(circuits_blueprint, url_prefix='/circuits')
 app.register_blueprint(basic_signals_blueprint, url_prefix='/basic_signals')
+app.register_blueprint(mathlab_bp, url_prefix='/')
 
 os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 

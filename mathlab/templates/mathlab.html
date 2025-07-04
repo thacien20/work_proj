@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Lab</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/mathlab/static/css/mathlab.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Plotly for interactive plotting -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* Main layout */
+        body {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #66cbea 0%, #764ba2 100%);
+            color: #f1f1f1;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: rgba(26, 46, 36, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+        
+        .header-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+        }
+        
+        /* Panel styling */
+        .panel {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+        
+        .panel h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.6rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 600;
+        }
+        
+        /* Plot container */
+        .plot-container {
+            width: 100%;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Form controls */
+        .form-group {
+            margin-bottom: 0.8rem;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .control-input {
+            width: 100%;
+            padding: 0.5rem 0.7rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .control-input:focus {
+            border-color: rgba(66, 153, 225, 0.6);
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+            outline: none;
+        }
+        
+        .control-input:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Compact form layout */
+        .compact-form {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.7rem;
+            align-items: start;
+        }
+        
+        /* Buttons */
+        .primary-btn, .secondary-btn, .info-btn, .toggle-btn {
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            line-height: 1.2;
+        }
+        
+        .primary-btn {
+            background: linear-gradient(135deg, #3182ce 0%, #4299e1 100%);
+            color: white;
+            border: none;
+        }
+        
+        .primary-btn:hover, .primary-btn:focus {
+            background: linear-gradient(135deg, #2c5282 0%, #3182ce 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .secondary-btn:hover, .secondary-btn:focus {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+        
+        /* Math result display */
+        .result-display {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            color: #a0aec0;
+            margin-top: 0.3rem;
+            overflow-x: auto;
+        }
+        
+        .math-expression {
+            font-size: 1.1rem;
+            color: #f1f1f1;
+            margin: 1rem 0;
+        }
+        
+        .latex-output {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #1a202c;
+        }
+        
+        /* Tab UI */
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+        
+        .tab-button {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s;
+        }
+        
+        .tab-button[aria-selected="true"] {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 2px solid #4299e1;
+        }
+        
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .tab-panel {
+            display: none;
+        }
+        
+        .tab-panel[aria-hidden="false"] {
+            display: block;
+        }
+        
+        /* Response adjustments */
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .left-column, .right-column {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🧮 Math Lab</h1>
+        <a href="/" class="header-btn">← Back to Main</a>
+    </header>
+
+    <div class="main-container">
+        <!-- Left Column: Controls -->
+        <div class="left-column">
+            <!-- Math Mode Selection -->
+            <div class="panel">
+                <h2>🔢 Math Operations</h2>
+                <div class="tab-buttons" role="tablist">
+                    <button id="tab-algebraic" class="tab-button" role="tab" aria-selected="true" aria-controls="panel-algebraic">Algebraic</button>
+                    <button id="tab-differential" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-differential">Differential</button>
+                    <button id="tab-integral" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-integral">Integral</button>
+                    <button id="tab-derivative" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-derivative">Derivative</button>
+                </div>
+                
+                <!-- Algebraic Equations Panel -->
+                <div id="panel-algebraic" class="tab-panel" role="tabpanel" aria-hidden="false">
+                    <div class="form-group">
+                        <label for="algebraic-equation">Equation or Expression:</label>
+                        <input type="text" id="algebraic-equation" class="control-input" placeholder="E.g., x**2 + 3*x - 4 = 0">
+                        <div class="syntax-help">
+                            <small>Use <code>**</code> for powers (e.g., x**2), <code>*</code> for multiplication (e.g., 3*x)</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="common-expressions">Quick Select:</label>
+                        <select id="common-expressions" class="control-input">
+                            <option value="">-- Select common expression --</option>
+                            <option value="x**2 + 3*x - 4 = 0">Quadratic: x² + 3x - 4 = 0</option>
+                            <option value="x**3 - 6*x**2 + 11*x - 6 = 0">Cubic: x³ - 6x² + 11x - 6 = 0</option>
+                            <option value="x**2 + y**2 = 25">Circle: x² + y² = 25</option>
+                            <option value="y = 2*x + 5">Line: y = 2x + 5</option>
+                            <option value="y = x**2 + 2*x - 3">Parabola: y = x² + 2x - 3</option>
+                            <option value="y = sin(x)">Sine: y = sin(x)</option>
+                            <option value="y = exp(x)">Exponential: y = e^x</option>
+                            <option value="y = log(x) + log(y) = 1">Logarithmic: log(x) + log(y) = 1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="algebraic-variable">Variable:</label>
+                        <input type="text" id="algebraic-variable" class="control-input" value="x">
+                    </div>
+                    <div class="form-group input-syntax-guide">
+                        <div class="info-box">
+                            <h4>Input Syntax Guide:</h4>
+                            <ul>
+                                <li><code>x**2</code> for x² (not <code>x^2</code>)</li>
+                                <li><code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code> for trigonometric functions</li>
+                                <li><code>exp(x)</code> for e^x</li>
+                                <li><code>log(x)</code> for natural logarithm</li>
+                                <li><code>sqrt(x)</code> for square root</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button id="solve-algebraic-btn" class="primary-btn" style="width: 100%;">Solve</button>
+                </div>
+                
+                <!-- Differential Equations Panel -->
+                <div id="panel-differential" class="tab-panel" role="tabpanel" aria-hidden="true">
+                    <div class="form-group">
+                        <label for="diff-equation">Differential Equation:</label>
+                        <input type="text" id="diff-equation" class="control-input" placeholder="E.g., dy/dx + y = x">
+                        <div class="syntax-help">
+                            <small>Use <code>dy/dx</code> for first derivative, <code>**</code> for powers</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="common-diff-equations">Quick Select:</label>
+                        <select id="common-diff-equations" class="control-input">
+                            <option value="">-- Select common equation --</option>
+                            <option value="dy/dx + y = x">First Order: dy/dx + y = x</option>
+                            <option value="dy/dx = x*y">Separable: dy/dx = x*y</option>
+                            <option value="d²y/dx² + 4*y = 0">Second Order: d²y/dx² + 4*y = 0</option>
+                            <option value="d²y/dx² + 2*dy/dx + y = sin(x)">Forced Oscillation: d²y/dx² + 2*dy/dx + y = sin(x)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="diff-variable">Independent Variable:</label>
+                        <input type="text" id="diff-variable" class="control-input" value="x">
+                    </div>
+                    
+                    <!-- Constants section for differential equations -->
+                    <div class="form-group">
+                        <label for="constants-mode">Solution Constants:</label>
+                        <div class="constants-control">
+                            <select id="constants-mode" class="control-input">
+                                <option value="auto">Auto-generate</option>
+                                <option value="custom">Custom values</option>
+                                <option value="family">Family of solutions</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Container for constants UI that will be populated by JavaScript -->
+                    <div id="constants-container" class="constants-container">
+                        <div class="info-note">
+                            <p>Constants will be automatically generated when plotting.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group input-syntax-guide">
+                        <div class="info-box">
+                            <h4>Differential Equation Syntax:</h4>
+                            <ul>
+                                <li>Use <code>dy/dx</code> for first derivative</li>
+                                <li>Use <code>d²y/dx²</code> for second derivative</li>
+                                <li>Always include <code>=</code> in your equation</li>
+                                <li>Use standard functions: <code>sin(x)</code>, <code>exp(x)</code>, etc.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button id="solve-diff-btn" class="primary-btn" style="width: 100%;">Differentiate</button>
+                </div>
+                
+                <!-- Integral Panel -->
+                <div id="panel-integral" class="tab-panel" role="tabpanel" aria-hidden="true">
+                    <div class="form-group">
+                        <label for="integral-expression">Expression to Integrate:</label>
+                        <input type="text" id="integral-expression" class="control-input" placeholder="E.g., x**2 + 3*x">
+                        <div class="syntax-help">
+                            <small>Use <code>**</code> for powers (e.g., x**2), <code>*</code> for multiplication</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="common-integrals">Quick Select:</label>
+                        <select id="common-integrals" class="control-input">
+                            <option value="">-- Select common function --</option>
+                            <option value="x**2 + 3*x">Polynomial: x² + 3x</option>
+                            <option value="sin(x)">Trigonometric: sin(x)</option>
+                            <option value="exp(x)">Exponential: e^x</option>
+                            <option value="1/x">Logarithmic: 1/x</option>
+                            <option value="1/sqrt(1-x**2)">Inverse trig: 1/sqrt(1-x²)</option>
+                            <option value="x*exp(x)">Product: x·e^x</option>
+                        </select>
+                    </div>
+                    <div class="compact-form">
+                        <div class="form-group">
+                            <label for="integral-variable">Variable:</label>
+                            <input type="text" id="integral-variable" class="control-input" value="x">
+                        </div>
+                        <div class="form-group">
+                            <label for="integral-type">Type:</label>
+                            <select id="integral-type" class="control-input">
+                                <option value="indefinite">Indefinite</option>
+                                <option value="definite">Definite</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="integral-limits" style="display: none;" class="compact-form">
+                        <div class="form-group">
+                            <label for="lower-limit">Lower Limit:</label>
+                            <input type="text" id="lower-limit" class="control-input" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="upper-limit">Upper Limit:</label>
+                            <input type="text" id="upper-limit" class="control-input" value="1">
+                        </div>
+                    </div>
+                    <div class="form-group input-syntax-guide">
+                        <div class="info-box">
+                            <h4>Integration Syntax:</h4>
+                            <ul>
+                                <li>Use <code>x**2</code> for x² (not <code>x^2</code>)</li>
+                                <li>Use <code>sin(x)</code>, <code>cos(x)</code> for trigonometric functions</li>
+                                <li>Use <code>1/x</code> for fractions</li>
+                                <li>Use <code>sqrt(x)</code> for square root</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button id="calculate-integral-btn" class="primary-btn" style="width: 100%;">Calculate</button>
+                </div>
+                
+                <!-- Derivative Panel -->
+                <div id="panel-derivative" class="tab-panel" role="tabpanel" aria-hidden="true">
+                    <div class="form-group">
+                        <label for="derivative-expression">Expression for Derivative:</label>
+                        <input type="text" id="derivative-expression" class="control-input" placeholder="E.g., x**3 + 2*x**2 - 4*x + 7">
+                        <div class="syntax-help">
+                            <small>Use <code>**</code> for powers (e.g., x**3), <code>*</code> for multiplication</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="common-derivatives">Quick Select:</label>
+                        <select id="common-derivatives" class="control-input">
+                            <option value="">-- Select common function --</option>
+                            <option value="x**3 + 2*x**2 - 4*x + 7">Polynomial: x³ + 2x² - 4x + 7</option>
+                            <option value="sin(x)">Trigonometric: sin(x)</option>
+                            <option value="cos(x)">Trigonometric: cos(x)</option>
+                            <option value="exp(x)">Exponential: e^x</option>
+                            <option value="log(x)">Logarithmic: log(x)</option>
+                            <option value="sqrt(x)">Square root: √x</option>
+                            <option value="sin(x)*cos(x)">Product: sin(x)·cos(x)</option>
+                        </select>
+                    </div>
+                    <div class="compact-form">
+                        <div class="form-group">
+                            <label for="derivative-variable">Variable:</label>
+                            <input type="text" id="derivative-variable" class="control-input" value="x">
+                        </div>
+                        <div class="form-group">
+                            <label for="derivative-order">Order:</label>
+                            <input type="number" id="derivative-order" class="control-input" value="1" min="1" max="5">
+                        </div>
+                    </div>
+                    <div class="form-group input-syntax-guide">
+                        <div class="info-box">
+                            <h4>Derivative Syntax:</h4>
+                            <ul>
+                                <li>Use <code>x**3</code> for x³ (not <code>x^3</code>)</li>
+                                <li>Use <code>sin(x)</code>, <code>cos(x)</code> for trigonometric functions</li>
+                                <li>Use <code>exp(x)</code> for e^x</li>
+                                <li>Use <code>log(x)</code> for natural logarithm</li>
+                                <li>Order specifies the nth derivative (1st, 2nd, etc.)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button id="calculate-derivative-btn" class="primary-btn" style="width: 100%;">Calculate</button>
+                </div>
+            </div>
+            
+            <!-- Common Mathematical Functions -->
+            <div class="panel">
+                <h2>📊 Common Functions</h2>
+                <div class="compact-form">
+                    <button class="secondary-btn math-function-btn" data-function="sin(x)">sin(x)</button>
+                    <button class="secondary-btn math-function-btn" data-function="cos(x)">cos(x)</button>
+                    <button class="secondary-btn math-function-btn" data-function="tan(x)">tan(x)</button>
+                    <button class="secondary-btn math-function-btn" data-function="exp(x)">exp(x)</button>
+                    <button class="secondary-btn math-function-btn" data-function="log(x)">log(x)</button>
+                    <button class="secondary-btn math-function-btn" data-function="sqrt(x)">√x</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Results -->
+        <div class="right-column">
+            <!-- Results Panel -->
+            <div class="panel">
+                <h2>📝 Results</h2>
+                <div class="result-display">
+                    <div id="result-placeholder">Enter an equation and click Solve to see the results here.</div>
+                    <div id="math-result" class="math-expression" style="display: none;"></div>
+                    <div id="latex-result" class="latex-output" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <!-- Visualization Panel -->
+            <div class="panel">
+                <h2>📈 Visualization</h2>
+                <div class="plot-controls">
+                    <div class="plot-type-toggles">
+                        <label class="toggle-container">
+                            <span>3D Plot</span>
+                            <input type="checkbox" id="plot-type-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        
+                        <label class="toggle-container">
+                            <span>Complex Plane</span>
+                            <input type="checkbox" id="complex-plane-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div id="plot-dimension-controls">
+                        <div id="3d-controls" style="display: none">
+                            <div class="compact-form">
+                                <div class="form-group">
+                                    <label for="y-min">Y Min:</label>
+                                    <input type="number" id="y-min" class="control-input" value="-10">
+                                </div>
+                                <div class="form-group">
+                                    <label for="y-max">Y Max:</label>
+                                    <input type="number" id="y-max" class="control-input" value="10">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="math-plot" class="plot-container"></div>
+                <div style="margin-top: 0.5rem;" class="action-buttons">
+                    <button id="plot-equation-btn" class="secondary-btn">Plot Expression</button>
+                    <button id="plot-solution-btn" class="secondary-btn">Plot Solution</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="/mathlab/static/js/mathlab_ui.js"></script>
+    <script src="/mathlab/static/js/mathlab_plotting.js"></script>
+</body>
+</html>
