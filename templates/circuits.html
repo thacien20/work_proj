@@ -93,6 +93,72 @@
             border-color: rgba(255, 255, 255, 0.3);
             color: white;
         }
+
+        /* Control input styling for compact layout */
+        .control-input {
+            width: 80px;
+            padding: 4px 6px;
+            margin: 2px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: rgba(102, 126, 234, 0.8);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Specific styling for different input types */
+        #modulation-type, #electronic-signal-type {
+            width: 90px;
+        }
+
+        #points {
+            width: 70px;
+        }
+
+        #duration {
+            width: 75px;
+        }
+
+        #modulation-index, #carrier-freq, #modulating-freq {
+            width: 65px;
+        }
+
+        /* Form group adjustments for tighter layout */
+        .form-group {
+            margin-bottom: 8px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            margin-bottom: 3px;
+            display: block;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Compact electronic signals controls */
+        #electronic-signals-controls {
+            width: 250px; /* Make it narrower */
+            margin-left: auto; /* Push to the right edge of left column */
+        }
+
+        #electronic-signals-controls .control-input {
+            width: 80px; /* Make inputs smaller */
+            padding: 4px 6px;
+            font-size: 12px;
+        }
+
+        #electronic-signals-controls .form-group label {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -141,7 +207,6 @@
             <!-- Electronic Signals Controls -->
             <div id="electronic-signals-controls" style="display: none;">
                 <div class="control-section">
-                    <h2>📡 Electronic Signals</h2>
                     <div class="form-group">
                         <label for="signal-type">SigType:</label>
                         <select id="signal-type" class="control-input">
@@ -236,7 +301,6 @@
             <!-- Simulation Settings - Always visible when a lab is selected -->
             <div id="simulation-settings" style="display: none;">
                 <div class="control-section">
-                    <h2>⚙️ Simulation Settings</h2>
                     <div class="form-group">
                         <label for="vin">Input Voltage (V):</label>
                         <input type="number" id="vin" class="control-input" value="1.0" min="0.01" step="0.01">
@@ -292,6 +356,28 @@
         <button id="undo-plot-btn" title="Undo Last">↶ Undo</button>
         <button id="export-plot-btn" title="Export Plot">💾 Export</button>
         <button id="save-plot-btn" title="Save Plot">📁 Save</button>
+    </div>
+
+    <!-- Floating Electronic Signals Panel -->
+    <div class="floating-electronic-signals">
+        <h3>📡 Electronic Signal Settings</h3>
+        <div class="form-group">
+            <label for="signal-amplitude">Amplitude (V):</label>
+            <input type="number" id="signal-amplitude" class="control-input" value="1.0" min="0.1" step="0.1">
+        </div>
+        <div class="form-group">
+            <label for="signal-offset">Offset (V):</label>
+            <input type="number" id="signal-offset" class="control-input" value="0.0" min="-10" max="10" step="0.1">
+        </div>
+        <div class="form-group">
+            <label for="signal-phase">Phase (degrees):</label>
+            <input type="number" id="signal-phase" class="control-input" value="0" min="-360" max="360" step="1">
+        </div>
+        <div class="form-group">
+            <button type="button" id="apply-signal-btn" class="primary-btn" style="width: 100%;">
+                ✔️ Apply Signal
+            </button>
+        </div>
     </div>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>

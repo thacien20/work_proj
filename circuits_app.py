@@ -76,11 +76,15 @@ def simulate_modulation():
             # Amplitude Modulation: y(t) = (1 + m*cos(2πfm*t)) * cos(2πfc*t)
             modulated_signal = (1 + modulation_index * modulating_signal) * carrier_signal
         elif modulation_type == 'FM':
-            # Frequency Modulation: y(t) = cos(2πfc*t + β*sin(2πfm*t))
+            # Frequency Modulation: s(t) = A_c * cos(2πf_c*t + 2πk_f*∫m(τ)dτ)
+            # For m(t) = sin(2πfm*t), the integral is: ∫sin(2πfm*t)dt = -cos(2πfm*t)/(2πfm)
+            # FM: The instantaneous frequency varies with the modulating signal
+            fm_integral = -np.cos(2 * np.pi * modulating_freq * t) / (2 * np.pi * modulating_freq)
             modulated_signal = np.cos(2 * np.pi * carrier_freq * t + 
-                                    modulation_index * modulating_signal)
+                                    2 * np.pi * modulation_index * fm_integral)
         elif modulation_type == 'PM':
-            # Phase Modulation: y(t) = cos(2πfc*t + β*cos(2πfm*t))
+            # Phase Modulation: s(t) = A_c * cos(2πf_c*t + k_p*m(t))
+            # PM: The instantaneous phase varies directly with the modulating signal
             modulated_signal = np.cos(2 * np.pi * carrier_freq * t + 
                                     modulation_index * modulating_signal)
         else:

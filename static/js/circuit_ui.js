@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exportPlotBtn: document.getElementById('export-plot-btn'),
         savePlotBtn: document.getElementById('save-plot-btn'),
         modulationInfoBtn: document.getElementById('modulation-info-btn'),
+        modulationType: document.getElementById('modulation-type'),
     };
 
     const plotHistory = [];
@@ -86,6 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.circuitAnalysisControls.style.display = 'block';
         dom.simulationSettings.style.display = 'block';
         
+        // Show circuit-specific controls
+        showCircuitSpecificControls();
+        
         // Update UI state
         updateCircuitFields();
         dom.equationText.innerHTML = equations[dom.circuitType.value];
@@ -103,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.electronicSignalsControls.style.display = 'block';
         dom.simulationSettings.style.display = 'block';
         
+        // Hide circuit-specific controls that are not needed for electronic signals
+        hideCircuitSpecificControls();
+        
         // Update UI state
         updateSignalFields();
         dom.equationText.innerHTML = equations[dom.signalType.value];
@@ -114,6 +121,42 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.circuitAnalysisControls.style.display = 'none';
         dom.electronicSignalsControls.style.display = 'none';
         dom.simulationSettings.style.display = 'none';
+    }
+
+    function hideCircuitSpecificControls() {
+        // Hide current plot button (not relevant for signal analysis)
+        if (dom.showCurrentBtn) {
+            dom.showCurrentBtn.style.display = 'none';
+        }
+        
+        // Hide diagram button (no circuit diagrams for signals)
+        if (dom.showDiagramBtn) {
+            dom.showDiagramBtn.style.display = 'none';
+        }
+        
+        // Hide signal amplitude field (not relevant for electronic signal processing)
+        const vinGroup = document.querySelector('label[for="vin"]')?.parentElement;
+        if (vinGroup) {
+            vinGroup.style.display = 'none';
+        }
+    }
+
+    function showCircuitSpecificControls() {
+        // Show current plot button for circuit analysis
+        if (dom.showCurrentBtn) {
+            dom.showCurrentBtn.style.display = 'block';
+        }
+        
+        // Show diagram button for circuits
+        if (dom.showDiagramBtn) {
+            dom.showDiagramBtn.style.display = 'block';
+        }
+        
+        // Show input voltage field for circuit analysis
+        const vinGroup = document.querySelector('label[for="vin"]')?.parentElement;
+        if (vinGroup) {
+            vinGroup.style.display = 'block';
+        }
     }
 
     function updateCircuitFields() {
@@ -350,6 +393,53 @@ document.addEventListener('DOMContentLoaded', () => {
         plotSignalResponse(params, transformedData);
     }
 
+    async function simulateCircuit() {
+        const params = getCircuitParameters();
+        let endpoint = '';
+        let body = {};
+
+        const circuitType = params.circuitType;
+        if (circuitType === 'differentiator' || circuitType === 'integrator') {
+            endpoint = `/circuits/${circuitType}`;
+        } else {
+            endpoint = `/api/${circuitType}_circuit`;
+        }
+        
+        body = {
+            R: params.R,
+            L: params.L,
+            C: params.C,
+            V_in: params.vin,
+            duration: params.duration,
+            points: params.points,
+        };
+
+        console.log('Circuit simulation request:', { endpoint, body });
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Circuit simulation response:', data);
+
+        // Transform data if needed
+        const transformedData = {
+            t: data.time || data.t,
+            V_out: data.voltage || data.V_out,
+            I_out: data.current || data.I_out
+        };
+
+        plotCircuitResponse(params, transformedData);
+    }
+
     function getCircuitParameters() {
         const params = {
             circuitType: dom.circuitType.value,
@@ -513,6 +603,48 @@ document.addEventListener('DOMContentLoaded', () => {
         a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
         a.download = 'plot-data.json';
         a.click();
+    });
+
+    // Modulation info button
+    dom.modulationInfoBtn.addEventListener('click', () => {
+        const modulationType = dom.modulationType ? dom.modulationType.value : 'AM';
+        const info = getModulationInfo(modulationType);
+        
+        if (info) {
+            const formattedInfo = formatModulationInfo(modulationType);
+            
+            // Create modal dialog
+            const modal = document.createElement('div');
+            modal.className = 'info-modal';
+            modal.innerHTML = `
+                <div class="info-modal-content">
+                    <div class="info-modal-header">
+                        <h2>Modulation Information</h2>
+                        <button class="info-modal-close">&times;</button>
+                    </div>
+                    <div class="info-modal-body">
+                        ${formattedInfo}
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to document
+            document.body.appendChild(modal);
+            
+            // Close modal handlers
+            const closeBtn = modal.querySelector('.info-modal-close');
+            closeBtn.addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        } else {
+            alert('Modulation information not available');
+        }
     });
 
     // Initialize with clean state
