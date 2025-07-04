@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Control sections
         circuitAnalysisControls: document.getElementById('circuit-analysis-controls'),
         electronicSignalsControls: document.getElementById('electronic-signals-controls'),
-        simulationSettings: document.getElementById('simulation-settings'),
         
         // Circuit controls
         circuitType: document.getElementById('circuit-type'),
@@ -23,8 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pllFields: document.getElementById('pll-fields'),
         demodulationFields: document.getElementById('demodulation-fields'),
         
-        // Common controls
-        simulateBtn: document.getElementById('simulate-btn'),
+        // Simulation buttons
+        circuitSimulateBtn: document.getElementById('circuit-simulate-btn'),
+        signalSimulateBtn: document.getElementById('signal-simulate-btn'),
         equationText: document.getElementById('equation-text'),
         showDiagramBtn: document.getElementById('show-diagram-btn'),
         circuitDiagramImg: document.getElementById('circuit-diagram-img'),
@@ -34,10 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Floating controls
         clearPlotBtn: document.getElementById('clear-plot-btn'),
         undoPlotBtn: document.getElementById('undo-plot-btn'),
-        exportPlotBtn: document.getElementById('export-plot-btn'),
         savePlotBtn: document.getElementById('save-plot-btn'),
         modulationInfoBtn: document.getElementById('modulation-info-btn'),
-        modulationType: document.getElementById('modulation-type'),
     };
 
     const plotHistory = [];
@@ -85,10 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show circuit analysis controls
         dom.circuitAnalysisControls.style.display = 'block';
-        dom.simulationSettings.style.display = 'block';
         
-        // Show circuit-specific controls
-        showCircuitSpecificControls();
+        // Show voltage input and show current button as they're needed for Circuit Analysis
+        if (document.getElementById('vin-container')) {
+            document.getElementById('vin-container').style.display = 'block';
+        }
+        if (document.getElementById('show-current-container')) {
+            document.getElementById('show-current-container').style.display = 'block';
+        }
         
         // Update UI state
         updateCircuitFields();
@@ -105,10 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show electronic signals controls
         dom.electronicSignalsControls.style.display = 'block';
-        dom.simulationSettings.style.display = 'block';
         
-        // Hide circuit-specific controls that are not needed for electronic signals
-        hideCircuitSpecificControls();
+        // Hide voltage input and show current button as they're not needed for Electronic Signals
+        if (document.getElementById('vin-container')) {
+            document.getElementById('vin-container').style.display = 'none';
+        }
+        if (document.getElementById('show-current-container')) {
+            document.getElementById('show-current-container').style.display = 'none';
+        }
         
         // Update UI state
         updateSignalFields();
@@ -120,43 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function hideAllSections() {
         dom.circuitAnalysisControls.style.display = 'none';
         dom.electronicSignalsControls.style.display = 'none';
-        dom.simulationSettings.style.display = 'none';
-    }
-
-    function hideCircuitSpecificControls() {
-        // Hide current plot button (not relevant for signal analysis)
-        if (dom.showCurrentBtn) {
-            dom.showCurrentBtn.style.display = 'none';
-        }
-        
-        // Hide diagram button (no circuit diagrams for signals)
-        if (dom.showDiagramBtn) {
-            dom.showDiagramBtn.style.display = 'none';
-        }
-        
-        // Hide signal amplitude field (not relevant for electronic signal processing)
-        const vinGroup = document.querySelector('label[for="vin"]')?.parentElement;
-        if (vinGroup) {
-            vinGroup.style.display = 'none';
-        }
-    }
-
-    function showCircuitSpecificControls() {
-        // Show current plot button for circuit analysis
-        if (dom.showCurrentBtn) {
-            dom.showCurrentBtn.style.display = 'block';
-        }
-        
-        // Show diagram button for circuits
-        if (dom.showDiagramBtn) {
-            dom.showDiagramBtn.style.display = 'block';
-        }
-        
-        // Show input voltage field for circuit analysis
-        const vinGroup = document.querySelector('label[for="vin"]')?.parentElement;
-        if (vinGroup) {
-            vinGroup.style.display = 'block';
-        }
     }
 
     function updateCircuitFields() {
@@ -232,8 +201,16 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Show current toggled:', newState);
     });
 
-    // Simulation button
-    dom.simulateBtn.addEventListener('click', handleSimulation);
+    // Simulation buttons
+    dom.circuitSimulateBtn.addEventListener('click', () => {
+        currentMode = 'circuit';
+        handleSimulation();
+    });
+    
+    dom.signalSimulateBtn.addEventListener('click', () => {
+        currentMode = 'electronic-signals';
+        handleSimulation();
+    });
 
     async function handleSimulation() {
         console.log('Simulation started, current mode:', currentMode);
@@ -393,60 +370,13 @@ document.addEventListener('DOMContentLoaded', () => {
         plotSignalResponse(params, transformedData);
     }
 
-    async function simulateCircuit() {
-        const params = getCircuitParameters();
-        let endpoint = '';
-        let body = {};
-
-        const circuitType = params.circuitType;
-        if (circuitType === 'differentiator' || circuitType === 'integrator') {
-            endpoint = `/circuits/${circuitType}`;
-        } else {
-            endpoint = `/api/${circuitType}_circuit`;
-        }
-        
-        body = {
-            R: params.R,
-            L: params.L,
-            C: params.C,
-            V_in: params.vin,
-            duration: params.duration,
-            points: params.points,
-        };
-
-        console.log('Circuit simulation request:', { endpoint, body });
-
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Circuit simulation response:', data);
-
-        // Transform data if needed
-        const transformedData = {
-            t: data.time || data.t,
-            V_out: data.voltage || data.V_out,
-            I_out: data.current || data.I_out
-        };
-
-        plotCircuitResponse(params, transformedData);
-    }
-
     function getCircuitParameters() {
         const params = {
             circuitType: dom.circuitType.value,
-            vin: parseFloat(document.getElementById('vin').value) || 1.0,
-            duration: parseFloat(document.getElementById('duration').value) || 0.01,
-            points: parseInt(document.getElementById('points').value) || 1000,
-            showCurrent: dom.showCurrentBtn.getAttribute('data-active') === 'true',
+            vin: parseFloat(document.getElementById('vin')?.value) || 1.0,
+            duration: parseFloat(document.getElementById('circuit-duration')?.value) || 0.01,
+            points: parseInt(document.getElementById('circuit-points')?.value) || 1000,
+            showCurrent: dom.showCurrentBtn?.getAttribute('data-active') === 'true' || false,
         };
 
         console.log('Circuit parameters:', params);
@@ -483,8 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function getSignalParameters() {
         const params = {
             signalType: dom.signalType.value,
-            duration: parseFloat(document.getElementById('duration').value) || 2.0,
-            points: parseInt(document.getElementById('points').value) || 1000,
+            duration: parseFloat(document.getElementById('signal-duration').value) || 2.0,
+            points: parseInt(document.getElementById('signal-points').value) || 1000,
         };
 
         console.log('Getting signal parameters for type:', params.signalType);
@@ -593,63 +523,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    dom.exportPlotBtn.addEventListener('click', () => {
-        Plotly.downloadImage(dom.plotContainer, { format: 'png', filename: 'circuit_plot' });
-    });
-    
     dom.savePlotBtn.addEventListener('click', () => {
-        const data = dom.plotContainer.data;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-        a.download = 'plot-data.json';
-        a.click();
-    });
-
-    // Modulation info button
-    dom.modulationInfoBtn.addEventListener('click', () => {
-        const modulationType = dom.modulationType ? dom.modulationType.value : 'AM';
-        const info = getModulationInfo(modulationType);
-        
-        if (info) {
-            const formattedInfo = formatModulationInfo(modulationType);
+        try {
+            if (!dom.plotContainer) {
+                console.error('Plot container not found');
+                return;
+            }
             
-            // Create modal dialog
-            const modal = document.createElement('div');
-            modal.className = 'info-modal';
-            modal.innerHTML = `
-                <div class="info-modal-content">
-                    <div class="info-modal-header">
-                        <h2>Modulation Information</h2>
-                        <button class="info-modal-close">&times;</button>
-                    </div>
-                    <div class="info-modal-body">
-                        ${formattedInfo}
-                    </div>
-                </div>
-            `;
-            
-            // Add modal to document
-            document.body.appendChild(modal);
-            
-            // Close modal handlers
-            const closeBtn = modal.querySelector('.info-modal-close');
-            closeBtn.addEventListener('click', () => {
-                document.body.removeChild(modal);
+            Plotly.downloadImage(dom.plotContainer, { 
+                format: 'png', 
+                filename: 'circuit_plot',
+                width: 1200,
+                height: 800
             });
-            
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            });
-        } else {
-            alert('Modulation information not available');
+        } catch (error) {
+            console.error('Error saving plot:', error);
         }
     });
 
     // Initialize with clean state
     hideAllSections();
     dom.equationText.innerHTML = 'Select Circuit Analysis or Electronic Signals to begin.';
+    
+    // Verify all DOM elements are properly loaded
+    for (const key in dom) {
+        if (!dom[key] && key !== 'exportPlotBtn') {  // We already handled exportPlotBtn
+            console.warn(`Missing DOM element: ${key}`);
+        }
+    }
+    
+    // Modulation info button handler
+    if (dom.modulationInfoBtn) {
+        dom.modulationInfoBtn.addEventListener('click', () => {
+            const modulationType = document.getElementById('modulation-type').value;
+            if (typeof showModulationInfo === 'function' && ModulationInfo[modulationType]) {
+                showModulationInfo(modulationType);
+            } else {
+                console.error('Modulation info function or data not available');
+            }
+        });
+    }
+    
+    // Initialize circuit-specific controls (hidden by default)
+    // Since we're already inside DOMContentLoaded, we can set these directly
+    if (document.getElementById('vin-container') && document.getElementById('show-current-container')) {
+        // Initially hidden until a mode is selected
+        document.getElementById('vin-container').style.display = 'none';
+        document.getElementById('show-current-container').style.display = 'none';
+    }
     
     console.log('Circuit Lab UI initialized');
 });

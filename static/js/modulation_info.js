@@ -147,61 +147,63 @@ function getModulationTypes() {
  * @param {string} type - Modulation type
  * @returns {string} Formatted HTML string
  */
-function formatModulationInfo(type) {
-    const info = getModulationInfo(type);
+function formatModulationInfo(info) {
     if (!info) return '<p>Information not available</p>';
 
     return `
-        <div class="modulation-info">
-            <h3>${info.name}</h3>
-            <p><strong>Description:</strong> ${info.description}</p>
-            
-            <div class="formula-section">
-                <h4>Mathematical Formula</h4>
-                <div class="formula-box">
-                    <code>${info.formula}</code>
+        <div class="modulation-content">
+            <div class="close-button">×</div>
+            <div class="modulation-info">
+                <h3>${info.name}</h3>
+                <p><strong>Description:</strong> ${info.description}</p>
+                
+                <div class="formula-section">
+                    <h4>Mathematical Formula</h4>
+                    <div class="formula-box">
+                        <code>${info.formula}</code>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="modulation-index-section">
-                <h4>Modulation Index</h4>
-                <p><strong>Definition:</strong> ${info.modulationIndex.definition}</p>
-                <div class="formula-box">
-                    <code>${info.modulationIndex.formula}</code>
-                </div>
-                <p><strong>Range:</strong> ${info.modulationIndex.range}</p>
-                <ul>
-                    ${info.modulationIndex.interpretation.map(item => `<li>${item}</li>`).join('')}
-                </ul>
-            </div>
-            
-            <div class="characteristics-section">
-                <h4>Key Characteristics</h4>
-                <ul>
-                    ${info.characteristics.map(char => `<li>${char}</li>`).join('')}
-                </ul>
-            </div>
-            
-            <div class="applications-section">
-                <h4>Applications</h4>
-                <ul>
-                    ${info.applications.map(app => `<li>${app}</li>`).join('')}
-                </ul>
-            </div>
-            
-            <div class="pros-cons-section">
-                <div class="advantages">
-                    <h4>Advantages</h4>
+                
+                <div class="modulation-index-section">
+                    <h4>Modulation Index</h4>
+                    <p><strong>Definition:</strong> ${info.modulationIndex.definition}</p>
+                    <div class="formula-box">
+                        <code>${info.modulationIndex.formula}</code>
+                    </div>
+                    <p><strong>Range:</strong> ${info.modulationIndex.range}</p>
                     <ul>
-                        ${info.advantages.map(adv => `<li>${adv}</li>`).join('')}
+                        ${info.modulationIndex.interpretation.map(item => `<li>${item}</li>`).join('')}
                     </ul>
                 </div>
                 
-                <div class="disadvantages">
-                    <h4>Disadvantages</h4>
+                <div class="characteristics-section">
+                    <h4>Key Characteristics</h4>
                     <ul>
-                        ${info.disadvantages.map(dis => `<li>${dis}</li>`).join('')}
+                        ${info.characteristics.map(char => `<li>${char}</li>`).join('')}
                     </ul>
+                </div>
+                
+                <div class="applications-section">
+                    <h4>Applications</h4>
+                    <ul>
+                        ${info.applications.map(app => `<li>${app}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div class="pros-cons-section">
+                    <div class="advantages">
+                        <h4>Advantages</h4>
+                        <ul>
+                            ${info.advantages.map(adv => `<li>${adv}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="disadvantages">
+                        <h4>Disadvantages</h4>
+                        <ul>
+                            ${info.disadvantages.map(dis => `<li>${dis}</li>`).join('')}
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,3 +225,54 @@ window.ModulationInfo = ModulationInfo;
 window.getModulationInfo = getModulationInfo;
 window.getModulationTypes = getModulationTypes;
 window.formatModulationInfo = formatModulationInfo;
+
+/**
+ * Shows modulation information in a modal dialog
+ * @param {string} modulationType - Type of modulation (AM, FM, PM)
+ */
+function showModulationInfo(modulationType) {
+    // Get the info for this modulation type
+    const info = ModulationInfo[modulationType];
+    if (!info) {
+        console.error(`No information available for modulation type: ${modulationType}`);
+        return;
+    }
+    
+    // Create modal container if it doesn't exist
+    let modalContainer = document.getElementById('modulation-modal');
+    if (!modalContainer) {
+        modalContainer = document.createElement('div');
+        modalContainer.id = 'modulation-modal';
+        modalContainer.className = 'modulation-modal';
+        document.body.appendChild(modalContainer);
+    }
+    
+    // Set content and show modal
+    modalContainer.innerHTML = formatModulationInfo(info);
+    modalContainer.style.display = 'flex';
+    
+    // Add close button functionality
+    const closeBtn = modalContainer.querySelector('.close-button');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modalContainer.style.display = 'none';
+        });
+    }
+    
+    // Close when clicking outside the content
+    modalContainer.addEventListener('click', (e) => {
+        if (e.target === modalContainer) {
+            modalContainer.style.display = 'none';
+        }
+    });
+    
+    // Close on Escape key
+    document.addEventListener('keydown', function escapeHandler(e) {
+        if (e.key === 'Escape') {
+            modalContainer.style.display = 'none';
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    });
+}
+
+window.showModulationInfo = showModulationInfo;
