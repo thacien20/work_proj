@@ -442,6 +442,60 @@
             overflow: hidden;
             display: block;
         }
+        
+        /* File dropdown styling */
+        .file-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .file-button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .file-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 6px;
+            z-index: 1002;
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+        }
+        
+        .file-dropdown:hover .file-dropdown-content {
+            display: block;
+        }
+        
+        .file-dropdown-content button {
+            color: black;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        
+        .file-dropdown-content button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     
     <!-- ===== BIG CANVAS CONTAINER ===== -->
@@ -585,6 +639,13 @@
                             <!-- Decay Constant - shown only for expdecay signal -->
                             <label id="tau_inplot_label" style="font-size:12px; color:#fff; margin-bottom:1px; display:none;">Decay (τ)
                                 <input type="number" id="tau_inplot" min="0.001" max="10" step="0.001" value="0.02" style="width:44px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <!-- Multi-frequency inputs - shown only for multi signal -->
+                            <label id="multiFreq_inplot_label" style="font-size:12px; color:#fff; margin-bottom:1px; display:none;">Freqs
+                                <input type="text" id="multiFrequencies" value="120, 200, 300" style="width:54px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label id="multiAmp_inplot_label" style="font-size:12px; color:#fff; margin-bottom:1px; display:none;">Amps
+                                <input type="text" id="multiAmplitudes" value="1, 1, 1" style="width:54px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
                             </label>
                             <!-- In-plot Generate Signal button -->
                             <button type="button" id="generateBtn_inplot">Generate Signal</button>
@@ -840,23 +901,39 @@
                 }
             });
             
-            // --- ADDED: Show/hide Decay Constant input based on signal type ---
+            // --- ADDED: Show/hide input fields based on signal type ---
             const signalTypeInplot = document.getElementById('signalType_inplot');
             const tauLabel = document.getElementById('tau_inplot_label');
+            const multiFreqLabel = document.getElementById('multiFreq_inplot_label');
+            const multiAmpLabel = document.getElementById('multiAmp_inplot_label');
+            const freqLabel = document.getElementById('frequency_inplot_label');
 
-            function toggleTauInput() {
-                if (signalTypeInplot.value === 'expdecay') {
+            function toggleInputFields() {
+                const signalType = signalTypeInplot.value;
+                
+                if (signalType === 'expdecay') {
                     tauLabel.style.display = 'block';
+                    multiFreqLabel.style.display = 'none';
+                    multiAmpLabel.style.display = 'none';
+                    freqLabel.style.display = 'block';
+                } else if (signalType === 'multi') {
+                    tauLabel.style.display = 'none';
+                    multiFreqLabel.style.display = 'block';
+                    multiAmpLabel.style.display = 'block';
+                    freqLabel.style.display = 'none'; // Hide single frequency input for multi
                 } else {
                     tauLabel.style.display = 'none';
+                    multiFreqLabel.style.display = 'none';
+                    multiAmpLabel.style.display = 'none';
+                    freqLabel.style.display = 'block';
                 }
             }
 
             // Check on initial load
-            toggleTauInput(); 
+            toggleInputFields(); 
             
             // Add event listener for changes
-            signalTypeInplot.addEventListener('change', toggleTauInput);
+            signalTypeInplot.addEventListener('change', toggleInputFields);
             });
     </script>
 

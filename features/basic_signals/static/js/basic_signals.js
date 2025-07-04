@@ -83,9 +83,6 @@ function initializeApp() {
     // Set up event listeners
     setupEventListeners();
     
-    // Initialize with default signal
-    generateInitialSignal();
-    
     // Setup cleanup handlers
     setupCleanupHandlers();
     
@@ -103,7 +100,6 @@ function setupEventListeners() {
     
     // Quick Action buttons
     document.getElementById('trigonometry-btn').addEventListener('click', () => handleQuickAction('trigonometry'));
-    document.getElementById('toggle-btn').addEventListener('click', () => handleQuickAction('toggle'));
     
     // Properties dialog controls
     document.getElementById('showPropertiesBtn').addEventListener('click', showPropertiesDialog);
@@ -120,15 +116,6 @@ function setupEventListeners() {
     document.getElementById('compareBtn').addEventListener('click', handleShowComparison);
     document.getElementById('generateComparisonBtn').addEventListener('click', handleGenerateComparison);
     document.getElementById('closeComparisonBtn').addEventListener('click', handleCloseComparison);
-    
-    // Real-time parameter updates
-    const parameterInputs = ['signalType', 'frequency', 'amplitude', 'phase', 'duration'];
-    parameterInputs.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('input', debounce(handleParameterChange, 300));
-        }
-    });
     
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -156,11 +143,6 @@ function setupCleanupHandlers() {
 /**
  * Generate initial signal on page load
  */
-function generateInitialSignal() {
-    const params = getSignalParameters();
-    generateSignal(params);
-}
-
 /**
  * Handle signal generation button click
  */
@@ -616,13 +598,6 @@ function displaySignalInfo(info) {
 /**
  * Handle parameter change events
  */
-function handleParameterChange() {
-    if (AppState.currentSignal) {
-        const params = getSignalParameters();
-        generateSignal(params);
-    }
-}
-
 /**
  * Handle reset button click
  */
@@ -702,10 +677,6 @@ function handleQuickAction(action) {
             showTrigonometryDialog();
             break;
             
-        case 'toggle':
-            handleSignalToggle();
-            break;
-            
         default:
             console.warn(`Unknown quick action: ${action}`);
     }
@@ -752,9 +723,10 @@ function showTrigonometryDialog() {
                     
                     <div class="param-grid">
                         <div class="param-group">
-                            <label for="angleInput">Angle (degrees):</label>
+                            <label for="angleInput">Phase Angle (degrees):</label>
                             <input type="range" id="angleInput" class="range-input" min="0" max="360" step="15" value="0">
                             <span id="angleValue">0°</span>
+                            <small class="param-hint">Only affects Phase Relationships mode</small>
                         </div>
                         
                         <div class="param-group">
@@ -763,6 +735,9 @@ function showTrigonometryDialog() {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Plot Container for Trigonometry -->
+                <div id="trigonometryPlot" class="plot-container" style="height: 400px; margin: 20px 0;"></div>
                 
                 <div class="modal-buttons">
                     <button onclick="generateTrigonometry()" class="primary-btn">Generate Visualization</button>
@@ -774,13 +749,63 @@ function showTrigonometryDialog() {
     
     document.body.appendChild(dialog);
     
-    // Set up angle slider
+    // Set up angle slider with real-time updates
     const angleInput = document.getElementById('angleInput');
     const angleValue = document.getElementById('angleValue');
+    const modeSelect = document.getElementById('trigMode');
+    const frequencyInput = document.getElementById('frequencyTrig');
     
+    let updateTimeout;
+    
+    // Initially hide angle slider for non-phase modes
+    const angleGroup = angleInput.closest('.param-group');
+    if (modeSelect.value !== 'phase_shift') {
+        angleGroup.style.display = 'none';
+    }
+    
+    // Update angle display and trigger real-time visualization
     angleInput.addEventListener('input', (e) => {
-        angleValue.textContent = e.target.value + '°';
+        const angle = e.target.value;
+        angleValue.textContent = angle + '°';
+        
+        // Only update visualization in real-time for phase_shift mode
+        if (modeSelect.value === 'phase_shift') {
+            // Debounce the updates to avoid too many API calls
+            clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(() => {
+                generateTrigonometryRealTime();
+            }, 150);
+        }
     });
+    
+    // Update visualization when frequency changes
+    frequencyInput.addEventListener('input', (e) => {
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => {
+            generateTrigonometryRealTime();
+        }, 200);
+    });
+    
+    // Update visualization when mode changes
+    modeSelect.addEventListener('change', (e) => {
+        const mode = e.target.value;
+        // Show/hide angle slider based on mode
+        const angleGroup = angleInput.closest('.param-group');
+        if (mode === 'phase_shift') {
+            angleGroup.style.display = 'block';
+            // Generate immediately for phase_shift mode
+            generateTrigonometryRealTime();
+        } else {
+            angleGroup.style.display = 'none';
+            // Generate for other modes
+            generateTrigonometryRealTime();
+        }
+    });
+    
+    // Generate initial visualization
+    setTimeout(() => {
+        generateTrigonometryRealTime();
+    }, 100);
     
     // Close on overlay click
     dialog.addEventListener('click', (e) => {
@@ -833,7 +858,7 @@ async function generateTrigonometry() {
         
         if (data.success) {
             plotTrigonometry(data);
-            closeTrigonometryDialog();
+            // Don't close dialog to allow real-time updates
         } else {
             throw new Error(data.error || 'Trigonometry generation failed');
         }
@@ -847,13 +872,66 @@ async function generateTrigonometry() {
 }
 
 /**
+ * Generate trigonometry visualization in real-time (for interactive updates)
+ */
+async function generateTrigonometryRealTime() {
+    try {
+        // Get current values from the modal
+        const modeElement = document.getElementById('trigMode');
+        const angleElement = document.getElementById('angleInput');
+        const frequencyElement = document.getElementById('frequencyTrig');
+        
+        // Check if elements exist (modal might be closed)
+        if (!modeElement || !angleElement || !frequencyElement) {
+            return;
+        }
+        
+        const mode = modeElement.value;
+        const angle = parseFloat(angleElement.value);
+        const frequency = parseFloat(frequencyElement.value);
+        
+        const response = await fetch('/basic_signals/api/trigonometry', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mode: mode,
+                angle: angle,
+                frequency: frequency,
+                duration: 2.0,
+                sample_rate: 200
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            plotTrigonometry(data);
+        } else {
+            console.error('Trigonometry generation failed:', data.error);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error generating trigonometry in real-time:', error);
+        // Don't show error dialog for real-time updates to avoid spam
+    }
+}
+
+/**
  * Plot trigonometry visualization
  */
 function plotTrigonometry(data) {
     try {
+        const plotContainer = 'trigonometryPlot';
+        
         // Clean up previous plot
-        if (AppState.currentPlot) {
-            Plotly.purge('signalPlot');
+        if (document.getElementById(plotContainer)) {
+            Plotly.purge(plotContainer);
         }
         
         const traces = [];
@@ -920,7 +998,8 @@ function plotTrigonometry(data) {
         const layout = {
             ...DefaultPlotLayout,
             title: `Trigonometry: ${data.mode.replace('_', ' ').toUpperCase()}`,
-            yaxis: { title: 'Amplitude' }
+            yaxis: { title: 'Amplitude' },
+            height: 380
         };
         
         const config = {
@@ -929,8 +1008,7 @@ function plotTrigonometry(data) {
             modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
         };
         
-        Plotly.newPlot('signalPlot', traces, layout, config);
-        AppState.currentPlot = 'signalPlot';
+        Plotly.newPlot(plotContainer, traces, layout, config);
         
     } catch (error) {
         console.error('❌ Error plotting trigonometry:', error);
