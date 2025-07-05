@@ -289,12 +289,15 @@
             margin-bottom: 1rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 0.5rem;
+            z-index: 10;
+            position: relative;
+            background:white;
         }
         
         .tab-button {
-            background: none;
+            background:white;
             border: none;
-            color: rgba(255, 255, 255, 0.6);
+            color: green; /* White text for visibility */
             padding: 0.5rem 1rem;
             margin-right: 0.5rem;
             cursor: pointer;
@@ -304,13 +307,13 @@
         }
         
         .tab-button[aria-selected="true"] {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
+            color: #222;
+            background: #fff;
             border-bottom: 2px solid #4299e1;
         }
         
         .tab-button:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.15);
         }
         
         .tab-panel {
@@ -318,7 +321,7 @@
         }
         
         .tab-panel[aria-hidden="false"] {
-            display: block;
+            display:flex;
         }
         
         /* Response adjustments */
@@ -345,11 +348,11 @@
             <!-- Math Mode Selection -->
             <div class="panel">
                 <h2>🔢 Math Operations</h2>
-                <div class="tab-buttons" role="tablist">
+                <div class="tab-buttons" role="tablist" style="z-index: 10; position: relative; background: linear-gradient(to right, green, #ffffff);">
                     <button id="tab-algebraic" class="tab-button" role="tab" aria-selected="true" aria-controls="panel-algebraic">Algebraic</button>
-                    <button id="tab-differential" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-differential">Differential</button>
-                    <button id="tab-integral" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-integral">Integral</button>
-                    <button id="tab-derivative" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-derivative">Derivative</button>
+                    <button id="tab-differential" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-differential">Diff</button>
+                    <button id="tab-integral" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-integral">Int</button>
+                    <button id="tab-derivative" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-derivative" style="z-index: 0; position: relative;background: #ffe; border: 2px solid #007bff;">Drv</button>
                 </div>
                 
                 <!-- Algebraic Equations Panel -->
@@ -486,7 +489,7 @@
                             </ul>
                         </div>
                     </div>
-                    <button id="solve-diff-btn" class="primary-btn" style="width: 100%;">Differentiate</button>
+                    <button id="solve-diff-btn" class="primary-btn" style="width: 100%;">ODE</button>
                 </div>
                 
                 <!-- Integral Panel -->
@@ -641,43 +644,14 @@
                     <div id="latex-result" class="latex-output" style="display: none;"></div>
                 </div>
             </div>
-            
             <!-- Visualization Panel -->
             <div class="panel">
                 <h2>📈 Visualization</h2>
                 <div class="plot-controls">
-                    <div class="plot-type-toggles">
-                        <label class="toggle-container">
-                            <span>3D Plot</span>
-                            <input type="checkbox" id="plot-type-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        
-                        <label class="toggle-container">
-                            <span>Complex Plane</span>
-                            <input type="checkbox" id="complex-plane-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div id="plot-dimension-controls">
-                        <div id="3d-controls" style="display: none">
-                            <div class="compact-form">
-                                <div class="form-group">
-                                    <label for="y-min">Y Min:</label>
-                                    <input type="number" id="y-min" class="control-input" value="-10">
-                                </div>
-                                <div class="form-group">
-                                    <label for="y-max">Y Max:</label>
-                                    <input type="number" id="y-max" class="control-input" value="10">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div id="math-plot" class="plot-container"></div>
-                <div style="margin-top: 0.5rem;" class="action-buttons">
-                    <button id="plot-equation-btn" class="secondary-btn" onclick="if(typeof plotEquation === 'function') plotEquation(); return false;">Plot Expression</button>
-                    <button id="plot-solution-btn" class="secondary-btn" onclick="if(typeof plotResult === 'function') plotResult(); return false;">Plot Solution</button>
+                <div class="action-buttons">
+                    <button id="plot-equation-btn" class="secondary-btn" onclick="if(typeof plotEquation === 'function') plotEquation(); return false;">Plot Results</button>
                 </div>
             </div>
         </div>
@@ -722,32 +696,6 @@
                     }
                     return Promise.resolve(); // Return resolved promise as fallback
                 };
-            }
-            
-            // Ensure plot buttons work
-            const plotEquationBtn = document.getElementById('plot-equation-btn');
-            const plotSolutionBtn = document.getElementById('plot-solution-btn');
-            
-            if (plotEquationBtn && typeof window.plotEquation === 'function') {
-                console.log('Attaching final plot equation handler');
-                plotEquationBtn.onclick = function(e) {
-                    if (e) e.preventDefault();
-                    window.plotEquation();
-                    return false;
-                };
-            } else {
-                console.warn('Plot equation button or function not found');
-            }
-            
-            if (plotSolutionBtn && typeof window.plotResult === 'function') {
-                console.log('Attaching final plot solution handler');
-                plotSolutionBtn.onclick = function(e) {
-                    if (e) e.preventDefault();
-                    window.plotResult();
-                    return false;
-                };
-            } else {
-                console.warn('Plot solution button or function not found');
             }
         });
     </script>

@@ -8,8 +8,6 @@ const mathlabState = {
     activeTab: 'algebraic',
     currentEquation: '',
     history: [],
-    plotType: '2d',
-    complexPlane: false,
     plotData: null,
     lastResult: null,
     diffEqConstants: [] // Will store detected constants like C1, C2, etc.
@@ -19,27 +17,6 @@ const mathlabState = {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize all UI components
     initializeMathLab();
-    
-    // Plot type toggle handler (2D/3D)
-    const plotTypeToggle = document.getElementById('plot-type-toggle');
-    if (plotTypeToggle) {
-        plotTypeToggle.addEventListener('change', function() {
-            mathlabState.plotType = this.checked ? '3d' : '2d';
-            // Toggle visibility of y-axis range inputs
-            const yRangeControls = document.getElementById('y-range-controls');
-            if (yRangeControls) {
-                yRangeControls.style.display = this.checked ? 'flex' : 'none';
-            }
-        });
-    }
-    
-    // Complex plane toggle handler
-    const complexPlaneToggle = document.getElementById('complex-plane-toggle');
-    if (complexPlaneToggle) {
-        complexPlaneToggle.addEventListener('change', function() {
-            mathlabState.complexPlane = this.checked;
-        });
-    }
     
     // Constants mode change handler
     const constantsMode = document.getElementById('constants-mode');
@@ -138,40 +115,6 @@ function initializeMathLab() {
         console.error('Plot solution button not found');
     }
     
-    // Initialize 3D plotting toggle
-    const plotTypeToggle = document.getElementById('plot-type-toggle');
-    if (plotTypeToggle) {
-        plotTypeToggle.addEventListener('change', function() {
-            mathlabState.plotType = this.checked ? '3d' : '2d';
-            // Disable complex plane if 3D is enabled
-            if (this.checked) {
-                const complexToggle = document.getElementById('complex-plane-toggle');
-                if (complexToggle && complexToggle.checked) {
-                    complexToggle.checked = false;
-                    mathlabState.complexPlane = false;
-                }
-            }
-            updatePlotControls();
-        });
-    }
-    
-    // Initialize complex plane toggle
-    const complexPlaneToggle = document.getElementById('complex-plane-toggle');
-    if (complexPlaneToggle) {
-        complexPlaneToggle.addEventListener('change', function() {
-            mathlabState.complexPlane = this.checked;
-            // Disable 3D if complex plane is enabled
-            if (this.checked) {
-                const plotTypeToggle = document.getElementById('plot-type-toggle');
-                if (plotTypeToggle && plotTypeToggle.checked) {
-                    plotTypeToggle.checked = false;
-                    mathlabState.plotType = '2d';
-                }
-            }
-            updatePlotControls();
-        });
-    }
-    
     // Initialize constants handling for differential equations
     initializeConstantsHandling();
     
@@ -204,7 +147,6 @@ function initializeMathLab() {
     
     // Set up the initial UI state
     switchTab('algebraic');
-    updatePlotControls();
 }
 
 /**
@@ -407,15 +349,9 @@ function solveEquation(type = null) {
     if (!type) {
         type = mathlabState.activeTab;
     }
-    
-    // Get the active tab from the button that was clicked or from state
     const activeTabId = type || mathlabState.activeTab;
-    
-    // Get the equation based on the active tab
     let equation = '';
     let variable = 'x';
-    
-    // Define the mapping of input elements
     const inputMappings = {
         'algebraic': {
             equation: ['algebraic-equation', 'algebraic-expression'],
@@ -434,8 +370,6 @@ function solveEquation(type = null) {
             variable: ['derivative-variable']
         }
     };
-    
-    // Try to get the equation from any of the possible input field IDs
     const mapping = inputMappings[activeTabId];
     if (mapping) {
         for (let fieldId of mapping.equation) {
@@ -445,7 +379,6 @@ function solveEquation(type = null) {
                 break;
             }
         }
-        
         for (let fieldId of mapping.variable) {
             const field = document.getElementById(fieldId);
             if (field && field.value.trim()) {
@@ -454,22 +387,27 @@ function solveEquation(type = null) {
             }
         }
     }
-    
     if (!equation) {
         alert('Please enter an equation or expression');
         return;
     }
-    
     // Pre-process equation to handle common syntax issues
     equation = preprocessEquation(equation);
-    
+    // Warn for high-degree polynomials in algebraic tab
+    if (activeTabId === 'algebraic') {
+        const degree = getPolynomialDegree(equation);
+        if (degree > 5) {
+            if (!window.confirm(`Warning: Polynomials of degree higher than 5 will return CRootOf (symbolic) solutions and may not be solvable in radicals.\n\nYour equation appears to have degree ${degree}.\n\nDo you want to proceed anyway?`)) {
+                return;
+            }
+        }
+    }
     // Prepare the request data
     const data = {
         type: activeTabId,
         equation: equation,
         variable: variable
     };
-    
     // Additional parameters for specific types
     if (activeTabId === 'integral') {
         // Check if it's a definite integral
@@ -477,7 +415,6 @@ function solveEquation(type = null) {
         if (integralType === 'definite') {
             const lowerLimit = document.getElementById('lower-limit')?.value;
             const upperLimit = document.getElementById('upper-limit')?.value;
-            
             if (lowerLimit && upperLimit) {
                 data.lowerLimit = lowerLimit;
                 data.upperLimit = upperLimit;
@@ -488,14 +425,12 @@ function solveEquation(type = null) {
         const order = parseInt(document.getElementById('derivative-order')?.value) || 1;
         data.order = order;
     }
-    
     // Show loading state
     const resultPlaceholder = document.getElementById('result-placeholder');
     if (resultPlaceholder) {
         resultPlaceholder.innerHTML = '<div class="loading">Processing...</div>';
         resultPlaceholder.style.display = 'block';
     }
-    
     // Send request to backend
     fetch('/mathlab/solve', {
         method: 'POST',
@@ -521,7 +456,6 @@ function solveEquation(type = null) {
             resultPlaceholder.style.display = 'block';
         }
     });
-    
     // Add to history
     addToHistory(equation, activeTabId);
 }
@@ -1104,43 +1038,6 @@ function clearHistory() {
 }
 
 /**
- * Update plot controls based on 2D/3D and complex plane selection
- */
-function updatePlotControls() {
-    const is3D = mathlabState.plotType === '3d';
-    const isComplex = mathlabState.complexPlane;
-    
-    // Show/hide 3D specific controls
-    const controls3D = document.getElementById('3d-controls');
-    if (controls3D) {
-        controls3D.style.display = is3D ? 'block' : 'none';
-    }
-    
-    // Update plot button text if present
-    const plotBtn = document.getElementById('plot-equation-btn');
-    if (plotBtn) {
-        if (is3D) {
-            plotBtn.textContent = 'Create 3D Plot';
-        } else if (isComplex) {
-            plotBtn.textContent = 'Plot in Complex Plane';
-        } else {
-            plotBtn.textContent = 'Plot Expression';
-        }
-    }
-    
-    const solutionBtn = document.getElementById('plot-solution-btn');
-    if (solutionBtn) {
-        if (is3D) {
-            solutionBtn.textContent = 'Plot 3D Solution';
-        } else if (isComplex) {
-            solutionBtn.textContent = 'Plot Solution in Complex Plane';
-        } else {
-            solutionBtn.textContent = 'Plot Solution';
-        }
-    }
-}
-
-/**
  * Plot the current equation or result
  */
 // Make plotEquation accessible globally
@@ -1223,11 +1120,9 @@ window.plotEquation = function() {
     const plotData = {
         equation: equation,
         type: mathlabState.activeTab,
-        plotType: mathlabState.plotType,
         xMin: xMin,
         xMax: xMax,
-        points: points,
-        complexPlane: mathlabState.complexPlane
+        points: points
     };
     
     // Add constants mode and values for differential equations
@@ -1254,12 +1149,6 @@ window.plotEquation = function() {
             plotData.familyMax = parseFloat(document.getElementById('family-max')?.value || 5);
             plotData.familyCount = parseInt(document.getElementById('family-count')?.value || 5);
         }
-    }
-    
-    // Add 3D parameters if needed
-    if (mathlabState.plotType === '3d') {
-        plotData.yMin = parseFloat(document.getElementById('y-min')?.value) || -10;
-        plotData.yMax = parseFloat(document.getElementById('y-max')?.value) || 10;
     }
     
     // Show loading state
@@ -1291,14 +1180,6 @@ window.plotEquation = function() {
         
         // Render the plot using mathlab_plotting.js
         renderPlot(data);
-        
-        // Add a note about complex values if the backend detected them
-        if (data.hasComplex) {
-            const noteElement = document.createElement('div');
-            noteElement.className = 'complex-note';
-            noteElement.innerHTML = '<small>Note: For complex results, only real parts are plotted. Imaginary results appear as gaps in the plot. Try the "Complex Plane" toggle to visualize complex values.</small>';
-            mathPlotDiv.appendChild(noteElement);
-        }
     })
     .catch(error => {
         const plotContainer = document.getElementById('math-plot');
@@ -1392,11 +1273,9 @@ window.plotResult = function() {
     const plotData = {
         equation: equation,
         type: mathlabState.activeTab,
-        plotType: mathlabState.plotType, // Use current plot type (2d or 3d)
         xMin: -10,
         xMax: 10,
-        points: 200,  // More points for smoother curves
-        complexPlane: mathlabState.complexPlane
+        points: 200  // More points for smoother curves
     };
     
     // Add constants for differential equations
@@ -1421,17 +1300,6 @@ window.plotResult = function() {
             plotData.familyMax = parseFloat(document.getElementById('family-max')?.value || 5);
             plotData.familyCount = parseInt(document.getElementById('family-count')?.value || 5);
         }
-    }
-    
-    // Add 3D parameters if needed
-    if (mathlabState.plotType === '3d') {
-        plotData.yMin = parseFloat(document.getElementById('y-min')?.value) || -10;
-        plotData.yMax = parseFloat(document.getElementById('y-max')?.value) || 10;
-    }
-    
-    // Add roots if available (for enhanced algebraic equation visualization)
-    if (mathlabState.activeTab === 'algebraic' && mathlabState.lastResult.roots) {
-        plotData.roots = mathlabState.lastResult.roots;
     }
     
     // Show loading state
@@ -1462,23 +1330,6 @@ window.plotResult = function() {
         
         // Render the plot
         renderPlot(data);
-        
-        // Add a note about complex values if the backend detected them
-        if (data.hasComplex) {
-            const noteElement = document.createElement('div');
-            noteElement.className = 'complex-note';
-            noteElement.innerHTML = '<small>Note: For complex results, only real parts are plotted. Imaginary results appear as gaps in the plot. Try the "Complex Plane" toggle to visualize complex values.</small>';
-            plotContainer.appendChild(noteElement);
-        }
-        
-        // Add warning if we're using a single-root approximation (global box)
-        if (
-            mathlabState.activeTab === 'algebraic' &&
-            data.singleRootWarning &&
-            data.roots && Array.isArray(data.roots) && data.roots.length === 1
-        ) {
-            showSingleRootWarning(parseFloat(data.roots[0]).toFixed(4));
-        }
     })
     .catch(error => {
         const mathPlotContainer = document.getElementById('math-plot');
@@ -1976,4 +1827,155 @@ function showSingleRootWarning(rootValue) {
     warningBox.style.display = 'block';
     // Auto-hide after 10 seconds
     setTimeout(() => { warningBox.style.display = 'none'; }, 10000);
+}
+
+/**
+ * Get the polynomial degree from an algebraic equation
+ * @param {string} equation - The algebraic equation string
+ * @returns {number} The degree of the polynomial
+ */
+function getPolynomialDegree(equation) {
+    // Try to extract the highest degree of x in the equation string
+    // Only works for equations in the form ... = ...
+    try {
+        let eq = equation.replace(/\s+/g, '');
+        let sides = eq.split('=');
+        let expr = sides.length === 2 ? `(${sides[0]})-(${sides[1]})` : eq;
+        // Find all x**N patterns
+        let matches = expr.match(/x\*\*(\d+)/g);
+        let maxDegree = 1;
+        if (matches) {
+            maxDegree = Math.max(...matches.map(m => parseInt(m.split('**')[1])));
+        } else {
+            // Try to detect x^N (if user used ^ instead of **)
+            let matchesCaret = expr.match(/x\^(\d+)/g);
+            if (matchesCaret) {
+                maxDegree = Math.max(...matchesCaret.map(m => parseInt(m.split('^')[1])));
+            } else if (expr.includes('x')) {
+                maxDegree = 1;
+            }
+        }
+        return maxDegree;
+    } catch {
+        return 1;
+    }
+}
+
+// Patch solveEquation to warn for degree > 5 in algebraic
+const originalSolveEquation = solveEquation;
+solveEquation = function(type = null) {
+    // If no type is provided, use the active tab
+    if (!type) {
+        type = mathlabState.activeTab;
+    }
+    const activeTabId = type || mathlabState.activeTab;
+    let equation = '';
+    let variable = 'x';
+    const inputMappings = {
+        'algebraic': {
+            equation: ['algebraic-equation', 'algebraic-expression'],
+            variable: ['algebraic-variable']
+        },
+        'differential': {
+            equation: ['diff-equation', 'differential-expression'],
+            variable: ['diff-variable']
+        },
+        'integral': {
+            equation: ['integral-expression'],
+            variable: ['integral-variable']
+        },
+        'derivative': {
+            equation: ['derivative-expression'],
+            variable: ['derivative-variable']
+        }
+    };
+    const mapping = inputMappings[activeTabId];
+    if (mapping) {
+        for (let fieldId of mapping.equation) {
+            const field = document.getElementById(fieldId);
+            if (field && field.value.trim()) {
+                equation = field.value.trim();
+                break;
+            }
+        }
+        for (let fieldId of mapping.variable) {
+            const field = document.getElementById(fieldId);
+            if (field && field.value.trim()) {
+                variable = field.value.trim();
+                break;
+            }
+        }
+    }
+    if (!equation) {
+        alert('Please enter an equation or expression');
+        return;
+    }
+    // Pre-process equation to handle common syntax issues
+    equation = preprocessEquation(equation);
+    // Warn for high-degree polynomials in algebraic tab
+    if (activeTabId === 'algebraic') {
+        const degree = getPolynomialDegree(equation);
+        if (degree > 5) {
+
+            if (!window.confirm(`Warning: Polynomials of degree higher than 5 will return CRootOf (symbolic) solutions and may not be solvable in radicals.\n\nYour equation appears to have degree ${degree}.\n\nDo you want to proceed anyway?`)) {
+                return;
+            }
+        }
+    }
+    // Prepare the request data
+    const data = {
+        type: activeTabId,
+        equation: equation,
+        variable: variable
+    };
+    // Additional parameters for specific types
+    if (activeTabId === 'integral') {
+        // Check if it's a definite integral
+        const integralType = document.getElementById('integral-type')?.value;
+        if (integralType === 'definite') {
+            const lowerLimit = document.getElementById('lower-limit')?.value;
+            const upperLimit = document.getElementById('upper-limit')?.value;
+            if (lowerLimit && upperLimit) {
+                data.lowerLimit = lowerLimit;
+                data.upperLimit = upperLimit;
+            }
+        }
+    } else if (activeTabId === 'derivative') {
+        // Add order parameter for derivatives
+        const order = parseInt(document.getElementById('derivative-order')?.value) || 1;
+        data.order = order;
+    }
+    // Show loading state
+    const resultPlaceholder = document.getElementById('result-placeholder');
+    if (resultPlaceholder) {
+        resultPlaceholder.innerHTML = '<div class="loading">Processing...</div>';
+        resultPlaceholder.style.display = 'block';
+    }
+    // Send request to backend
+    fetch('/mathlab/solve', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Backend response:', data); // Debug log
+        if (activeTabId === 'differential') {
+            processDiffEqSolution(data);
+        } else {
+            displayResult(data, equation);
+        }
+    })
+    .catch(error => {
+        console.error('Request error:', error); // Debug log
+        const resultPlaceholder = document.getElementById('result-placeholder');
+        if (resultPlaceholder) {
+            resultPlaceholder.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            resultPlaceholder.style.display = 'block';
+        }
+    });
+    // Add to history
+    addToHistory(equation, activeTabId);
 }
