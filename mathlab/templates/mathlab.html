@@ -10,9 +10,76 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- MathJax for LaTeX rendering -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- Plotly for interactive plotting -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- MathJax configuration with increased buffer size and macro protection -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                maxBuffer: 100*1024,  // Even larger buffer size for complex expressions
+                maxMacros: 25000,     // Increase macro limit significantly
+                macros: {
+                    // Pre-defined safe macros can go here
+                },
+                // Protect against recursive macros
+                maxExpand: 1000,      // Limit macro expansion depth
+                packages: {'[+]': ['noerrors', 'noundefined']}  // Add packages to handle errors better
+            },
+            svg: {
+                fontCache: 'global'
+            },
+            options: {
+                // Set a timeout for processing to prevent browser hanging
+                enableMenu: true,     // Enable the MathJax menu for users to adjust settings
+                menuOptions: {
+                    settings: {
+                        renderer: 'SVG'  // Use SVG renderer which often performs better for complex expressions
+                    }
+                },
+                renderActions: {
+                    /* Add a render action that catches errors during rendering */
+                    catchErrors: {
+                        action: function (doc) {
+                            console.log('MathJax caught an error');
+                            this.restart();
+                        }
+                    }
+                }
+            },
+            startup: {
+                // Add a handler for when MathJax is done
+                pageReady: function() {
+                    console.log('MathJax is ready');
+                    // Add global reference to typesetting methods for compatibility
+                    if (!window.MathJaxReady) {
+                        window.MathJaxReady = true;
+                        // Add a global typeset function that can be called from anywhere
+                        window.typesetMath = function() {
+                            if (typeof MathJax.typesetPromise === 'function') {
+                                return MathJax.typesetPromise()
+                                    .catch(function(err) { console.warn('MathJax typeset error:', err); });
+                            } else if (typeof MathJax.typeset === 'function') {
+                                try {
+                                    MathJax.typeset();
+                                    return Promise.resolve();
+                                } catch(e) {
+                                    console.warn('MathJax typeset error:', e);
+                                    return Promise.reject(e);
+                                }
+                            } else {
+                                console.warn('No MathJax typesetting method available');
+                                return Promise.reject(new Error('No MathJax typesetting method available'));
+                            }
+                        };
+                    }
+                    return MathJax.startup.defaultPageReady();
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Note: Plotly is now loaded at the end of the body to ensure everything else is ready first -->
     <style>
         /* Main layout */
         body {
@@ -322,6 +389,25 @@
                                 <li><code>log(x)</code> for natural logarithm</li>
                                 <li><code>sqrt(x)</code> for square root</li>
                             </ul>
+                            <div class="warning-box">
+                                <h5>For Best Results:</h5>
+                                <ul>
+                                    <li>Keep expressions simple: <code>sin(x)*log(x)</code> is good, avoid very long expressions</li>
+                                    <li>Test complex terms separately before combining</li>
+                                    <li>Break down complex problems into simpler steps</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Input complexity guidance -->
+                        <div class="input-guide">
+                            <strong>Keep Expressions Simple:</strong>
+                            <ul class="suggestion-list">
+                                <li>Break complex expressions like <code>sin(x)*log(x)-x^9</code> into smaller parts</li>
+                                <li>Avoid nested functions like <code>sin(cos(log(x)))</code> when possible</li>
+                                <li>Test complex terms separately before combining them</li>
+                                <li>Use simpler alternatives where possible (e.g., <code>x^2</code> instead of <code>exp(2*log(x))</code>)</li>
+                            </ul>
                         </div>
                     </div>
                     <button id="solve-algebraic-btn" class="primary-btn" style="width: 100%;">Solve</button>
@@ -334,6 +420,25 @@
                         <input type="text" id="diff-equation" class="control-input" placeholder="E.g., dy/dx + y = x">
                         <div class="syntax-help">
                             <small>Use <code>dy/dx</code> for first derivative, <code>**</code> for powers</small>
+                        </div>
+                    </div>
+                    <div class="form-group input-syntax-guide">
+                        <div class="info-box">
+                            <h4>Differential Equation Format:</h4>
+                            <ul>
+                                <li><strong>Correct:</strong> <code>dy/dx = x**2 - x**5</code></li>
+                                <li><strong>Correct:</strong> <code>dy/dx + 3*y = sin(x)</code></li>
+                                <li><strong>Incorrect:</strong> <code>dy/dx = x**2 - x**5 = 0</code> (too many equals signs)</li>
+                                <li><strong>Incorrect:</strong> <code>x**2 - x**5</code> (missing dy/dx and equals sign)</li>
+                            </ul>
+                            <div class="warning-box">
+                                <h5>Performance Tips:</h5>
+                                <ul>
+                                    <li>Start with simpler equations: Try <code>dy/dx = x**2</code> before <code>dy/dx = exp(-x)*sin(x)*tan(x)</code></li>
+                                    <li>High-degree polynomials (e.g., <code>x**9</code>) can generate very complex solutions</li>
+                                    <li>Complex combinations like <code>exp(-x)*sin(x)*tan(x)</code> may exceed rendering capacity</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -405,6 +510,17 @@
                             <option value="x*exp(x)">Product: x·e^x</option>
                         </select>
                     </div>
+                    
+                    <!-- Guidance for complex integrals -->
+                    <div class="complexity-note">
+                        <strong>Tips for Complex Integrals:</strong>
+                        <ul class="suggestion-list">
+                            <li>For complex expressions like <code>sin(x)*log(x)-x^9</code>, use definite integrals with specific bounds</li>
+                            <li>Expressions with nested functions may fall back to numerical integration</li>
+                            <li>For better performance, split complex integrals into simpler terms</li>
+                        </ul>
+                    </div>
+                    
                     <div class="compact-form">
                         <div class="form-group">
                             <label for="integral-variable">Variable:</label>
@@ -448,7 +564,17 @@
                         <label for="derivative-expression">Expression for Derivative:</label>
                         <input type="text" id="derivative-expression" class="control-input" placeholder="E.g., x**3 + 2*x**2 - 4*x + 7">
                         <div class="syntax-help">
-                            <small>Use <code>**</code> for powers (e.g., x**3), <code>*</code> for multiplication</small>
+                            <small>Enter only the expression to differentiate (NOT "dy/dx = ..." or "... = 0")</small>
+                        </div>
+                    </div>
+                    <div class="form-group input-syntax-guide">
+                        <div class="info-box">
+                            <h4>Derivative Input Guide:</h4>
+                            <ul>
+                                <li><strong>Correct:</strong> <code>x**2 - x**5 + sin(x)</code></li>
+                                <li><strong>Incorrect:</strong> <code>dy/dx = x**2 - x**5</code></li>
+                                <li><strong>Incorrect:</strong> <code>x**2 - x**5 = 0</code></li>
+                            </ul>
                         </div>
                     </div>
                     <div class="form-group">
@@ -550,15 +676,80 @@
                 </div>
                 <div id="math-plot" class="plot-container"></div>
                 <div style="margin-top: 0.5rem;" class="action-buttons">
-                    <button id="plot-equation-btn" class="secondary-btn">Plot Expression</button>
-                    <button id="plot-solution-btn" class="secondary-btn">Plot Solution</button>
+                    <button id="plot-equation-btn" class="secondary-btn" onclick="if(typeof plotEquation === 'function') plotEquation(); return false;">Plot Expression</button>
+                    <button id="plot-solution-btn" class="secondary-btn" onclick="if(typeof plotResult === 'function') plotResult(); return false;">Plot Solution</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="/mathlab/static/js/mathlab_ui.js"></script>
+    <!-- Ensure Plotly is loaded with a specific version to avoid compatibility issues -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script>
+        // Verify Plotly loaded correctly and create global reference
+        if (window.Plotly) {
+            console.log("Plotly successfully loaded", window.Plotly.version);
+            // Create a safe global reference to ensure it's accessible
+            window._Plotly = window.Plotly;
+        } else {
+            console.error("Failed to load Plotly - plotting functions will not work");
+        }
+    </script>
+    <!-- Load our scripts after ensuring Plotly is loaded -->
     <script src="/mathlab/static/js/mathlab_plotting.js"></script>
+    <script src="/mathlab/static/js/mathlab_ui.js"></script>
+    <!-- Final check to ensure event listeners are attached -->
+    <script>
+        // Double check initialization when page is fully loaded
+        window.addEventListener('load', function() {
+            console.log('Window fully loaded - checking button initialization');
+            
+            // Check MathJax status
+            if (!window.MathJaxReady) {
+                console.warn("MathJax might not be fully initialized - setting up global function");
+                window.typesetMath = function() {
+                    console.log("Typesetting with fallback method");
+                    if (window.MathJax) {
+                        if (typeof MathJax.typesetPromise === 'function') {
+                            return MathJax.typesetPromise();
+                        } else if (typeof MathJax.typeset === 'function') {
+                            MathJax.typeset();
+                            return Promise.resolve();
+                        } else if (typeof MathJax.Hub !== 'undefined' && typeof MathJax.Hub.Queue === 'function') {
+                            MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+                            return Promise.resolve();
+                        }
+                    }
+                    return Promise.resolve(); // Return resolved promise as fallback
+                };
+            }
+            
+            // Ensure plot buttons work
+            const plotEquationBtn = document.getElementById('plot-equation-btn');
+            const plotSolutionBtn = document.getElementById('plot-solution-btn');
+            
+            if (plotEquationBtn && typeof window.plotEquation === 'function') {
+                console.log('Attaching final plot equation handler');
+                plotEquationBtn.onclick = function(e) {
+                    if (e) e.preventDefault();
+                    window.plotEquation();
+                    return false;
+                };
+            } else {
+                console.warn('Plot equation button or function not found');
+            }
+            
+            if (plotSolutionBtn && typeof window.plotResult === 'function') {
+                console.log('Attaching final plot solution handler');
+                plotSolutionBtn.onclick = function(e) {
+                    if (e) e.preventDefault();
+                    window.plotResult();
+                    return false;
+                };
+            } else {
+                console.warn('Plot solution button or function not found');
+            }
+        });
+    </script>
 </body>
 </html>

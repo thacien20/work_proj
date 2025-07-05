@@ -8,7 +8,9 @@
  * Render a plot based on data from the backend
  * @param {Object} plotData - Data from the backend containing plot points
  */
-function renderPlot(plotData) {
+// Make sure renderPlot is accessible globally
+window.renderPlot = function(plotData) {
+    console.log('renderPlot called with:', plotData ? 'data available' : 'no data');
     // Get the plot container - use 'math-plot' as that's the ID used in HTML
     const plotContainer = document.getElementById('math-plot');
     
@@ -18,21 +20,73 @@ function renderPlot(plotData) {
         return;
     }
     
-    // Ensure Plotly is loaded
+    // Ensure Plotly is loaded - with improved retry mechanism
     if (!window.Plotly) {
-        plotContainer.innerHTML = '<div class="error">Error: Plotly.js is not loaded</div>';
+        console.warn('Plotly not found - attempting to load it dynamically');
+        
+        // Show loading message
+        plotContainer.innerHTML = '<div class="loading">Loading plotting library...</div>';
+        
+        // Check if there's already a script loading Plotly
+        const existingScript = document.querySelector('script[src*="plotly-latest.min.js"]');
+        
+        if (existingScript) {
+            // A script is already trying to load Plotly, wait for it
+            console.log('Plotly is already being loaded, waiting...');
+            
+            // Setup a timer to check periodically if Plotly becomes available
+            let checkAttempts = 0;
+            const checkInterval = setInterval(() => {
+                checkAttempts++;
+                if (window.Plotly) {
+                    clearInterval(checkInterval);
+                    console.log('Plotly now available');
+                    continueRendering();
+                } else if (checkAttempts > 20) { // 10 second timeout (20 * 500ms)
+                    clearInterval(checkInterval);
+                    console.error('Timed out waiting for Plotly to load');
+                    plotContainer.innerHTML = '<div class="error">Error: Timed out waiting for plotting library to load. Please refresh the page.</div>';
+                }
+            }, 500);
+            
+            return;
+        }
+        
+        // Try to load Plotly dynamically if it's not already loading
+        const script = document.createElement('script');
+        script.src = 'https://cdn.plot.ly/plotly-latest.min.js';
+        script.crossOrigin = 'anonymous';
+        
+        script.onload = function() {
+            console.log('Plotly loaded successfully!');
+            // Continue with rendering once Plotly is loaded
+            continueRendering();
+        };
+        
+        script.onerror = function() {
+            console.error('Failed to load Plotly dynamically');
+            plotContainer.innerHTML = '<div class="error">Error: Failed to load plotting library. Please refresh the page or check your internet connection.</div>';
+        };
+        
+        document.head.appendChild(script);
         return;
     }
     
-    // Clear previous plot
-    plotContainer.innerHTML = '';
+    // If Plotly is already available, continue rendering
+    continueRendering();
     
-    if (plotData.plotType === '3d') {
-        render3DPlot(plotContainer, plotData);
-    } else if (plotData.plotType === 'complex') {
-        renderComplexPlot(plotContainer, plotData);
-    } else {
-        render2DPlot(plotContainer, plotData);
+    // Helper function to continue rendering once Plotly is available
+    function continueRendering() {
+        // Clear previous plot
+        plotContainer.innerHTML = '';
+        
+        if (plotData.plotType === '3d') {
+            render3DPlot(plotContainer, plotData);
+        } else if (plotData.plotType === 'complex') {
+            renderComplexPlot(plotContainer, plotData);
+        } else {
+            render2DPlot(plotContainer, plotData);
+        }
     }
 }
 
@@ -523,3 +577,21 @@ function toggleGrid(showGrid) {
         'yaxis.gridcolor': gridColor
     });
 }
+
+/**
+ * Check if Plotly is properly loaded after page load
+ */
+window.addEventListener('load', function() {
+    // Make sure Plotly is available
+    if (!window.Plotly) {
+        console.warn('Plotly not loaded after page load - attempting to load it');
+        const script = document.createElement('script');
+        script.src = 'https://cdn.plot.ly/plotly-latest.min.js';
+        script.onload = function() {
+            console.log('Plotly loaded successfully!');
+        };
+        document.head.appendChild(script);
+    } else {
+        console.log('Plotly loaded successfully on page load');
+    }
+});

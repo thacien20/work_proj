@@ -54,19 +54,42 @@ def solve_equation():
             
             # Check if result is a dictionary or error message string
             if isinstance(result, dict):
-                return jsonify({
+                response_data = {
                     'solution': result['solution'],
                     'latex': convert_to_latex(result['solution']),
                     'roots': result.get('roots', []),
                     'expression': result.get('expression', ''),
-                    'equation_type': result.get('equation_type', '')
-                })
+                    'equation_type': result.get('equation_type', ''),
+                    'has_crootof': result.get('has_crootof', False)
+                }
+                
+                # Add any notes (like CRootOf explanations)
+                if result.get('note'):
+                    response_data['note'] = result['note']
+                    
+                return jsonify(response_data)
             else:
                 # It's an error message
                 return jsonify({'error': result})
                 
         elif eq_type == 'differential':
             result = solve_differential(equation, data.get('variable', 'x'))
+            
+            # Check for error
+            if result.get('error'):
+                return jsonify({
+                    'error': result.get('error'),
+                    'complexity': result.get('complexity')
+                })
+                
+            # Check if this is a numerical solution
+            if result.get('is_numerical'):
+                return jsonify({
+                    'solution': result.get('solution'),
+                    'is_numerical': True,
+                    'complexity': 'high',
+                    'result': result.get('solution')
+                })
             
             # Extract constants from the solution
             solution = result.get('solution', '')
@@ -77,15 +100,26 @@ def solve_equation():
                 const_matches = re.findall(const_pattern, solution)
                 constants = [f'C{i}' for i in const_matches]
                 
-                return jsonify({
+                # Prepare response with all available fields
+                response_data = {
                     'solution': solution,
                     'latex': convert_to_latex(solution),
                     'constants': constants,
-                    'error': result.get('error')
-                })
+                    'result': solution  # Ensure result field is populated for UI
+                }
+                
+                # Add any additional fields from the result
+                if result.get('note'):
+                    response_data['note'] = result.get('note')
+                    
+                if result.get('complexity'):
+                    response_data['complexity'] = result.get('complexity')
+                    
+                return jsonify(response_data)
             else:
                 return jsonify({
-                    'error': result.get('error', 'Could not solve differential equation')
+                    'error': result.get('error', 'Could not solve differential equation'),
+                    'complexity': result.get('complexity')
                 })
         elif eq_type == 'integral':
             result = calculate_integral(data)
@@ -122,16 +156,36 @@ def solve_algebraic(equation_str):
             # Extract the expression for plotting (moved left side - right side = 0)
             expr = sp.sympify(left.strip()) - sp.sympify(right.strip())
             
-            # Convert solution to string list for display
-            solution_str = str(solution)
+            # Process CRootOf expressions if present
+            solution_str, crootof_note, has_crootof = process_crootof_expressions(solution)
+            
+            # Extract numerical roots for plotting
+            numerical_roots = []
+            for root in solution:
+                try:
+                    if hasattr(root, 'is_real') and root.is_real:
+                        if hasattr(root, 'evalf'):
+                            numerical_roots.append(float(root.evalf()))
+                        else:
+                            numerical_roots.append(float(root))
+                except:
+                    # Skip roots that can't be converted to float
+                    pass
             
             # Return additional data for enhanced plotting
-            return {
+            result = {
                 'solution': solution_str,
-                'roots': [float(root) for root in solution if root.is_real],
+                'roots': numerical_roots,
                 'expression': str(expr),
-                'equation_type': 'polynomial' if isinstance(expr, sp.Poly) or expr.is_polynomial() else 'general'
+                'equation_type': 'polynomial' if isinstance(expr, sp.Poly) or expr.is_polynomial() else 'general',
+                'has_crootof': has_crootof
             }
+            
+            # Add explanation for CRootOf if present
+            if crootof_note:
+                result['note'] = crootof_note
+                
+            return result
         else:
             # Assume it's an expression to simplify
             expr = sp.sympify(equation_str)
@@ -156,9 +210,20 @@ def solve_differential(equation_str, var='x'):
         y = sp.Function('y')
         y_func = y(x)
 
-        # Parse the equation string and handle derivatives
+        # Check for common syntax errors
         if '=' not in equation_str:
-            return {'error': "Differential equation must contain '=' sign"}
+            return {'error': "Differential equation must contain exactly one '=' sign"}
+            
+        if equation_str.count('=') > 1:
+            return {'error': "Multiple equals signs detected. Differential equation should have form 'dy/dx = expression' or similar."}
+        
+        # Check for expected differential notation
+        if 'dy/dx' not in equation_str.lower() and 'd²y/dx²' not in equation_str and 'derivative' not in equation_str.lower():
+            return {'error': "Missing differential notation. For differential equations, use 'dy/dx = ...' format."}
+        
+        # Check for equations ending with "=0"
+        if equation_str.endswith('=0') and 'dy/dx' in equation_str and '=' in equation_str[:-2]:
+            return {'error': "Invalid format. Please use 'dy/dx = expression' format instead of 'dy/dx = expression = 0'"}
 
         left, right = equation_str.split('=', 1)
         left = left.strip()
@@ -183,35 +248,125 @@ def solve_differential(equation_str, var='x'):
         }
         locals_dict['y(x)'] = y_func
 
-        # Parse expressions
-        left_expr = sp.sympify(left, locals=locals_dict)
-        right_expr = sp.sympify(right, locals=locals_dict)
+        try:
+            # Parse expressions
+            left_expr = sp.sympify(left, locals=locals_dict)
+            right_expr = sp.sympify(right, locals=locals_dict)
+        except Exception as parse_error:
+            return {'error': f"Error parsing the differential equation: {str(parse_error)}\nPlease check your syntax."}
 
         # Create the equation
         diff_eq = sp.Eq(left_expr, right_expr)
-
-        # Solve the differential equation for y(x)
-        solution = sp.dsolve(diff_eq, y_func)
-
-        # Handle list of solutions
-        if isinstance(solution, list):
-            if not solution:
-                return {'error': 'Could not solve differential equation'}
-            solution = solution[0]  # Take the first solution
-
-        # Check if the solution is an Equality, which indicates success
-        if isinstance(solution, sp.Equality):
-            solution_str = f"y(x) = {solution.rhs}"
-            solution_latex = sp.latex(solution)
-            return {
-                'solution': solution_str,
-                'latex': solution_latex
-            }
+        
+        # Check if the equation is too complex for symbolic solving
+        is_complex, complexity_level = is_expression_complex(right_expr - left_expr)
+        
+        if is_complex:
+            # For very complex expressions, use a numerical approach or simplified solution
+            try:
+                # Try to use sympy with a timeout to avoid hanging
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Symbolic solving took too long")
+                
+                # Set 5-second timeout for symbolic solving
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(5)
+                
+                try:
+                    # Try to solve with a time limit
+                    solution = sp.dsolve(diff_eq, y_func)
+                    
+                    # If we get here, the solve worked within the time limit
+                    signal.alarm(0)  # Cancel the timeout
+                    
+                    # Handle list of solutions
+                    if isinstance(solution, list):
+                        if not solution:
+                            raise ValueError("Could not solve equation symbolically")
+                        solution = solution[0]  # Take the first solution
+                        
+                    # Check if the solution is an Equality, which indicates success
+                    if isinstance(solution, sp.Equality):
+                        solution_str = f"y(x) = {solution.rhs}"
+                        
+                        # Convert to LaTeX with our enhanced function that handles complexity
+                        try:
+                            solution_latex = convert_to_latex(str(solution))
+                        except:
+                            solution_latex = "LaTeX rendering unavailable for complex solution"
+                        
+                        # Add a note about the complexity
+                        note = f"Note: This is a {complexity_level} differential equation. The solution may be simplified."
+                        
+                        return {
+                            'solution': solution_str,
+                            'latex': solution_latex,
+                            'note': note,
+                            'complexity': complexity_level
+                        }
+                        
+                except TimeoutError:
+                    # If the symbolic solution timed out, provide a numerical fallback
+                    return {
+                        'solution': "This differential equation is too complex for symbolic solving. Try breaking down your equation into simpler components or using numerical methods.",
+                        'is_numerical': True,
+                        'complexity': complexity_level,
+                        'note': "Suggestion: Try inputting each term separately or use numerical methods for complex differential equations."
+                    }
+                    
+            except Exception as e:
+                error_msg = str(e)
+                suggestion = ""
+                
+                if "maximum recursion depth" in error_msg:
+                    suggestion = "Try simplifying your expression by breaking it into separate terms."
+                elif "timeout" in error_msg.lower():
+                    suggestion = "The equation is too complex for symbolic solving. Try numerical methods."
+                else:
+                    suggestion = "Try simplifying the equation or checking the syntax."
+                    
+                return {
+                    'error': f"This differential equation is {complexity_level} and could not be solved symbolically: {error_msg[:100]}",
+                    'complexity': complexity_level,
+                    'note': suggestion
+                }
+                
         else:
-            return {'error': 'Could not solve differential equation'}
+            # Standard approach for simpler equations
+            try:
+                # Solve the differential equation for y(x)
+                solution = sp.dsolve(diff_eq, y_func)
+                
+                # Handle list of solutions
+                if isinstance(solution, list):
+                    if not solution:
+                        return {'error': 'Could not solve differential equation'}
+                    solution = solution[0]  # Take the first solution
+                
+                # Check if the solution is an Equality, which indicates success
+                if isinstance(solution, sp.Equality):
+                    solution_str = f"y(x) = {solution.rhs}"
+                    solution_latex = sp.latex(solution)
+                    return {
+                        'solution': solution_str,
+                        'latex': solution_latex
+                    }
+                else:
+                    return {'error': 'Could not solve differential equation'}
+            except Exception as e:
+                return {'error': f"Could not solve differential equation: {str(e)}"}
 
     except Exception as e:
-        return {'error': f"An error occurred: {str(e)}"}
+        # Provide more helpful error messages for common issues
+        error_str = str(e)
+        if "maximum recursion depth" in error_str:
+            return {'error': "The differential equation is too complex to solve symbolically."}
+        elif "could not parse" in error_str and ("=" in equation_str.count('=') > 1):
+            return {'error': "Multiple equals signs detected. Please use the form 'dy/dx = expression'."}
+        else:
+            return {'error': f"An error occurred: {error_str}"}
 
 
 def calculate_integral(data):
@@ -222,15 +377,69 @@ def calculate_integral(data):
         x = sp.Symbol(var)
         expr = sp.sympify(expression_str)
         
+        # Check if expression is complex
+        is_complex, complexity_level = is_expression_complex(expr)
+        
         lower_limit = data.get('lower_limit')
         upper_limit = data.get('upper_limit')
-
-        if lower_limit is not None and upper_limit is not None:
-            result = sp.integrate(expr, (x, float(lower_limit), float(upper_limit)))
+        
+        # For definite integrals with complex expressions, use numerical integration
+        if is_complex and lower_limit is not None and upper_limit is not None:
+            try:
+                # Import numerical integration
+                from scipy import integrate as scipy_integrate
+                import numpy as np
+                
+                # Create a lambda function for numerical evaluation
+                f = sp.lambdify(x, expr, "numpy")
+                
+                # Perform numerical integration
+                result_val, error_est = scipy_integrate.quad(f, float(lower_limit), float(upper_limit))
+                
+                # Return both the numerical result and a note about numerical integration
+                result = f"{result_val} (Numerical integration, estimated error: {error_est:.2e})"
+                return f"{result}\n(Note: Used numerical integration for {complexity_level} expression.)"
+                
+            except Exception as num_error:
+                # If numerical integration fails, try symbolic with a timeout
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Integration took too long")
+                
+                # Set 5-second timeout
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(5)
+                
+                try:
+                    result = sp.integrate(expr, (x, float(lower_limit), float(upper_limit)))
+                    signal.alarm(0)  # Cancel the timeout
+                    return str(result)
+                except TimeoutError:
+                    return f"Error: Integration too complex. Try simplifying the expression or using smaller intervals."
+                except Exception as e:
+                    return f"Error: {str(e)}"
+                
         else:
-            result = sp.integrate(expr, x)
-            
-        return str(result)
+            # For indefinite integrals or simple expressions, use symbolic integration
+            try:
+                if lower_limit is not None and upper_limit is not None:
+                    result = sp.integrate(expr, (x, float(lower_limit), float(upper_limit)))
+                else:
+                    result = sp.integrate(expr, x)
+                    
+                result_str = str(result)
+                
+                # Add a note if the expression was complex
+                if is_complex:
+                    return f"{result_str}\n(Note: Expression is {complexity_level}. Verify the result.)"
+                else:
+                    return result_str
+                    
+            except Exception as e:
+                if "maximum recursion depth" in str(e):
+                    return f"Error: Expression too complex for symbolic integration. Try simplifying the expression."
+                return f"Error: {str(e)}"
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -240,22 +449,95 @@ def calculate_derivative(data):
         expression_str = preprocess_equation(data.get('equation', ''))
         var = data.get('variable', 'x')
         order = int(data.get('order', 1))
+        
+        # Check for common syntax errors
+        if '=' in expression_str:
+            # Check for multiple equals signs
+            if expression_str.count('=') > 1:
+                return "Error: Multiple equals signs detected. For derivatives, please enter only the function to differentiate without setting it equal to anything."
+            
+            # Check if they're using differential notation and equals
+            if 'dy/dx' in expression_str or 'd/dx' in expression_str:
+                return "Error: For derivative calculation, please enter just the expression to differentiate (without 'dy/dx =' or '= 0')."
+            
+            # Otherwise, extract the expression on the right side of the equals
+            try:
+                # Try to extract the right side if equation is in form f(x) = expression
+                left, right = expression_str.split('=')
+                expression_str = right.strip()
+                # If we get here, warn that we're only using the right side
+                expression_note = f"Note: Taking derivative of the right side: {expression_str}"
+            except:
+                return "Error: Invalid equation format. For derivatives, enter the expression without equals signs."
+        
+        # Check for differential notation without equals sign
+        if 'dy/dx' in expression_str or 'd/dx' in expression_str:
+            return "Error: For derivative calculation, please enter just the expression to differentiate without 'dy/dx' or 'd/dx'."
+            
         x = sp.Symbol(var)
-        expr = sp.sympify(expression_str)
+        try:
+            expr = sp.sympify(expression_str)
+        except Exception as parse_error:
+            return f"Error parsing the expression: {str(parse_error)}\nPlease check your syntax and ensure you're entering a valid mathematical expression."
         
         result = sp.diff(expr, x, order)
-        return str(result)
+        result_str = str(result)
+        
+        # If we previously extracted from an equation, add the note
+        if 'expression_note' in locals():
+            result_str = f"{result_str}\n({expression_note})"
+            
+        return result_str
     except Exception as e:
         return f"Error: {str(e)}"
 
-def convert_to_latex(expr_str):
-    """Convert a string expression to LaTeX format"""
+def convert_to_latex(expr_input):
+    """Convert a SymPy expression or string to LaTeX format with safeguards for complexity"""
+    import sympy as sp
+    from sympy.printing import latex
     try:
-        expr = sp.sympify(expr_str)
-        return sp.latex(expr)
-    except:
-        # If we can't convert to SymPy, return the original string
-        return expr_str
+        # If input is a string, try to parse to SymPy
+        if isinstance(expr_input, str):
+            # Check for excessive length
+            if len(expr_input) > 1000:
+                return f"Expression too complex for LaTeX rendering (length: {len(expr_input)})"
+            # Try to parse string to SymPy expression
+            try:
+                expr = sp.sympify(expr_input)
+            except Exception as parse_err:
+                return f"Could not render as LaTeX: {str(parse_err)[:100]}"
+        else:
+            expr = expr_input
+        # Now expr is a SymPy object
+        latex_result = latex(expr, 
+                            mode='inline',
+                            long_frac_ratio=3,
+                            mul_symbol='dot',
+                            fold_short_frac=True,
+                            fold_frac_powers=True,
+                            fold_func_brackets=True,
+                            order=None,
+                            mat_str='pmatrix',
+                            mat_delim='')
+        if len(latex_result) > 2500:
+            simplified_expr = sp.simplify(expr)
+            simplified_latex = latex(simplified_expr, 
+                                    mode='inline',
+                                    long_frac_ratio=2,
+                                    mul_symbol='dot',
+                                    fold_short_frac=True,
+                                    fold_frac_powers=True,
+                                    fold_func_brackets=True)
+            if len(simplified_latex) > 2500:
+                return f"LaTeX representation too complex (length: {len(latex_result)}). Try simplifying your input."
+            else:
+                return simplified_latex
+        return latex_result
+    except Exception as e:
+        error_msg = str(e)[:100]
+        if "recursion depth" in error_msg:
+            return "Could not render LaTeX: expression too complex causing recursion limit"
+        return f"Could not render as LaTeX: {error_msg}"
 
 @mathlab_bp.route('/mathlab/plot', methods=['POST'])
 def plot_equation():
@@ -276,12 +558,24 @@ def plot_equation():
         roots = data.get('roots', [])
         
         # Adjust plot range if roots are provided
-        if roots and len(roots) >= 2:
-            sorted_roots = sorted(roots)
-            # Add padding around roots
-            padding = (sorted_roots[-1] - sorted_roots[0]) * 0.2
-            x_min = min(sorted_roots) - padding
-            x_max = max(sorted_roots) + padding
+        if roots:
+            if len(roots) >= 2:
+                sorted_roots = sorted(roots)
+                # Add padding around roots
+                padding = (sorted_roots[-1] - sorted_roots[0]) * 0.2
+                x_min = min(sorted_roots) - padding
+                x_max = max(sorted_roots) + padding
+            elif len(roots) == 1:
+                # If only one root is found, center the plot around it
+                root = float(roots[0])
+                # Use a reasonable range around the single root (±5 units)
+                x_min = root - 5
+                x_max = root + 5
+                # Flag this as a single root approximation
+                single_root_approximation = True
+        else:
+            # Make sure we don't have a single root approximation
+            single_root_approximation = False
         
         # Create data points
         x = np.linspace(x_min, x_max, points)
@@ -295,9 +589,13 @@ def plot_equation():
                 roots_str = ", ".join([f"{root:.2f}" for root in sorted_roots])
                 # More concise title that shows the equation and roots
                 title = f"{equation}"
+                # Add warning to the response about single root approximation
+                if len(roots) == 1 and single_root_approximation:
+                    single_root_warning = True
+                else:
+                    single_root_warning = False
             else:
-                y = evaluate_algebraic(equation, x)
-                root_points = []
+                y, root_points = evaluate_algebraic(equation, x)  # Now always returns tuple
                 title = f"{equation}"
         elif eq_type == 'differential':
             # Handle constants for differential equations
@@ -441,6 +739,11 @@ def plot_equation():
             # Find any special points (roots, critical points)
             special_points = root_points if roots else find_special_points(equation, x_min, x_max)
             
+            # Add single root warning if applicable
+            single_root_warning = False
+            if roots and len(roots) == 1 and 'single_root_approximation' in locals() and single_root_approximation:
+                single_root_warning = True
+            
             return jsonify({
                 'x': x_filtered,
                 'y': y_filtered,
@@ -450,7 +753,8 @@ def plot_equation():
                 'roots': roots if roots else [],
                 'plotType': '2d',
                 'hasComplex': has_complex,
-                'filteredPercentage': filtered_percentage
+                'filteredPercentage': filtered_percentage,
+                'singleRootWarning': single_root_warning
             })
         
         # For 3D plots
@@ -512,13 +816,13 @@ def evaluate_algebraic(equation_str, x_values, roots=None):
         # Evaluate function for all x values
         y = f(x_values)
         
-        # If roots are provided, adjust x_values range to focus on the region between roots
-        if roots and len(roots) >= 2 and isinstance(roots, list):
-            # Sort the roots
-            sorted_roots = sorted(roots)
-            # Add special points for the roots to the return value
-            special_points = []
-            for root in sorted_roots:
+        # Initialize empty special_points list
+        special_points = []
+        
+        # If roots are provided, create special points for them
+        if roots and isinstance(roots, list):
+            # Handle cases with any number of roots (even just one)
+            for root in roots:
                 special_points.append({
                     'x': float(root),
                     'y': 0,  # At roots, y is always 0
@@ -526,9 +830,9 @@ def evaluate_algebraic(equation_str, x_values, roots=None):
                     'color': '#e74c3c',
                     'showlegend': False  # Ensure this point doesn't show in legend
                 })
-            return y, special_points
         
-        return y
+        # Always return both y values and special points (which may be empty)
+        return y, special_points
     except Exception as e:
         raise ValueError(f"Error evaluating expression: {str(e)}")
 
@@ -563,8 +867,15 @@ def evaluate_differential_solution(equation_str, x_values, constants_mode='auto'
                     
                 # Convert to numpy function with substituted constants
                 x_sym = sp.symbols('x')
-                y_expr = sp.sympify(solution_expr)
-                f = sp.lambdify(x_sym, y_expr, 'numpy')
+                try:
+                    # Use our helper function to safely parse expressions
+                    if 'y(x)' in solution_expr:
+                        y_expr = parse_solution_expression(f"y(x) = {solution_expr}")
+                    else:
+                        y_expr = sp.sympify(solution_expr, locals={'x': x_sym, 'exp': sp.exp})
+                    f = sp.lambdify(x_sym, y_expr, 'numpy')
+                except Exception as e:
+                    raise ValueError(f"Error parsing solution expression: {str(e)}")
                 
                 # Evaluate function for all x values
                 y = f(x_values)
@@ -586,8 +897,15 @@ def evaluate_differential_solution(equation_str, x_values, constants_mode='auto'
                 
                 # Convert to numpy function with substituted constants
                 x_sym = sp.symbols('x')
-                y_expr = sp.sympify(solution_expr)
-                f = sp.lambdify(x_sym, y_expr, 'numpy')
+                try:
+                    # Use our helper function to safely parse expressions
+                    if 'y(x)' in solution_expr:
+                        y_expr = parse_solution_expression(f"y(x) = {solution_expr}")
+                    else:
+                        y_expr = sp.sympify(solution_expr, locals={'x': x_sym, 'exp': sp.exp})
+                    f = sp.lambdify(x_sym, y_expr, 'numpy')
+                except Exception as e:
+                    raise ValueError(f"Error parsing solution expression: {str(e)}")
                 
                 # Evaluate function for all x values
                 y = f(x_values)
@@ -628,8 +946,15 @@ def evaluate_differential_solution(equation_str, x_values, constants_mode='auto'
                     
                     # Convert to numpy function
                     x_sym = sp.symbols('x')
-                    y_expr = sp.sympify(current_expr)
-                    f = sp.lambdify(x_sym, y_expr, 'numpy')
+                    try:
+                        # Use our helper function to safely parse expressions
+                        if 'y(x)' in current_expr:
+                            y_expr = parse_solution_expression(f"y(x) = {current_expr}")
+                        else:
+                            y_expr = sp.sympify(current_expr, locals={'x': x_sym, 'exp': sp.exp})
+                        f = sp.lambdify(x_sym, y_expr, 'numpy')
+                    except Exception as e:
+                        raise ValueError(f"Error parsing solution expression: {str(e)}")
                     
                     # Evaluate function for all x values
                     y = f(x_values)
@@ -756,3 +1081,177 @@ def find_special_points(equation_str, x_min, x_max):
         return special_points
     except:
         return []
+
+def is_expression_complex(expr):
+    """
+    Check if an expression is likely to be too complex for symbolic solving
+    Returns True if expression is complex enough that we should use numerical methods
+    """
+    expr_str = str(expr)
+    
+    # Count occurrences of potentially problematic patterns
+    high_degree_count = len(re.findall(r'x\*\*[5-9]|x\*\*\d{2,}', expr_str))  # Powers of x^5 or higher
+    trig_count = expr_str.count('sin') + expr_str.count('cos') + expr_str.count('tan')
+    exp_count = expr_str.count('exp')
+    log_count = expr_str.count('log')
+    length_score = len(expr_str) / 50  # Normalize by 50 chars
+    
+    # Check for nested functions (which are particularly problematic)
+    nested_func_patterns = [
+        r'sin\(.+sin\(', r'cos\(.+cos\(', r'log\(.+log\(',
+        r'exp\(.+exp\(', r'tan\(.+tan\(',
+        r'sin\(.+cos\(', r'cos\(.+sin\(', r'exp\(.+log\(',
+        r'log\(.+exp\('
+    ]
+    
+    nested_count = 0
+    for pattern in nested_func_patterns:
+        nested_count += len(re.findall(pattern, expr_str))
+    
+    # Check for multiplication of complex terms
+    term_count = len(re.findall(r'[+\-*/]', expr_str))  # Count operators as a proxy for term complexity
+    
+    # Calculate complexity score with refined weights
+    complexity_score = (high_degree_count*3 + 
+                        trig_count*1.5 + 
+                        exp_count*2 + 
+                        log_count*1.5 + 
+                        nested_count*5 +  # Heavily weight nested functions
+                        term_count*0.5 +  # Count terms
+                        length_score)
+    
+    # Determine if expression is complex based on score
+    is_complex = complexity_score > 4  # Threshold for "complex" expressions
+    
+    # More detailed classification for user feedback
+    complexity_level = "simple"
+    if complexity_score > 10:
+        complexity_level = "very complex"
+    elif complexity_score > 6:
+        complexity_level = "complex"
+    elif complexity_score > 4:
+        complexity_level = "moderately complex"
+    
+    print(f"Expression complexity: {complexity_score:.2f} ({complexity_level})")
+    
+    return is_complex, complexity_level
+
+def process_crootof_expressions(solution, numerical=True):
+    """
+    Process CRootOf expressions in a solution to make them more user-friendly
+    
+    Args:
+        solution: The solution string or SymPy expression
+        numerical: If True, will attempt to convert to numerical values
+    
+    Returns:
+        Tuple of (processed_solution, explanation, has_crootof)
+    """
+    solution_str = str(solution)
+    
+    # Check if this contains CRootOf expressions
+    if 'CRootOf' not in solution_str:
+        return solution_str, None, False
+    
+    explanation = (
+        "Note: CRootOf expressions represent the roots of a polynomial that cannot be expressed "
+        "in closed form using radicals. Numerical approximations are provided."
+    )
+    
+    # If we just want to leave it symbolic
+    if not numerical:
+        return solution_str, explanation, True
+    
+    # Try to convert to numerical approximations
+    try:
+        if isinstance(solution, list):
+            # For a list of roots
+            numerical_roots = []
+            for root in solution:
+                if hasattr(root, 'evalf'):
+                    # Evaluate to numerical form with 6 decimal places
+                    num_value = complex(root.evalf(6))
+                    if abs(num_value.imag) < 1e-10:  # Practically real
+                        numerical_roots.append(f"{float(num_value.real):.6f}")
+                    else:
+                        numerical_roots.append(f"{num_value.real:.6f} + {num_value.imag:.6f}i")
+                else:
+                    numerical_roots.append(str(root))
+            
+            # Format the numerical list
+            numerical_solution = f"[{', '.join(numerical_roots)}]"
+            return numerical_solution, explanation, True
+        else:
+            # For a single expression
+            if hasattr(solution, 'evalf'):
+                return str(solution.evalf(6)), explanation, True
+            else:
+                return solution_str, explanation, True
+    except Exception as e:
+        print(f"Error converting CRootOf to numerical: {e}")
+        return solution_str, explanation, True
+
+def might_produce_crootof(equation_str):
+    """
+    Check if an equation might produce CRootOf expressions
+    
+    Args:
+        equation_str: String representation of an equation
+    
+    Returns:
+        Boolean indicating if the equation might produce CRootOf
+    """
+    try:
+        # Preprocess the equation
+        equation_str = preprocess_equation(equation_str)
+        
+        # Check if it's a polynomial equation
+        if '=' in equation_str:
+            left, right = equation_str.split('=')
+            expr = sp.sympify(left.strip()) - sp.sympify(right.strip())
+        else:
+            expr = sp.sympify(equation_str)
+            
+        # Check if it's a polynomial
+        if not expr.is_polynomial():
+            return False
+            
+        # Check the degree of the polynomial
+        try:
+            x = sp.symbols('x')
+            poly = sp.Poly(expr, x)
+            degree = poly.degree()
+            
+            # Polynomial equations of degree 5 or higher often result in CRootOf
+            if degree >= 5:
+                return True
+        except:
+            pass
+            
+        return False
+    except:
+        return False
+
+def parse_solution_expression(solution_str):
+    """
+    Parse a solution expression safely, handling common patterns like 'y(x) = expression'
+    """
+    if '=' in solution_str:
+        # Split at the equals sign and take the right side
+        solution_expr = solution_str.split('=', 1)[1].strip()
+        
+        try:
+            # Try to parse the right-hand side expression
+            x = sp.Symbol('x')
+            C1, C2 = sp.symbols('C1 C2')
+            expr = sp.sympify(solution_expr, locals={'x': x, 'C1': C1, 'C2': C2, 'exp': sp.exp})
+            return expr
+        except Exception as e:
+            # If parsing fails, return a string representation
+            return f"Could not parse '{solution_expr}': {str(e)}"
+    else:
+        # If there's no equals sign, try to parse the whole string
+        try:
+            return sp.sympify(solution_str)
+        except Exception as e:
+            return f"Could not parse '{solution_str}': {str(e)}"
