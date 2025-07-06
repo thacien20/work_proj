@@ -86,7 +86,7 @@
             font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #66cbea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #66cbea 0%, rgb(221, 207, 207) 100%);
             color: #f1f1f1;
             min-height: 100vh;
         }
@@ -161,7 +161,7 @@
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            color: rgba(255, 255, 255, 0.95);
+            color: rgb(224, 226, 240);
             font-weight: 600;
         }
         
@@ -348,7 +348,7 @@
             <!-- Math Mode Selection -->
             <div class="panel">
                 <h2>🔢 Math Operations</h2>
-                <div class="tab-buttons" role="tablist" style="z-index: 10; position: relative; background: linear-gradient(to right, green, #ffffff);">
+                <div class="tab-buttons" role="tablist" style="z-index: 10; position: relative; background: linear-gradient(to right, rgb(108, 116, 108), #ffffff);">
                     <button id="tab-algebraic" class="tab-button" role="tab" aria-selected="true" aria-controls="panel-algebraic">Algebraic</button>
                     <button id="tab-differential" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-differential">Diff</button>
                     <button id="tab-integral" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-integral">Int</button>
@@ -356,7 +356,7 @@
                 </div>
                 
                 <!-- Algebraic Equations Panel -->
-                <div id="panel-algebraic" class="tab-panel" role="tabpanel" aria-hidden="false">
+                <div id="panel-algebraic" class="tab-panel" role="tabpanel" aria-hidden="false" style="background: rgba(23, 21, 24, 0.98);">
                     <div class="form-group">
                         <label for="algebraic-equation">Equation or Expression:</label>
                         <input type="text" id="algebraic-equation" class="control-input" placeholder="E.g., x**2 + 3*x - 4 = 0">
@@ -386,17 +386,17 @@
                         <div class="info-box">
                             <h4>Input Syntax Guide:</h4>
                             <ul>
-                                <li><code>x**2</code> for x² (not <code>x^2</code>)</li>
+                                <li><code>x**2</code> for x²</li>
                                 <li><code>sin(x)</code>, <code>cos(x)</code>, <code>tan(x)</code> for trigonometric functions</li>
                                 <li><code>exp(x)</code> for e^x</li>
-                                <li><code>log(x)</code> for natural logarithm</li>
+                                <li><code>log(x)</code> for natural log</li>
                                 <li><code>sqrt(x)</code> for square root</li>
                             </ul>
                             <div class="warning-box">
                                 <h5>For Best Results:</h5>
                                 <ul>
                                     <li>Keep expressions simple: <code>sin(x)*log(x)</code> is good, avoid very long expressions</li>
-                                    <li>Test complex terms separately before combining</li>
+                                    <li>Test complex terms separately</li>
                                     <li>Break down complex problems into simpler steps</li>
                                 </ul>
                             </div>
@@ -413,7 +413,7 @@
                             </ul>
                         </div>
                     </div>
-                    <button id="solve-algebraic-btn" class="primary-btn" style="width: 100%;">Solve</button>
+                    <button id="solve-algebraic-btn" class="primary-btn" style="width: 60%;">Solve</button>
                 </div>
                 
                 <!-- Differential Equations Panel -->
@@ -438,22 +438,13 @@
                                 <h5>Performance Tips:</h5>
                                 <ul>
                                     <li>Start with simpler equations: Try <code>dy/dx = x**2</code> before <code>dy/dx = exp(-x)*sin(x)*tan(x)</code></li>
-                                    <li>High-degree polynomials (e.g., <code>x**9</code>) can generate very complex solutions</li>
-                                    <li>Complex combinations like <code>exp(-x)*sin(x)*tan(x)</code> may exceed rendering capacity</li>
+                                    
+                        
                                 </ul>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="common-diff-equations">Quick Select:</label>
-                        <select id="common-diff-equations" class="control-input">
-                            <option value="">-- Select common equation --</option>
-                            <option value="dy/dx + y = x">First Order: dy/dx + y = x</option>
-                            <option value="dy/dx = x*y">Separable: dy/dx = x*y</option>
-                            <option value="d²y/dx² + 4*y = 0">Second Order: d²y/dx² + 4*y = 0</option>
-                            <option value="d²y/dx² + 2*dy/dx + y = sin(x)">Forced Oscillation: d²y/dx² + 2*dy/dx + y = sin(x)</option>
-                        </select>
-                    </div>
+                    
                     <div class="form-group">
                         <label for="diff-variable">Independent Variable:</label>
                         <input type="text" id="diff-variable" class="control-input" value="x">
@@ -482,10 +473,10 @@
                         <div class="info-box">
                             <h4>Differential Equation Syntax:</h4>
                             <ul>
-                                <li>Use <code>dy/dx</code> for first derivative</li>
+                                
                                 <li>Use <code>d²y/dx²</code> for second derivative</li>
                                 <li>Always include <code>=</code> in your equation</li>
-                                <li>Use standard functions: <code>sin(x)</code>, <code>exp(x)</code>, etc.</li>
+                                
                             </ul>
                         </div>
                     </div>
@@ -604,33 +595,14 @@
                         </div>
                     </div>
                     <div class="form-group input-syntax-guide">
-                        <div class="info-box">
-                            <h4>Derivative Syntax:</h4>
-                            <ul>
-                                <li>Use <code>x**3</code> for x³ (not <code>x^3</code>)</li>
-                                <li>Use <code>sin(x)</code>, <code>cos(x)</code> for trigonometric functions</li>
-                                <li>Use <code>exp(x)</code> for e^x</li>
-                                <li>Use <code>log(x)</code> for natural logarithm</li>
-                                <li>Order specifies the nth derivative (1st, 2nd, etc.)</li>
-                            </ul>
-                        </div>
+                        
                     </div>
                     <button id="calculate-derivative-btn" class="primary-btn" style="width: 100%;">Calculate</button>
                 </div>
             </div>
             
             <!-- Common Mathematical Functions -->
-            <div class="panel">
-                <h2>📊 Common Functions</h2>
-                <div class="compact-form">
-                    <button class="secondary-btn math-function-btn" data-function="sin(x)">sin(x)</button>
-                    <button class="secondary-btn math-function-btn" data-function="cos(x)">cos(x)</button>
-                    <button class="secondary-btn math-function-btn" data-function="tan(x)">tan(x)</button>
-                    <button class="secondary-btn math-function-btn" data-function="exp(x)">exp(x)</button>
-                    <button class="secondary-btn math-function-btn" data-function="log(x)">log(x)</button>
-                    <button class="secondary-btn math-function-btn" data-function="sqrt(x)">√x</button>
-                </div>
-            </div>
+           
         </div>
 
         <!-- Right Column: Results -->
@@ -646,7 +618,6 @@
             </div>
             <!-- Visualization Panel -->
             <div class="panel">
-                <h2>📈 Visualization</h2>
                 <div class="plot-controls">
                 </div>
                 <div id="math-plot" class="plot-container"></div>

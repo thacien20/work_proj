@@ -517,11 +517,7 @@ function displayResult(data, equation) {
             resultHTML += `<div class="crootof-explanation">
                 <div class="title">About CRootOf Expressions</div>
                 <div class="message">${data.note}</div>
-                <div class="numerical-approximation">
-                    <span class="label">Explanation:</span> 
-                    <p>CRootOf represents roots of high-degree polynomials (like x⁵) that cannot be expressed with simple radicals.</p>
-                    <p>These are exact symbolic solutions, but the numerical approximations are often more practical for use.</p>
-                </div>
+               
             </div>`;
         } else {
             resultHTML += `<div class="complexity-note">
@@ -584,6 +580,12 @@ function displayResult(data, equation) {
             resultHTML += `<div class="plottable-message">
                 <p>This equation has 1 real root at x = ${parseFloat(data.roots[0]).toFixed(4)}. Click "Plot Solution" to visualize the function around this root.</p>
             </div>`;
+            
+            // Show single root warning popup
+            const root = parseFloat(data.roots[0]);
+            if (!isNaN(root) && isFinite(root)) {
+                showSingleRootWarning(root);
+            }
         } else {
             resultHTML += `<div class="plottable-message">
                 <p>This equation has roots that couldn't be calculated analytically. Click "Plot Solution" to visualize the function.</p>
@@ -640,7 +642,7 @@ function displayResult(data, equation) {
                 .complex-math-display { padding: 10px; background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; }
                 .complex-notice { color: #e67e22; margin-bottom: 8px; font-weight: bold; }
                 .complex-hint { color: #666; font-size: 0.85em; margin-top: 8px; }
-                .latex-text-display { max-height: 200px; overflow: auto; padding: 10px; background: #fff; 
+                .latex-text-display { max-height: 100px; overflow: auto; padding: 10px; background: #fff; 
                                      border: 1px solid #eee; font-family: monospace; margin: 0; }
             `;
             document.head.appendChild(style);
@@ -1199,7 +1201,6 @@ window.plotResult = function() {
         alert("No result to plot. Please solve an equation first.");
         return;
     }
-    
     // First check if Plotly is available
     const plotContainer = document.getElementById('math-plot');
     if (!window.Plotly && plotContainer) {
@@ -1247,9 +1248,20 @@ window.plotResult = function() {
     
     // Get the equation from the current tab
     let equation = '';
+    let xMin = -10;
+    let xMax = 10;
+    // Center plot around single root in algebraic mode
+    if (mathlabState.activeTab === 'algebraic' && mathlabState.lastResult && Array.isArray(mathlabState.lastResult.roots) && mathlabState.lastResult.roots.length === 1) {
+        const root = parseFloat(mathlabState.lastResult.roots[0]);
+        if (!isNaN(root) && isFinite(root)) {
+            xMin = root - 5;
+            xMax = root + 5;
+            // Show single root warning dialog
+            showSingleRootWarning(root);
+        }
+    }
     switch (mathlabState.activeTab) {
         case 'algebraic':
-            // For algebraic equations, use original equation or expression from result
             equation = mathlabState.lastResult.expression || document.getElementById('algebraic-equation').value.trim();
             break;
         case 'differential':
@@ -1260,11 +1272,9 @@ window.plotResult = function() {
             }
             break;
         case 'integral':
-            // For integrals, we want to plot the result (antiderivative)
             equation = mathlabState.lastResult.result;
             break;
         case 'derivative':
-            // For derivatives, we want to plot the result (derivative function)
             equation = mathlabState.lastResult.result;
             break;
     }
@@ -1273,9 +1283,9 @@ window.plotResult = function() {
     const plotData = {
         equation: equation,
         type: mathlabState.activeTab,
-        xMin: -10,
-        xMax: 10,
-        points: 200  // More points for smoother curves
+        xMin: xMin,
+        xMax: xMax,
+        points: 1000  // More points for smoother curves
     };
     
     // Add constants for differential equations
