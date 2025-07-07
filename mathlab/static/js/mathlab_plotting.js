@@ -8,85 +8,65 @@
  * Render a plot based on data from the backend
  * @param {Object} plotData - Data from the backend containing plot points
  */
-// Make sure renderPlot is accessible globally
 window.renderPlot = function(plotData) {
     console.log('renderPlot called with:', plotData ? 'data available' : 'no data');
-    // Get the plot container - use 'math-plot' as that's the ID used in HTML
     const plotContainer = document.getElementById('math-plot');
-    
-    // Check if the plot container exists
     if (!plotContainer) {
         console.error('Plot container not found! Make sure there is an element with ID "math-plot".');
         return;
     }
-    
-    // Ensure Plotly is loaded - with improved retry mechanism
+
+    // Ensure Plotly is loaded
     if (!window.Plotly) {
-        console.warn('Plotly not found - attempting to load it dynamically');
-        
-        // Show loading message
+        console.warn('Plotly not found - attempting to load dynamically');
         plotContainer.innerHTML = '<div class="loading">Loading plotting library...</div>';
-        
-        // Check if there's already a script loading Plotly
         const existingScript = document.querySelector('script[src*="plotly-latest.min.js"]');
-        
         if (existingScript) {
-            // A script is already trying to load Plotly, wait for it
-            console.log('Plotly is already being loaded, waiting...');
-            
-            // Setup a timer to check periodically if Plotly becomes available
             let checkAttempts = 0;
             const checkInterval = setInterval(() => {
                 checkAttempts++;
                 if (window.Plotly) {
                     clearInterval(checkInterval);
                     console.log('Plotly now available');
-                    continueRendering();
-                } else if (checkAttempts > 20) { // 10 second timeout (20 * 500ms)
+                    continueRendering(plotContainer, plotData);
+                } else if (checkAttempts > 20) {
                     clearInterval(checkInterval);
                     console.error('Timed out waiting for Plotly to load');
                     plotContainer.innerHTML = '<div class="error">Error: Timed out waiting for plotting library to load. Please refresh the page.</div>';
                 }
             }, 500);
-            
             return;
         }
-        
-        // Try to load Plotly dynamically if it's not already loading
         const script = document.createElement('script');
         script.src = 'https://cdn.plot.ly/plotly-latest.min.js';
         script.crossOrigin = 'anonymous';
-        
-        script.onload = function() {
+        script.onload = () => {
             console.log('Plotly loaded successfully!');
-            // Continue with rendering once Plotly is loaded
-            continueRendering();
+            continueRendering(plotContainer, plotData);
         };
-        
-        script.onerror = function() {
+        script.onerror = () => {
             console.error('Failed to load Plotly dynamically');
             plotContainer.innerHTML = '<div class="error">Error: Failed to load plotting library. Please refresh the page or check your internet connection.</div>';
         };
-        
         document.head.appendChild(script);
         return;
     }
-    
-    // If Plotly is already available, continue rendering
-    continueRendering();
-    
-    // Helper function to continue rendering once Plotly is available
-    function continueRendering() {
-        // Clear previous plot
-        plotContainer.innerHTML = '';
-        
-        if (plotData.plotType === '3d') {
-            render3DPlot(plotContainer, plotData);
-        } else if (plotData.plotType === 'complex') {
-            renderComplexPlot(plotContainer, plotData);
-        } else {
-            render2DPlot(plotContainer, plotData);
-        }
+    continueRendering(plotContainer, plotData);
+}
+
+/**
+ * Continue rendering the plot after Plotly is loaded
+ * @param {HTMLElement} container - The container to render the plot in
+ * @param {Object} plotData - Plot data from the backend
+ */
+function continueRendering(container, plotData) {
+    container.innerHTML = '';
+    if (plotData.plotType === '3d') {
+        if (typeof render3DPlot === 'function') render3DPlot(container, plotData);
+    } else if (plotData.plotType === 'complex') {
+        if (typeof renderComplexPlot === 'function') renderComplexPlot(container, plotData);
+    } else {
+        render2DPlot(container, plotData);
     }
 }
 
@@ -96,115 +76,62 @@ window.renderPlot = function(plotData) {
  * @param {Object} data - Plot data from the backend
  */
 function render2DPlot(container, data) {
-    // Create plot element
     const plotDiv = document.createElement('div');
     plotDiv.className = 'plot-canvas';
     plotDiv.style.width = '100%';
     plotDiv.style.height = '500px';
     container.appendChild(plotDiv);
-    
-    // Check if it's a family of solutions
-    if (data.is_family && data.traces) {
-        // For family of solutions, we have multiple traces
+
+    if (data.traces && Array.isArray(data.traces) && data.traces.length > 0) {
         Plotly.newPlot(plotDiv, data.traces, {
             title: data.title,
-            xaxis: {
-                title: 'x',
-                showgrid: true,
-                zeroline: true
-            },
-            yaxis: {
-                title: 'y',
-                showgrid: true,
-                zeroline: true
-            },
-            showlegend: true,  // Show legend for family of solutions
-            legend: {
-                x: 1,
-                xanchor: 'right',
-                y: 1
-            }
+            xaxis: { title: 'x', showgrid: true, zeroline: true },
+            yaxis: { title: 'y', showgrid: true, zeroline: true },
+            showlegend: true,
+            legend: { x: 1, xanchor: 'right', y: 1 }
         });
-        
         return;
     }
-    
-    // For regular plots
-    const traces = [];
-    
-    // Create main trace for function
-    const mainTrace = {
+
+    const traces = [{
         x: data.x,
         y: data.y,
         mode: 'lines',
-        line: {
-            color: '#4299e1', 
-            width: 3
-        },
+        line: { color: '#4299e1', width: 3 },
         name: 'f(x)',
-        showlegend: false  // Hide legend for single function
-    };
-    traces.push(mainTrace);
-    
-    // Add zero line for reference (only shown if zoomed into a region)
-    const zeroLine = {
+        showlegend: false
+    }, {
         x: data.x,
         y: new Array(data.x.length).fill(0),
         mode: 'lines',
-        line: {
-            color: 'gray',
-            width: 1,
-            dash: 'dash'
-        },
+        line: { color: 'gray', width: 1, dash: 'dash' },
         name: 'y = 0',
         showlegend: false
-    };
-    traces.push(zeroLine);
-    
-    // Check if we have roots data - special highlighting for algebraic equations
+    }];
+
     if (data.roots && data.roots.length > 0) {
-        // Add horizontal line at y = 0 to emphasize the x-axis and roots
         traces.push({
             x: [Math.min(...data.x), Math.max(...data.x)],
             y: [0, 0],
             type: 'scatter',
             mode: 'lines',
-            name: '', // Remove name
-            showlegend: false, // Hide from legend
-            line: {
-                color: 'rgba(0,0,0,0.5)',
-                width: 1,
-                dash: 'dash'
-            },
+            name: '',
+            showlegend: false,
+            line: { color: 'rgba(0,0,0,0.5)', width: 1, dash: 'dash' },
             hoverinfo: 'skip'
-        });
-        
-        // Add markers at roots
-        const rootsX = data.roots.map(root => parseFloat(root));
-        const rootsY = Array(rootsX.length).fill(0);  // All roots have y=0
-        
-        traces.push({
-            x: rootsX,
-            y: rootsY,
+        }, {
+            x: data.roots.map(root => parseFloat(root)),
+            y: Array(data.roots.length).fill(0),
             type: 'scatter',
             mode: 'markers+text',
-            name: '', // Remove name
-            showlegend: false, // Hide from legend
-            text: rootsX.map(root => `x=${root.toFixed(2)}`),
+            name: '',
+            showlegend: false,
+            text: data.roots.map(root => `x=${parseFloat(root).toFixed(2)}`),
             textposition: 'top',
-            marker: {
-                size: 10,
-                color: '#e74c3c',
-                symbol: 'circle',
-                line: {
-                    color: 'white',
-                    width: 2
-                }
-            }
+            marker: { size: 10, color: '#e74c3c', symbol: 'circle', line: { color: 'white', width: 2 } }
         });
     }
-    
-    // Add any additional special points (like critical points, etc.)
+
     if (data.specialPoints && (!data.roots || data.roots.length === 0)) {
         data.specialPoints.forEach(point => {
             traces.push({
@@ -212,96 +139,57 @@ function render2DPlot(container, data) {
                 y: [point.y],
                 type: 'scatter',
                 mode: 'markers+text',
-                name: '', // Remove name
-                showlegend: false, // Hide from legend
+                name: '',
+                showlegend: false,
                 text: point.label,
                 textposition: 'top',
                 marker: {
                     size: 10,
                     color: point.color || '#e74c3c',
                     symbol: point.symbol || 'circle',
-                    line: {
-                        color: 'white',
-                        width: 1
-                    }
+                    line: { color: 'white', width: 1 }
                 },
                 hoverinfo: point.hideHover ? 'skip' : 'x+y+text'
             });
         });
     }
-    
-    // Create layout
+
     const layout = {
         title: {
             text: data.title || 'Function Plot',
-            font: {
-                size: 16,
-                family: 'Inter, Segoe UI, Arial, sans-serif',
-            },
+            font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' },
             xref: 'paper',
-            x: 0.5,  // Center the title
+            x: 0.5,
             yref: 'paper',
             y: 1,
-            pad: {t: 10}
+            pad: { t: 10 }
         },
         autosize: true,
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(255,255,255,0.9)',
-        font: {
-            family: 'Inter, Segoe UI, Arial, sans-serif',
-            color: '#2c3e50'
-        },
-        margin: {
-            l: 60,
-            r: 30,
-            b: 50,
-            t: 50,
-            pad: 4
-        },
-        xaxis: {
-            title: 'x',
-            gridcolor: 'rgba(0,0,0,0.1)',
-            zerolinecolor: '#2c3e50',
-            zerolinewidth: 2
-        },
-        yaxis: {
-            title: 'y',
-            gridcolor: 'rgba(0,0,0,0.1)',
-            zerolinecolor: '#2c3e50',
-            zerolinewidth: 2
-        },
-        hoverlabel: {
-            bgcolor: '#333',
-            font: {color: 'white'}
-        },
-        showlegend: false  // Hide the legend completely
+        font: { family: 'Inter, Segoe UI, Arial, sans-serif', color: '#2c3e50' },
+        margin: { l: 60, r: 30, b: 50, t: 50, pad: 4 },
+        xaxis: { title: 'x', gridcolor: 'rgba(0,0,0,0.1)', zerolinecolor: '#2c3e50', zerolinewidth: 2 },
+        yaxis: { title: 'y', gridcolor: 'rgba(0,0,0,0.1)', zerolinecolor: '#2c3e50', zerolinewidth: 2 },
+        hoverlabel: { bgcolor: '#333', font: { color: 'white' } },
+        showlegend: false
     };
-    
-    // Add any annotations
+
     if (data.annotations) {
         layout.annotations = data.annotations;
     }
-    
-    // Create the plot
+
     Plotly.newPlot(plotDiv, traces, layout, {
         responsive: true,
         displayModeBar: true,
         displaylogo: false,
         modeBarButtonsToRemove: ['lasso2d', 'select2d']
     });
-    
-    // Add event handlers for hover, click, etc.
+
     if (plotDiv && plotDiv.on) {
-        plotDiv.on('plotly_hover', function(eventData) {
-            updateCoordinateDisplay(eventData);
-        });
+        plotDiv.on('plotly_hover', updateCoordinateDisplay);
     }
 }
-
-
-/**
- * 
- */
 
 /**
  * Update the coordinate display when hovering over the plot
@@ -310,7 +198,6 @@ function render2DPlot(container, data) {
 function updateCoordinateDisplay(eventData) {
     const coordinateDisplay = document.getElementById('coordinateDisplay');
     if (!coordinateDisplay) return;
-    
     const point = eventData.points[0];
     coordinateDisplay.innerHTML = `x: ${point.x.toFixed(4)}, y: ${point.y.toFixed(4)}`;
 }
@@ -326,9 +213,7 @@ function updatePlotParameters(equationType) {
         'integral': [-5, 5],
         'derivative': [-5, 5]
     };
-    
     const range = defaultRanges[equationType] || [-10, 10];
-    
     document.getElementById('xMin').value = range[0];
     document.getElementById('xMax').value = range[1];
 }
@@ -339,7 +224,6 @@ function updatePlotParameters(equationType) {
 function savePlot() {
     const plotDiv = document.querySelector('.plot-canvas');
     if (!plotDiv) return;
-    
     Plotly.downloadImage(plotDiv, {
         format: 'png',
         width: 1200,
@@ -354,7 +238,6 @@ function savePlot() {
 function resetPlotView() {
     const plotDiv = document.querySelector('.plot-canvas');
     if (!plotDiv) return;
-    
     Plotly.relayout(plotDiv, {
         'xaxis.autorange': true,
         'yaxis.autorange': true
@@ -368,9 +251,7 @@ function resetPlotView() {
 function toggleGrid(showGrid) {
     const plotDiv = document.querySelector('.plot-canvas');
     if (!plotDiv) return;
-    
     const gridColor = showGrid ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0)';
-    
     Plotly.relayout(plotDiv, {
         'xaxis.gridcolor': gridColor,
         'yaxis.gridcolor': gridColor
@@ -380,15 +261,14 @@ function toggleGrid(showGrid) {
 /**
  * Check if Plotly is properly loaded after page load
  */
-window.addEventListener('load', function() {
-    // Make sure Plotly is available
+window.addEventListener('load', () => {
     if (!window.Plotly) {
         console.warn('Plotly not loaded after page load - attempting to load it');
         const script = document.createElement('script');
         script.src = 'https://cdn.plot.ly/plotly-latest.min.js';
-        script.onload = function() {
-            console.log('Plotly loaded successfully!');
-        };
+        script.crossOrigin = 'anonymous';
+        script.onload = () => console.log('Plotly loaded successfully!');
+        script.onerror = () => console.error('Failed to load Plotly');
         document.head.appendChild(script);
     } else {
         console.log('Plotly loaded successfully on page load');

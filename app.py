@@ -3,6 +3,7 @@ import numpy as np
 import os
 from werkzeug.utils import secure_filename
 from scipy import signal  # Add this import for RC circuit simulation
+from scipy.integrate import quad
 
 from config import Config
 from signal_generation import generate_signal  # <-- updated import
@@ -20,6 +21,7 @@ from circuits_app import circuits_blueprint
 # Import new modular features
 from features.basic_signals import basic_signals_blueprint
 from mathlab import mathlab_bp
+from mathlab.mathlab_app import calculate_integral
 
 app = Flask(__name__, static_folder=Config.STATIC_FOLDER)
 app.config.from_object(Config)
@@ -414,6 +416,29 @@ def ifft_endpoint():
         })
     except Exception as e:
         return jsonify({'error': f'iFFT computation failed: {str(e)}'}), 500
+
+@app.route('/evaluate_integral', methods=['POST'])
+def evaluate_integral():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        # Use the shared calculate_integral function
+        result = calculate_integral(data)
+        if 'result' in result and 'latex' in result:
+            # For plotting, also return x/y if available (for definite integrals)
+            response = {
+                'result': result['result'],
+                'latex': result['latex']
+            }
+            if 'x' in result and 'y' in result:
+                response['x'] = result['x']
+                response['y'] = result['y']
+            return jsonify(response)
+        else:
+            return jsonify({'error': result.get('result', 'Integral computation failed')}), 400
+    except Exception as e:
+        return jsonify({'error': f'Integral computation failed: {str(e)}'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

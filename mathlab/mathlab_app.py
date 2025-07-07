@@ -524,9 +524,45 @@ def plot_equation():
             root_points = []
             title = f"Integral of {equation}"
         elif eq_type == 'derivative':
-            y = evaluate_derivative(equation, x)
+            # Plot both the original expression and its derivative
+            original_expr_str = equation
+            x_sym = sp.symbols('x')
+            try:
+                original_expr = sp.sympify(original_expr_str)
+                derivative_expr = sp.diff(original_expr, x_sym)
+                y_original = safe_lambdify(original_expr, x)
+                y_derivative = safe_lambdify(derivative_expr, x)
+            except Exception as e:
+                return jsonify({'error': f"Error evaluating expressions for plotting: {str(e)}"})
             root_points = []
-            title = f"Derivative of {equation}"
+            title = f"Original: {original_expr_str}<br>Derivative: {sp.latex(derivative_expr)}"
+            traces = [
+                {
+                    'x': x.tolist(),
+                    'y': y_original.tolist(),
+                    'mode': 'lines',
+                    'name': 'Original',
+                    'line': {'color': '#3182ce', 'width': 3}
+                },
+                {
+                    'x': x.tolist(),
+                    'y': y_derivative.tolist(),
+                    'mode': 'lines',
+                    'name': 'Derivative',
+                    'line': {'color': '#e74c3c', 'width': 3, 'dash': 'dash'}
+                }
+            ]
+            return jsonify({
+                'traces': traces,
+                'title': title,
+                'plotType': '2d',
+                'label': equation,
+                'specialPoints': [],
+                'roots': [],
+                'hasComplex': not (np.all(np.isreal(y_original)) and np.all(np.isreal(y_derivative))),
+                'filteredPercentage': 0,
+                'singleRootWarning': False
+            })
         else:
             return jsonify({'error': 'Invalid equation type'})
         # Only 2D plot supported
@@ -557,6 +593,24 @@ def plot_equation():
         })
     except Exception as e:
         return jsonify({'error': str(e)})
+
+def safe_lambdify(expr, x_values):
+    """
+    Evaluate a sympy expression safely for plotting, handling sqrt and log for negative values.
+    Returns real values where possible, NaN otherwise.
+    """
+    x_sym = sp.symbols('x')
+    # Try to use numpy with complex support, but only return real part where imag is close to zero
+    f = sp.lambdify(x_sym, expr, modules=["numpy"])
+    y = f(x_values)
+    # If result is complex, set values with significant imaginary part to NaN
+    if np.iscomplexobj(y):
+        y_real = np.real(y)
+        y_imag = np.imag(y)
+        # Set to NaN where imaginary part is significant (e.g., > 1e-8)
+        y_real[np.abs(y_imag) > 1e-8] = np.nan
+        return y_real
+    return y
 
 def evaluate_algebraic(equation_str, x_values, roots=None):
     """Evaluate an algebraic expression for given x values"""
@@ -597,158 +651,6 @@ def evaluate_algebraic(equation_str, x_values, roots=None):
         return y, special_points
     except Exception as e:
         raise ValueError(f"Error evaluating expression: {str(e)}")
-
-def evaluate_differential_solution(equation_str, x_values, constants_mode='auto', constants=None, family_params=None):
-    """Evaluate the solution to a differential equation for given x values"""
-    try:
-        # Solve the differential equation first
-        result = solve_differential(equation_str)
-        
-        if 'error' in result:
-            raise ValueError(result['error'])
-            
-        solution = result.get('solution', '')
-        
-        # Extract the solution function (assuming it's in the form y(x) = ...)
-        if '=' in solution:
-            solution_expr = solution.split('=')[1].strip()
-            
-            # Extract constants (C1, C2, etc.) from the solution
-            const_pattern = r'C(\d+)'
-            import re
-            const_matches = re.findall(const_pattern, solution_expr)
-            const_names = [f'C{i}' for i in const_matches]
-            
-            # Handle constants based on mode
-            if constants_mode == 'auto':
-                # Auto-generate random constants between -5 and 5
-                import random
-                auto_constants = {f'C{i}': random.uniform(-5, 5) for i in const_matches}
-                for const_name, const_value in auto_constants.items():
-                    solution_expr = solution_expr.replace(const_name, str(const_value))
-                    
-                # Convert to numpy function with substituted constants
-                x_sym = sp.symbols('x')
-                try:
-                    # Use our helper function to safely parse expressions
-                    if 'y(x)' in solution_expr:
-                        y_expr = parse_solution_expression(f"y(x) = {solution_expr}")
-                    else:
-                        y_expr = sp.sympify(solution_expr, locals={'x': x_sym, 'exp': sp.exp})
-                    f = sp.lambdify(x_sym, y_expr, 'numpy')
-                except Exception as e:
-                    raise ValueError(f"Error parsing solution expression: {str(e)}")
-                
-                # Evaluate function for all x values
-                y = f(x_values)
-                return y, auto_constants
-                
-            elif constants_mode == 'custom':
-                # Use user-provided constants
-                if not constants:
-                    constants = {}
-                    
-                # For any missing constants, use default value of 1
-                for const_name in const_names:
-                    if const_name not in constants:
-                        constants[const_name] = 1.0
-                
-                # Substitute constants in the solution
-                for const_name, const_value in constants.items():
-                    solution_expr = solution_expr.replace(const_name, str(const_value))
-                
-                # Convert to numpy function with substituted constants
-                x_sym = sp.symbols('x')
-                try:
-                    # Use our helper function to safely parse expressions
-                    if 'y(x)' in solution_expr:
-                        y_expr = parse_solution_expression(f"y(x) = {solution_expr}")
-                    else:
-                        y_expr = sp.sympify(solution_expr, locals={'x': x_sym, 'exp': sp.exp})
-                    f = sp.lambdify(x_sym, y_expr, 'numpy')
-                except Exception as e:
-                    raise ValueError(f"Error parsing solution expression: {str(e)}")
-                
-                # Evaluate function for all x values
-                y = f(x_values)
-                return y, constants
-                
-            elif constants_mode == 'family':
-                # Generate a family of solutions by varying one constant
-                if not family_params:
-                    family_params = {
-                        'constant': 'C1',
-                        'min': -5,
-                        'max': 5,
-                        'count': 5
-                    }
-                
-                family_constant = family_params.get('constant', 'C1')
-                family_min = float(family_params.get('min', -5))
-                family_max = float(family_params.get('max', 5))
-                family_count = int(family_params.get('count', 5))
-                
-                # Generate values for the family constant
-                family_values = np.linspace(family_min, family_max, family_count)
-                
-                # For other constants, use default value of 1
-                default_constants = {const: 1.0 for const in const_names if const != family_constant}
-                
-                solutions = []
-                for value in family_values:
-                    # Make a copy of the solution expression
-                    current_expr = solution_expr
-                    
-                    # Substitute the family constant
-                    current_expr = current_expr.replace(family_constant, str(value))
-                    
-                    # Substitute default values for other constants
-                    for const_name, const_value in default_constants.items():
-                        current_expr = current_expr.replace(const_name, str(const_value))
-                    
-                    # Convert to numpy function
-                    x_sym = sp.symbols('x')
-                    try:
-                        # Use our helper function to safely parse expressions
-                        if 'y(x)' in current_expr:
-                            y_expr = parse_solution_expression(f"y(x) = {current_expr}")
-                        else:
-                            y_expr = sp.sympify(current_expr, locals={'x': x_sym, 'exp': sp.exp})
-                        f = sp.lambdify(x_sym, y_expr, 'numpy')
-                    except Exception as e:
-                        raise ValueError(f"Error parsing solution expression: {str(e)}")
-                    
-                    # Evaluate function for all x values
-                    y = f(x_values)
-                    solutions.append({
-                        'y': y,
-                        'constant_value': value,
-                        'constant_name': family_constant
-                    })
-                
-                return solutions, family_params
-            
-        else:
-            raise ValueError("Could not extract solution from differential equation")
-    except Exception as e:
-        raise ValueError(f"Error evaluating differential solution: {str(e)}")
-
-def evaluate_integral(equation_str, x_values):
-    """Evaluate the indefinite integral for given x values"""
-    try:
-        # Calculate the indefinite integral
-        x_sym = sp.symbols('x')
-        expr = sp.sympify(equation_str)
-        integral = sp.integrate(expr, x_sym)
-        
-        # Convert to numpy function
-        f = sp.lambdify(x_sym, integral, 'numpy')
-        
-        # Evaluate function for all x values
-        y = f(x_values)
-        return y
-    except Exception as e:
-        raise ValueError(f"Error evaluating integral: {str(e)}")
 
 def evaluate_derivative(equation_str, x_values):
     """Evaluate the derivative for given x values"""
@@ -921,7 +823,6 @@ def parse_solution_expression(solution_str):
     if '=' in solution_str:
         # Split at the equals sign and take the right side
         solution_expr = solution_str.split('=', 1)[1].strip()
-        
         try:
             # Try to parse the right-hand side expression
             x = sp.Symbol('x')
@@ -937,3 +838,116 @@ def parse_solution_expression(solution_str):
             return sp.sympify(solution_str)
         except Exception as e:
             return f"Could not parse '{solution_str}': {str(e)}"
+
+def evaluate_differential_solution(equation_str, x_values, constants_mode='auto', constants=None, family_params=None):
+    """
+    Evaluate the solution to a differential equation for given x values.
+    Returns either (y, used_constants) or (solutions, family_params) for family mode.
+    """
+    try:
+        # Solve the differential equation first
+        result = solve_differential(equation_str)
+        if 'error' in result:
+            raise ValueError(result['error'])
+        solution = result.get('solution', '')
+        # Extract the solution function (assuming it's in the form y(x) = ...)
+        if '=' in solution:
+            solution_expr = solution.split('=', 1)[1].strip()
+            # Extract constants (C1, C2, etc.) from the solution
+            const_pattern = r'C(\d+)'
+            import re
+            const_matches = re.findall(const_pattern, solution_expr)
+            const_names = [f'C{i}' for i in const_matches]
+            # Handle constants based on mode
+            if constants_mode == 'auto':
+                import random
+                auto_constants = {f'C{i}': random.uniform(-5, 5) for i in const_matches}
+                for const_name, const_value in auto_constants.items():
+                    solution_expr = solution_expr.replace(const_name, str(const_value))
+                x_sym = sp.symbols('x')
+                try:
+                    y_expr = sp.sympify(solution_expr, locals={'x': x_sym, 'exp': sp.exp})
+                    f = sp.lambdify(x_sym, y_expr, 'numpy')
+                except Exception as e:
+                    raise ValueError(f"Error parsing solution expression: {str(e)}")
+                y = f(x_values)
+                return y, auto_constants
+            elif constants_mode == 'custom':
+                if not constants:
+                    constants = {}
+                for const_name in const_names:
+                    if const_name not in constants:
+                        constants[const_name] = 1.0
+                for const_name, const_value in constants.items():
+                    solution_expr = solution_expr.replace(const_name, str(const_value))
+                x_sym = sp.symbols('x')
+                try:
+                    y_expr = sp.sympify(solution_expr, locals={'x': x_sym, 'exp': sp.exp})
+                    f = sp.lambdify(x_sym, y_expr, 'numpy')
+                except Exception as e:
+                    raise ValueError(f"Error parsing solution expression: {str(e)}")
+                y = f(x_values)
+                return y, constants
+            elif constants_mode == 'family':
+                if not family_params:
+                    family_params = {
+                        'constant': 'C1',
+                        'min': -5,
+                        'max': 5,
+                        'count': 5
+                    }
+                family_constant = family_params.get('constant', 'C1')
+                family_min = float(family_params.get('min', -5))
+                family_max = float(family_params.get('max', 5))
+                family_count = int(family_params.get('count', 5))
+                family_values = np.linspace(family_min, family_max, family_count)
+                default_constants = {const: 1.0 for const in const_names if const != family_constant}
+                solutions = []
+                for value in family_values:
+                    current_expr = solution_expr
+                    current_expr = current_expr.replace(family_constant, str(value))
+                    for const_name, const_value in default_constants.items():
+                        current_expr = current_expr.replace(const_name, str(const_value))
+                    x_sym = sp.symbols('x')
+                    try:
+                        y_expr = sp.sympify(current_expr, locals={'x': x_sym, 'exp': sp.exp})
+                        f = sp.lambdify(x_sym, y_expr, 'numpy')
+                    except Exception as e:
+                        raise ValueError(f"Error parsing solution expression: {str(e)}")
+                    y = f(x_values)
+                    solutions.append({
+                        'y': y,
+                        'constant_value': value,
+                        'constant_name': family_constant
+                    })
+                return solutions, family_params
+        else:
+            raise ValueError("Could not extract solution from differential equation")
+    except Exception as e:
+        raise ValueError(f"Error evaluating differential solution: {str(e)}")
+
+def evaluate_integral(equation_str, x_values):
+    """
+    Given an indefinite integral expression (as a string), evaluate it at each x in x_values,
+    substituting C1=1 if present. No integration is performed here; just plug in values.
+    """
+    try:
+        # equation_str is the original function to integrate, not the integral itself
+        expr = sp.sympify(preprocess_equation(equation_str))
+        x_sym = sp.symbols('x')
+        C1 = sp.Symbol('C1')
+        # Compute the indefinite integral symbolically
+        integral_expr = sp.integrate(expr, x_sym)
+        # Substitute C1 with 1 if present
+        integral_expr = integral_expr.subs(C1, 1)
+        # Evaluate the integral expression at each x value
+        y = []
+        for val in x_values:
+            try:
+                y_val = float(integral_expr.subs(x_sym, float(val)))
+            except Exception:
+                y_val = float('nan')
+            y.append(y_val)
+        return y
+    except Exception as e:
+        raise ValueError(f"Error evaluating integral: {str(e)}")
