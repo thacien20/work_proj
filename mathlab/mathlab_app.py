@@ -36,7 +36,7 @@ def preprocess_equation(equation_str):
 
     return equation_str
 
-@mathlab_bp.route('/mathlab')
+@mathlab_bp.route('/mathlab', strict_slashes=False)
 def mathlab():
     """Render the MathLab main page"""
     return render_template('mathlab.html')
@@ -445,10 +445,10 @@ def plot_equation():
     eq_type = data.get('type', 'algebraic')
     # Only support 2D plots now
     try:
-        # Get plot range
-        x_min = float(data.get('xMin', -10))
-        x_max = float(data.get('xMax', 10))
-        points = int(data.get('points', 100))
+        # Set new defaults: xMin = -15, xMax = 15, points = 200
+        x_min = float(data.get('xMin', -15))
+        x_max = float(data.get('xMax', 15))
+        points = int(data.get('points', 200))
         roots = data.get('roots', [])
         if roots:
             if len(roots) >= 2:

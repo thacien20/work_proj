@@ -41,13 +41,22 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    align-items: flex-start;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
+    max-width: fit-content;
 }
 
 /* Right Column - Visualization */
 .right-column {
-    display: flex;
+    display: block;
     flex-direction: column;
     gap: 20px;
+   
 }
 
 /* Responsive Design */
