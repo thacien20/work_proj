@@ -721,4 +721,4 @@ def process_crootof_expressions(solution, numerical=True):
 
 # Ensure this is at the bottom of the file and NOT inside any function or conditional
 # This allows 'from .mathlab_app import mathlab_bp' to work for Flask blueprints
-__all__ = ['mathlab_bp']
+#__all__ = ['mathlab_bp']
