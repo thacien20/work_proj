@@ -46,7 +46,6 @@ def solve_equation():
                 response_data = {
                     'solution': result['solution'],
                     'latex': convert_to_latex(result['solution']),
-                    'roots': result.get('roots', []),
                     'expression': result.get('expression', ''),
                     'equation_type': result.get('equation_type', ''),
                     'has_crootof': result.get('has_crootof', False)
@@ -123,16 +122,8 @@ def solve_algebraic(equation_str):
             solution = sp.solve(eq, x)
             expr = sp.sympify(left.strip()) - sp.sympify(right.strip())
             solution_str, crootof_note, has_crootof = process_crootof_expressions(solution)
-            numerical_roots = []
-            for root in solution:
-                try:
-                    if hasattr(root, 'is_real') and root.is_real:
-                        numerical_roots.append(float(root.evalf()))
-                except:
-                    pass
             result = {
                 'solution': solution_str,
-                'roots': numerical_roots,
                 'expression': str(expr),
                 'equation_type': 'polynomial' if isinstance(expr, sp.Poly) or expr.is_polynomial() else 'general',
                 'has_crootof': has_crootof
@@ -145,7 +136,7 @@ def solve_algebraic(equation_str):
             solution = sp.simplify(expr)
             return {
                 'solution': str(solution),
-                'expression': str(expr)
+                'expression': str(expr),
             }
     except Exception as e:
         return f"Error: {str(e)}"
@@ -345,26 +336,28 @@ def plot_equation():
         x_min = float(data.get('xMin', -15))
         x_max = float(data.get('xMax', 15))
         points = int(data.get('points', 200))
-        roots = data.get('roots', [])
-        if roots:
-            if len(roots) >= 2:
-                sorted_roots = sorted(roots)
-                padding = (sorted_roots[-1] - sorted_roots[0]) * 0.2
-                x_min = min(sorted_roots) - padding
-                x_max = max(sorted_roots) + padding
-            elif len(roots) == 1:
-                root = float(roots[0])
-                x_min = root - 5
-                x_max = root + 5
-                single_root_approximation = True
-        else:
-            single_root_approximation = False
+        # Remove all root logic for algebraic equations
         x = np.linspace(x_min, x_max, points)
-        
         if eq_type == 'algebraic':
-            y, root_points = evaluate_algebraic(equation, x, roots)
+            # Only plot the main function curve, no overlays or root markers
+            y = evaluate_algebraic(equation, x)
             title = f"{equation}"
-            single_root_warning = len(roots) == 1 and single_root_approximation
+            single_root_warning = False
+            y_values = np.array(y, dtype=np.float64)
+            valid_indices = np.isfinite(y_values)
+            x_filtered = x[valid_indices].tolist()
+            y_filtered = y_values[valid_indices].tolist()
+            filtered_percentage = (len(y_values) - np.sum(valid_indices)) / len(y_values) * 100 if len(y_values) > 0 else 0
+            return jsonify({
+                'x': x_filtered,
+                'y': y_filtered,
+                'title': title,
+                'label': equation,
+                'plotType': '2d',
+                'hasComplex': False,
+                'filteredPercentage': filtered_percentage,
+                'singleRootWarning': single_root_warning
+            })
         elif eq_type == 'differential':
             constants_mode = data.get('constantsMode', 'auto')
             constants = data.get('constants', {})
@@ -426,7 +419,6 @@ def plot_equation():
             valid_indices = np.isfinite(y_values)
             x_filtered = x[valid_indices].tolist()
             y_filtered = y_values[valid_indices].tolist()
-            root_points = []
             title = f"Integral of {equation}"
         elif eq_type == 'derivative':
             original_expr_str = equation
@@ -438,7 +430,6 @@ def plot_equation():
                 y_derivative = safe_lambdify(derivative_expr, x)
             except Exception as e:
                 return jsonify({'error': f"Error evaluating expressions for plotting: {str(e)}"})
-            root_points = []
             title = f"Original: {original_expr_str}<br>Derivative: {sp.latex(derivative_expr)}"
             traces = [
                 {
@@ -475,21 +466,15 @@ def plot_equation():
         x_filtered = x[valid_indices].tolist()
         y_filtered = y_values[valid_indices].tolist()
         filtered_percentage = (len(y_values) - np.sum(valid_indices)) / len(y_values) * 100 if len(y_values) > 0 else 0
-        special_points = root_points if roots else find_special_points(equation, x_min, x_max)
-        single_root_warning = False
-        if roots and len(roots) == 1 and 'single_root_approximation' in locals() and single_root_approximation:
-            single_root_warning = True
         return jsonify({
             'x': x_filtered,
             'y': y_filtered,
             'title': title,
             'label': equation,
-            'specialPoints': special_points,
-            'roots': roots if roots else [],
             'plotType': '2d',
             'hasComplex': False,
             'filteredPercentage': filtered_percentage,
-            'singleRootWarning': single_root_warning
+            'singleRootWarning': False
         })
     except Exception as e:
         return jsonify({'error': str(e)})
@@ -506,7 +491,7 @@ def safe_lambdify(expr, x_values):
     return y
 
 def evaluate_algebraic(equation_str, x_values, roots=None):
-    """Evaluate an algebraic expression for given x values"""
+    """Evaluate an algebraic expression for given x values and prepare vertical lines for real roots only."""
     try:
         equation_str = preprocess_equation(equation_str)
         if '=' in equation_str:
@@ -517,17 +502,7 @@ def evaluate_algebraic(equation_str, x_values, roots=None):
         x_sym = sp.symbols('x')
         f = sp.lambdify(x_sym, expr, 'numpy')
         y = f(x_values)
-        special_points = []
-        if roots and isinstance(roots, list):
-            for root in roots:
-                special_points.append({
-                    'x': float(root),
-                    'y': 0,
-                    'label': f'Root: x = {root:.4f}',
-                    'color': '#e74c3c',
-                    'showlegend': False
-                })
-        return y, special_points
+        return y
     except Exception as e:
         raise ValueError(f"Error evaluating expression: {str(e)}")
 

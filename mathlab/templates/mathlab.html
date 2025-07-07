@@ -635,6 +635,7 @@
                 <div class="result-display">
                     <div id="result-placeholder">Enter an equation and click Solve to see the results here.</div>
                     <div id="math-result" class="math-expression" style="display: none;"></div>
+                    <div id="latex-result" class="latex-expression" style="display: none;"></div>
                 </div>
             </div>
             <!-- Visualization Panel -->
@@ -644,7 +645,6 @@
                 <div id="math-plot" class="plot-container"></div>
                 <div class="action-buttons">
                     <button id="plot-equation-btn" class="secondary-btn">Plot Results</button>
-                    <button id="plot-solution-btn" class="secondary-btn">Plot Solution</button>
                 </div>
             </div>
         </div>
@@ -668,18 +668,6 @@
                             e.preventDefault();
                             if (typeof window.plotEquation === 'function') {
                                 window.plotEquation();
-                            } else {
-                                alert('Plotting function not found. Make sure mathlab_plotting.js and mathlab_ui.js are loaded.');
-                            }
-                            return false;
-                        };
-                    }
-                    const plotSolutionBtn = document.getElementById('plot-solution-btn');
-                    if (plotSolutionBtn) {
-                        plotSolutionBtn.onclick = function(e) {
-                            e.preventDefault();
-                            if (typeof window.plotResult === 'function') {
-                                window.plotResult();
                             } else {
                                 alert('Plotting function not found. Make sure mathlab_plotting.js and mathlab_ui.js are loaded.');
                             }
@@ -807,29 +795,6 @@
             if (placeholder) placeholder.style.display = 'none';
         });
     };
-</script>
-<script>
-    // Hide/show "Plot Solution" button based on active tab
-    document.addEventListener('DOMContentLoaded', function () {
-        const plotSolutionBtn = document.getElementById('plot-solution-btn');
-        const tabButtons = document.querySelectorAll('.tab-button');
-        function updatePlotSolutionVisibility() {
-            // Only show for Algebraic tab
-            const algebraicTab = document.getElementById('tab-algebraic');
-            if (!plotSolutionBtn || !algebraicTab) return;
-            if (algebraicTab.getAttribute('aria-selected') === 'true') {
-                plotSolutionBtn.style.display = '';
-            } else {
-                plotSolutionBtn.style.display = 'none';
-            }
-        }
-        // Initial check
-        updatePlotSolutionVisibility();
-        // Update on tab click
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', updatePlotSolutionVisibility);
-        });
-    });
 </script>
 <script>
     // Calculate integral function for the "Calculate" button

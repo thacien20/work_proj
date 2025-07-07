@@ -9,6 +9,7 @@
  * @param {Object} plotData - Data from the backend containing plot points
  */
 window.renderPlot = function(plotData) {
+    // Removed verbose debug log for plotData
     console.log('renderPlot called with:', plotData ? 'data available' : 'no data');
     const plotContainer = document.getElementById('math-plot');
     if (!plotContainer) {
@@ -123,29 +124,6 @@ function render2DPlot(container, data) {
         showlegend: false
     }];
 
-    if (data.roots && data.roots.length > 0) {
-        traces.push({
-            x: [Math.min(...data.x), Math.max(...data.x)],
-            y: [0, 0],
-            type: 'scatter',
-            mode: 'lines',
-            name: '',
-            showlegend: false,
-            line: { color: 'rgba(0,0,0,0.5)', width: 1, dash: 'dash' },
-            hoverinfo: 'skip'
-        }, {
-            x: data.roots.map(root => parseFloat(root)),
-            y: Array(data.roots.length).fill(0),
-            type: 'scatter',
-            mode: 'markers+text',
-            name: '',
-            showlegend: false,
-            text: data.roots.map(root => `x=${parseFloat(root).toFixed(2)}`),
-            textposition: 'top',
-            marker: { size: 10, color: '#e74c3c', symbol: 'circle', line: { color: 'white', width: 2 } }
-        });
-    }
-
     if (data.specialPoints && (!data.roots || data.roots.length === 0)) {
         data.specialPoints.forEach(point => {
             traces.push({
@@ -188,10 +166,6 @@ function render2DPlot(container, data) {
         hoverlabel: { bgcolor: '#333', font: { color: 'white' } },
         showlegend: false
     };
-
-    if (data.annotations) {
-        layout.annotations = data.annotations;
-    }
 
     Plotly.newPlot(plotDiv, traces, layout, {
         responsive: true,

@@ -41,23 +41,18 @@
 }
 
 /* Result styling */
-.solution, .roots {
+.solution {
     margin-top: 0.5rem;
 }
 
-.solution .label, .roots .label {
+.solution .label {
     color: #4299e1;
     margin-right: 0.5rem;
     font-weight: 500;
 }
 
-.solution .value, .roots .value {
+.solution .value {
     color: #f1f1f1;
-}
-
-.roots .value {
-    color: #e74c3c;
-    font-weight: 500;
 }
 
 .plottable-message {

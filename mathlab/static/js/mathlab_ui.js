@@ -103,17 +103,6 @@ function initializeMathLab() {
     } else {
         console.error('Plot equation button not found');
     }
-
-    const plotSolutionBtn = document.getElementById('plot-solution-btn');
-    if (plotSolutionBtn) {
-        // Remove any existing listeners to avoid duplication
-        plotSolutionBtn.removeEventListener('click', plotResult);
-        // Add the listener
-        plotSolutionBtn.addEventListener('click', plotResult);
-        console.log('Plot solution button listener attached');
-    } else {
-        console.error('Plot solution button not found');
-    }
     
     // Initialize constants handling for differential equations
     initializeConstantsHandling();
@@ -463,7 +452,7 @@ function solveEquation(type = null) {
 /**
  * Display the solution result
  */
-function displayResult(data) {
+function displayResult(data, originalEquation) {
     const resultPlaceholder = document.getElementById('result-placeholder');
     const mathResult = document.getElementById('math-result');
     const latexResult = document.getElementById('latex-result');
@@ -481,14 +470,15 @@ function displayResult(data) {
         return;
     }
 
-    // Store result for potential plotting
+    // Store result for potential plotting, including the original equation
+    data.originalEquation = originalEquation;
     mathlabState.lastResult = data;
 
     // Display the result (plain text only, no LaTeX)
     mathResult.innerHTML = `
         <div class="solution">
             <span class="label">Result:</span>
-            <span class="value">${data.result}</span>
+            <span class="value">${data.result || data.solution}</span>
         </div>
     `;
     mathResult.style.display = 'block';
@@ -725,202 +715,6 @@ window.plotEquation = function() {
 }
 
 /**
- * Plot the last result
- */
-// Make plotResult accessible globally
-window.plotResult = function() {
-    console.log('plotResult function called');
-    if (!mathlabState.lastResult) {
-        alert("No result to plot. Please solve an equation first.");
-        return;
-    }
-    // First check if Plotly is available
-    const plotContainer = document.getElementById('math-plot');
-    if (!window.Plotly && plotContainer) {
-        plotContainer.innerHTML = '<div class="loading">Loading plotting library...</div>';
-        
-        // Check if there's already a script loading Plotly
-        const existingScript = document.querySelector('script[src*="plotly-latest.min.js"]');
-        
-        if (existingScript) {
-            // A script is already trying to load Plotly, wait for it
-            console.log('Plotly is already being loaded, waiting...');
-            
-            // Setup a timer to check periodically if Plotly becomes available
-            let checkAttempts = 0;
-            const checkInterval = setInterval(() => {
-                checkAttempts++;
-                if (window.Plotly) {
-                    clearInterval(checkInterval);
-                    console.log('Plotly now available');
-                    plotResult();
-                } else if (checkAttempts > 20) { // 10 second timeout (20 * 500ms)
-                    clearInterval(checkInterval);
-                    console.error('Timed out waiting for Plotly to load');
-                    plotContainer.innerHTML = '<div class="error">Error: Timed out waiting for plotting library to load. Please refresh the page.</div>';
-                }
-            }, 500);
-            
-            return;
-        }
-        
-        // Try to load Plotly dynamically if needed
-        const script = document.createElement('script');
-        script.src = 'https://cdn.plot.ly/plotly-latest.min.js';
-        script.crossOrigin = 'anonymous';
-        script.onload = function() {
-            // Once loaded, retry the plotting
-            plotResult();
-        };
-        script.onerror = function() {
-            plotContainer.innerHTML = '<div class="error">Error: Failed to load plotting library. Please refresh the page.</div>';
-        };
-        document.head.appendChild(script);
-        return;
-    }
-    
-    // Get the equation from the current tab
-    let equation = '';
-    let xMin = -10;
-    let xMax = 10;
-    // Center plot around single root in algebraic mode
-    if (mathlabState.activeTab === 'algebraic' && mathlabState.lastResult && Array.isArray(mathlabState.lastResult.roots) && mathlabState.lastResult.roots.length === 1) {
-        const root = parseFloat(mathlabState.lastResult.roots[0]);
-        if (!isNaN(root) && isFinite(root)) {
-            xMin = root - 5;
-            xMax = root + 5;
-            // Show single root warning dialog
-            showSingleRootWarning(root);
-        }
-    }
-    switch (mathlabState.activeTab) {
-        case 'algebraic':
-            equation = mathlabState.lastResult.expression || document.getElementById('algebraic-equation').value.trim();
-            break;
-        case 'differential':
-            equation = mathlabState.lastResult.solution;
-            if (!equation) {
-                alert("No solution available to plot.");
-                return;
-            }
-            break;
-        case 'integral':
-            equation = mathlabState.lastResult.result;
-            break;
-        case 'derivative':
-            equation = mathlabState.lastResult.result;
-            break;
-    }
-    // Prepare plot data
-    const plotData = {
-        equation: equation,
-        type: mathlabState.activeTab,
-        xMin: xMin,
-        xMax: xMax,
-        points: 1000  // More points for smoother curves
-    };
-    // For derivative plots, force label and title from the visible Solution text
-    if (mathlabState.activeTab === 'derivative') {
-        // Try to get the plain text from the Results panel
-        let solutionText = '';
-        const mathResultDiv = document.getElementById('math-result');
-        if (mathResultDiv) {
-            // Try to extract the text after 'Solution:' if present
-            const match = mathResultDiv.textContent.match(/Solution:\s*(.*)/i);
-            if (match && match[1]) {
-                solutionText = match[1].trim();
-            } else {
-                solutionText = mathResultDiv.textContent.trim();
-            }
-        }
-        // Fallback to lastResult.result if nothing found
-        if (!solutionText && mathlabState.lastResult && mathlabState.lastResult.result) {
-            solutionText = mathlabState.lastResult.result;
-        }
-        // Sanitize: remove LaTeX-like artifacts (backslashes, braces, \left, \right, etc.)
-        solutionText = solutionText
-            .replace(/\\left|\\right/g, '')
-            .replace(/\\/g, '')
-            .replace(/[{}]/g, '')
-            .replace(/\^/g, '^')
-            .replace(/\_/g, '_')
-            .replace(/\tan/g, 'tan')
-            .replace(/\cos/g, 'cos')
-            .replace(/\sin/g, 'sin')
-            .replace(/\exp/g, 'exp')
-            .replace(/\log/g, 'log')
-            .replace(/\sqrt/g, 'sqrt')
-            .replace(/\cdot/g, '*')
-            .replace(/\operatorname\{([^}]*)\}/g, '$1')
-            .replace(/\mathrm\{([^}]*)\}/g, '$1')
-            .replace(/\,|\!/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        plotData.label = solutionText;
-        plotData.title = solutionText;
-    }
-    // Add constants for differential equations
-    if (mathlabState.activeTab === 'differential') {
-        const constantsMode = document.getElementById('constants-mode')?.value || 'auto';
-        plotData.constantsMode = constantsMode;
-
-        if (constantsMode === 'custom') {
-            const constants = {};
-            const constantInputs = document.querySelectorAll('.constant-input');
-            constantInputs.forEach(input => {
-                const name = input.getAttribute('data-constant');
-                const value = parseFloat(input.value);
-                if (!isNaN(value)) {
-                    constants[name] = value;
-                }
-            });
-            plotData.constants = constants;
-        } else if (constantsMode === 'family') {
-            plotData.familyConstant = document.getElementById('family-constant')?.value || 'C1';
-            plotData.familyMin = parseFloat(document.getElementById('family-min')?.value || -5);
-            plotData.familyMax = parseFloat(document.getElementById('family-max')?.value || 5);
-            plotData.familyCount = parseInt(document.getElementById('family-count')?.value || 5);
-        }
-    }
-    
-    // Show loading state
-    if (plotContainer) {
-        plotContainer.innerHTML = '<div class="loading">Generating plot from solution...</div>';
-    }
-    
-    // Send request to backend
-    fetch('/mathlab/plot', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(plotData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Plot backend response:', data); // Debug log
-        if (data.error) {
-            if (plotContainer) {
-                plotContainer.innerHTML = `<div class="error">${data.error}</div>`;
-            }
-            return;
-        }
-        
-        // Store plot data
-        mathlabState.plotData = data;
-        
-        // Render the plot
-        renderPlot(data);
-    })
-    .catch(error => {
-        const mathPlotContainer = document.getElementById('math-plot');
-        if (mathPlotContainer) {
-            mathPlotContainer.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-        }
-    });
-}
-
-/**
  * Insert a math function into the active input field
  * @param {string} funcText - The function text to insert
  */
@@ -1005,9 +799,6 @@ function processDiffEqSolution(data) {
         <div class="solution">
             <span class="label">Solution:</span>
             <span class="value">${data.solution}</span>
-        </div>
-        <div class="plottable-message">
-            <p>This solution can be visualized. Use the "Plot Solution" button.</p>
         </div>
     `;
     mathResult.style.display = 'block';
@@ -1130,16 +921,6 @@ function ensureButtonsInitialized() {
         // Add direct onclick attribute as fallback
         plotEquationBtn.setAttribute('onclick', 'plotEquation(); return false;');
     }
-    
-    const plotSolutionBtn = document.getElementById('plot-solution-btn');
-    if (plotSolutionBtn) {
-        plotSolutionBtn.removeEventListener('click', plotResult); // Remove any existing to avoid duplicates
-        plotSolutionBtn.addEventListener('click', plotResult);
-        console.log('Plot solution button re-initialized');
-        
-        // Add direct onclick attribute as fallback
-        plotSolutionBtn.setAttribute('onclick', 'plotResult(); return false;');
-    }
 }
 
 // Call the fallback initialization function after a short delay to ensure DOM is ready
@@ -1152,22 +933,12 @@ window.addEventListener('load', function() {
     
     // Directly set onclick handlers as a last resort
     const plotEquationBtn = document.getElementById('plot-equation-btn');
-    const plotSolutionBtn = document.getElementById('plot-solution-btn');
     
     if (plotEquationBtn) {
         plotEquationBtn.onclick = function(e) {
             e.preventDefault();
             console.log("Plot equation button clicked");
             window.plotEquation();
-            return false;
-        };
-    }
-    
-    if (plotSolutionBtn) {
-        plotSolutionBtn.onclick = function(e) {
-            e.preventDefault();
-            console.log("Plot solution button clicked");
-            window.plotResult();
             return false;
         };
     }
@@ -1305,91 +1076,6 @@ function renderSpecialFunctionLatex(container, latex) {
     }
 }
 
-// Add a global warning box for single root warning
-function showSingleRootWarning(rootValue) {
-    let warningBox = document.getElementById('single-root-global-warning');
-    if (!warningBox) {
-        warningBox = document.createElement('div');
-        warningBox.id = 'single-root-global-warning';
-        warningBox.style.display = 'none';
-        warningBox.innerHTML = `
-            <div class="alert alert-warning">
-                <strong>⚠️ Single Root Warning:</strong> This plot is centered around the only detected root at x = <span id="single-root-value"></span>.<br>
-                <ul>
-                    <li>The plot shows a ±5 unit range around this single root</li>
-                    <li>This is an approximation and may not capture all roots or the complete function behavior</li>
-                    <li>There could be additional roots outside this limited view range</li>
-                    <li>For more accurate plots, consider simplifying the equation or specifying a custom plot range</li>
-                </ul>
-            </div>
-        `;
-        document.body.appendChild(warningBox);
-        // Add styling for the warning
-        const style = document.createElement('style');
-        style.textContent = `
-            #single-root-global-warning {
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 9999;
-                min-width: 350px;
-                max-width: 90vw;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            }
-            #single-root-global-warning .alert.alert-warning {
-                padding: 12px 18px;
-                background-color: #fff3cd;
-                border-left: 5px solid #ffc107;
-                color: #856404;
-                font-size: 1em;
-            }
-            #single-root-global-warning ul {
-                margin: 8px 0 0 0;
-                padding-left: 22px;
-                font-size: 0.97em;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    document.getElementById('single-root-value').textContent = rootValue;
-    warningBox.style.display = 'block';
-    // Auto-hide after 10 seconds
-    setTimeout(() => { warningBox.style.display = 'none'; }, 10000);
-}
-
-/**
- * Get the polynomial degree from an algebraic equation
- * @param {string} equation - The algebraic equation string
- * @returns {number} The degree of the polynomial
- */
-function getPolynomialDegree(equation) {
-    // Try to extract the highest degree of x in the equation string
-    // Only works for equations in the form ... = ...
-    try {
-        let eq = equation.replace(/\s+/g, '');
-        let sides = eq.split('=');
-        let expr = sides.length === 2 ? `(${sides[0]})-(${sides[1]})` : eq;
-        // Find all x**N patterns
-        let matches = expr.match(/x\*\*(\d+)/g);
-        let maxDegree = 1;
-        if (matches) {
-            maxDegree = Math.max(...matches.map(m => parseInt(m.split('**')[1])));
-        } else {
-            // Try to detect x^N (if user used ^ instead of **)
-            let matchesCaret = expr.match(/x\^(\d+)/g);
-            if (matchesCaret) {
-                maxDegree = Math.max(...matchesCaret.map(m => parseInt(m.split('^')[1])));
-            } else if (expr.includes('x')) {
-                maxDegree = 1;
-            }
-        }
-        return maxDegree;
-    } catch {
-        return 1;
-    }
-}
-
 // Patch solveEquation to warn for degree > 5 in algebraic
 const originalSolveEquation = solveEquation;
 solveEquation = function(type = null) {
@@ -1445,7 +1131,6 @@ solveEquation = function(type = null) {
     if (activeTabId === 'algebraic') {
         const degree = getPolynomialDegree(equation);
         if (degree > 5) {
-
             if (!window.confirm(`Warning: Polynomials of degree higher than 5 will return CRootOf (symbolic) solutions and may not be solvable in radicals.\n\nYour equation appears to have degree ${degree}.\n\nDo you want to proceed anyway?`)) {
                 return;
             }
