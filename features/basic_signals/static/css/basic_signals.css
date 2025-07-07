@@ -854,3 +854,23 @@ section h2 {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
+
+/* Phase Button */
+.phase-btn {
+    background-color: #f6c700;
+    color: #222;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 18px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    transition: background 0.2s, color 0.2s;
+}
+
+.phase-btn:hover, .phase-btn:focus {
+    background-color: #ffe066;
+    color: #111;
+    outline: none;
+}

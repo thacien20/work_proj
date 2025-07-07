@@ -175,9 +175,26 @@
 
     <!-- Signal Comparison Section (Hidden by default) -->
     <section id="comparisonSection" class="comparison-section" style="display: none;">
-        <div class="comparison-header">
+        <div class="comparison-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2>📊 Signal Comparison</h2>
-            <button id="closeComparisonBtn" class="close-btn">&times;</button>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <!-- Phase controls for Signal 2 -->
+                <div id="phaseControl" class="phase-control" style="display: flex; align-items: center; gap: 6px;">
+                    <label for="phaseSpin" id="phaseLabel" style="font-weight: bold; margin-right: 4px; min-width: 44px; text-align: right; color: #222;">Phase</label>
+                    <input
+                        id="phaseSpin"
+                        type="number"
+                        min="-180"
+                        max="180"
+                        step="5"
+                        value="0"
+                        style="width: 56px; text-align: center;"
+                        class="phase-spin"
+                    />
+                    <span style="margin-left: 2px;">°</span>
+                </div>
+                <button id="closeComparisonBtn" class="close-btn">&times;</button>
+            </div>
         </div>
         
         <div class="comparison-controls">
@@ -215,5 +232,6 @@
 
     <!-- Include JavaScript -->
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals.js') }}"></script>
+    <script src="{{ url_for('basic_signals.static', filename='js/basic_signals_ui.js') }}"></script>
 </body>
 </html>

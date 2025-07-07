@@ -454,12 +454,19 @@ function getComparisonSignalConfigs() {
     configElements.forEach((element, index) => {
         const type = element.querySelector('.comp-signal-type').value;
         const frequency = parseFloat(element.querySelector('.comp-frequency').value);
-        
+        let phase = 0.0;
+        // For Signal 2, get phase from #phaseSpin
+        if (index === 1) {
+            const phaseSpin = document.getElementById('phaseSpin');
+            if (phaseSpin) {
+                phase = parseFloat(phaseSpin.value) || 0.0;
+            }
+        }
         signalConfigs.push({
             type: type,
             frequency: frequency,
             amplitude: 1.0,
-            phase: 0.0
+            phase: phase // phase in degrees
         });
     });
     
