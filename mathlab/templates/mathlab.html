@@ -8,75 +8,7 @@
     <link rel="stylesheet" href="/static/css/mathlab.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- MathJax for LaTeX rendering -->
-    <!-- MathJax configuration with increased buffer size and macro protection -->
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-                maxBuffer: 100*1024,  // Even larger buffer size for complex expressions
-                maxMacros: 25000,     // Increase macro limit significantly
-                macros: {
-                    // Pre-defined safe macros can go here
-                },
-                // Protect against recursive macros
-                packages: {'[+]': ['noerrors', 'noundefined']}  // Add packages to handle errors better
-            },
-            svg: {
-                fontCache: 'global'
-            },
-            options: {
-                // Set a timeout for processing to prevent browser hanging
-                enableMenu: true,     // Enable the MathJax menu for users to adjust settings
-                menuOptions: {
-                    settings: {
-                        renderer: 'SVG'  // Use SVG renderer which often performs better for complex expressions
-                    }
-                },
-                renderActions: {
-                    /* Add a render action that catches errors during rendering */
-                    catchErrors: {
-                        action: function (doc) {
-                            console.log('MathJax caught an error');
-                            this.restart();
-                        }
-                    }
-                }
-            },
-            startup: {
-                // Add a handler for when MathJax is done
-                pageReady: function() {
-                    console.log('MathJax is ready');
-                    // Add global reference to typesetting methods for compatibility
-                    if (!window.MathJaxReady) {
-                        window.MathJaxReady = true;
-                        // Add a global typeset function that can be called from anywhere
-                        window.typesetMath = function() {
-                            if (typeof MathJax.typesetPromise === 'function') {
-                                return MathJax.typesetPromise()
-                                    .catch(function(err) { console.warn('MathJax typeset error:', err); });
-                            } else if (typeof MathJax.typeset === 'function') {
-                                try {
-                                    MathJax.typeset();
-                                    return Promise.resolve();
-                                } catch(e) {
-                                    console.warn('MathJax typeset error:', e);
-                                    return Promise.reject(e);
-                                }
-                            } else {
-                                console.warn('No MathJax typesetting method available');
-                                return Promise.reject(new Error('No MathJax typesetting method available'));
-                            }
-                        };
-                    }
-                    return MathJax.startup.defaultPageReady();
-                }
-            }
-        };
-    </script>
-    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+       
     <!-- Note: Plotly is now loaded at the end of the body to ensure everything else is ready first -->
     <style>
         /* Main layout */
@@ -299,14 +231,6 @@
             font-size: 1.1rem;
             color: #f1f1f1;
             margin: 1rem 0;
-        }
-        
-        .latex-output {
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-            color: #1a202c;
         }
         
         /* Tab UI */
@@ -711,7 +635,6 @@
                 <div class="result-display">
                     <div id="result-placeholder">Enter an equation and click Solve to see the results here.</div>
                     <div id="math-result" class="math-expression" style="display: none;"></div>
-                    <div id="latex-result" class="latex-output" style="display: none;"></div>
                 </div>
             </div>
             <!-- Visualization Panel -->
@@ -842,10 +765,12 @@
         const equation = document.getElementById('algebraic-equation').value.trim();
         const variable = document.getElementById('algebraic-variable').value.trim() || 'x';
         const resultDiv = document.getElementById('math-result');
-        const latexDiv = document.getElementById('latex-result');
         const placeholder = document.getElementById('result-placeholder');
+        if (!resultDiv || !placeholder) {
+            console.error('Result or placeholder element not found');
+            return;
+        }
         resultDiv.style.display = 'none';
-        latexDiv.style.display = 'none';
         placeholder.style.display = 'block';
         placeholder.textContent = 'Solving...';
 
@@ -861,24 +786,25 @@
         .then(res => res.json())
         .then(function(data) {
             if (data.error) {
-                resultDiv.textContent = data.error;
-                resultDiv.style.display = 'block';
-                latexDiv.style.display = 'none';
-                placeholder.style.display = 'none';
+                if (resultDiv) {
+                    resultDiv.textContent = data.error;
+                    resultDiv.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
             } else {
-                resultDiv.textContent = data.solution || '';
-                resultDiv.style.display = 'block';
-                latexDiv.innerHTML = data.latex ? '$$' + data.latex + '$$' : '';
-                latexDiv.style.display = data.latex ? 'block' : 'none';
-                placeholder.style.display = 'none';
-                if (window.typesetMath) window.typesetMath();
+                if (resultDiv) {
+                    resultDiv.textContent = data.solution || '';
+                    resultDiv.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
             }
         })
         .catch(function(err) {
-            resultDiv.textContent = 'Error: ' + err;
-            resultDiv.style.display = 'block';
-            latexDiv.style.display = 'none';
-            placeholder.style.display = 'none';
+            if (resultDiv) {
+                resultDiv.textContent = 'Error: ' + err;
+                resultDiv.style.display = 'block';
+            }
+            if (placeholder) placeholder.style.display = 'none';
         });
     };
 </script>
@@ -905,5 +831,199 @@
         });
     });
 </script>
+<script>
+    // Calculate integral function for the "Calculate" button
+    window.calculateIntegral = function() {
+        const equation = document.getElementById('integral-expression').value.trim();
+        const variable = document.getElementById('integral-variable').value.trim() || 'x';
+        const resultDiv = document.getElementById('math-result');
+        const placeholder = document.getElementById('result-placeholder');
+        if (!resultDiv || !placeholder) {
+            alert('Result or placeholder element not found.');
+            return;
+        }
+        resultDiv.style.display = 'none';
+        placeholder.style.display = 'block';
+        placeholder.textContent = 'Calculating...';
+
+        // Prepare request data
+        const data = {
+            type: 'integral',
+            equation: equation,
+            variable: variable
+        };
+        const integralType = document.getElementById('integral-type')?.value;
+        if (integralType === 'definite') {
+            const lowerLimit = document.getElementById('lower-limit')?.value;
+            const upperLimit = document.getElementById('upper-limit')?.value;
+            if (lowerLimit && upperLimit) {
+                data.lowerLimit = lowerLimit;
+                data.upperLimit = upperLimit;
+            }
+        }
+
+        fetch('/mathlab/solve', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(function(data) {
+            if (data.error) {
+                resultDiv.textContent = data.error;
+                resultDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                resultDiv.textContent = data.result || data.solution || '';
+                resultDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            resultDiv.textContent = 'Error: ' + err;
+            resultDiv.style.display = 'block';
+            placeholder.style.display = 'none';
+        });
+    };
+</script>
+<script>
+    // Differential solve function for the "ODE" button
+    window.solveDifferential = function() {
+        const equation = document.getElementById('diff-equation').value.trim();
+        const variable = document.getElementById('diff-variable').value.trim() || 'x';
+        const resultDiv = document.getElementById('math-result');
+        const placeholder = document.getElementById('result-placeholder');
+        if (!resultDiv || !placeholder) {
+            alert('Result or placeholder element not found.');
+            return;
+        }
+        resultDiv.style.display = 'none';
+        placeholder.style.display = 'block';
+        placeholder.textContent = 'Solving...';
+
+        // Prepare request data
+        const data = {
+            type: 'differential',
+            equation: equation,
+            variable: variable
+        };
+
+        fetch('/mathlab/solve', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(function(data) {
+            if (data.error) {
+                resultDiv.textContent = data.error;
+                resultDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                resultDiv.textContent = data.result || data.solution || '';
+                resultDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            resultDiv.textContent = 'Error: ' + err;
+            resultDiv.style.display = 'block';
+            placeholder.style.display = 'none';
+        });
+    };
+</script>
+<script>
+    // Derivative solve function for the "Calculate" button
+    window.calculateDerivative = function() {
+        const equation = document.getElementById('derivative-expression').value.trim();
+        const variable = document.getElementById('derivative-variable').value.trim() || 'x';
+        const order = parseInt(document.getElementById('derivative-order').value) || 1;
+        const resultDiv = document.getElementById('math-result');
+        const placeholder = document.getElementById('result-placeholder');
+        if (!resultDiv || !placeholder) {
+            alert('Result or placeholder element not found.');
+            return;
+        }
+        resultDiv.style.display = 'none';
+        placeholder.style.display = 'block';
+        placeholder.textContent = 'Calculating...';
+
+        // Prepare request data
+        const data = {
+            type: 'derivative',
+            equation: equation,
+            variable: variable,
+            order: order
+        };
+
+        fetch('/mathlab/solve', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(function(data) {
+            const resultDiv = document.getElementById('math-result');
+            const placeholder = document.getElementById('result-placeholder');
+            if (!resultDiv || !placeholder) return;
+            if (data.error) {
+                resultDiv.textContent = data.error;
+                resultDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                resultDiv.textContent = data.result || data.solution || '';
+                resultDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        })
+        .catch(function(err) {
+            const resultDiv = document.getElementById('math-result');
+            const placeholder = document.getElementById('result-placeholder');
+            if (!resultDiv || !placeholder) return;
+            resultDiv.textContent = 'Error: ' + err;
+            resultDiv.style.display = 'block';
+            placeholder.style.display = 'none';
+        });
+    };
+</script>
+<script>
+    // Debounce utility
+    function debounce(fn, delay) {
+        let timer = null;
+        return function(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+    // Clear result/error on input
+    function clearResultOnInput() {
+        const resultDiv = document.getElementById('math-result');
+        const placeholder = document.getElementById('result-placeholder');
+        if (resultDiv && placeholder) {
+            resultDiv.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Enter an equation and click Solve to see the results here.';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        const algebraicEq = document.getElementById('algebraic-equation');
+        const algebraicVar = document.getElementById('algebraic-variable');
+        const diffEq = document.getElementById('diff-equation');
+        const diffVar = document.getElementById('diff-variable');
+        const integralExpr = document.getElementById('integral-expression');
+        const integralVar = document.getElementById('integral-variable');
+        const derivativeExpr = document.getElementById('derivative-expression');
+        const derivativeVar = document.getElementById('derivative-variable');
+        const derivativeOrder = document.getElementById('derivative-order');
+        [
+            algebraicEq, algebraicVar, diffEq, diffVar,
+            integralExpr, integralVar, derivativeExpr, derivativeVar, derivativeOrder
+        ].forEach(function(input) {
+            if (input) {
+                input.addEventListener('input', debounce(clearResultOnInput, 150));
+            }
+        });
+    });
+    </script>
 </body>
 </html>

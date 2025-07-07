@@ -463,505 +463,38 @@ function solveEquation(type = null) {
 /**
  * Display the solution result
  */
-function displayResult(data, equation) {
-    const resultContainer = document.querySelector('.result-display');
+function displayResult(data) {
     const resultPlaceholder = document.getElementById('result-placeholder');
     const mathResult = document.getElementById('math-result');
     const latexResult = document.getElementById('latex-result');
-    
+
+    // Hide placeholder and clear previous results
+    resultPlaceholder.style.display = 'none';
+    mathResult.innerHTML = '';
+    latexResult.innerHTML = '';
+
     if (data.error) {
-        // Check if the error might be related to syntax and add helpful message
-        const syntaxError = data.error.includes('parse') || data.error.includes('syntax') || data.error.includes('unexpected');
-        let errorMessage = `<div class="error">${data.error}</div>`;
-        
-        if (syntaxError) {
-            errorMessage += `
-                <div class="syntax-help">
-                    <strong>Syntax Tips:</strong>
-                    <ul>
-                        <li>Use <code>**</code> for powers (e.g., <code>x**2</code> not <code>x^2</code>)</li>
-                        <li>Use <code>*</code> for multiplication (e.g., <code>3*x</code>)</li>
-                        <li>Common functions: <code>sin(x)</code>, <code>cos(x)</code>, <code>exp(x)</code>, <code>log(x)</code></li>
-                    </ul>
-                </div>
-            `;
-        }
-        
-        resultPlaceholder.innerHTML = errorMessage;
+        resultPlaceholder.innerHTML = `<div class="error"><strong>Error:</strong> ${data.error}</div>`;
         resultPlaceholder.style.display = 'block';
         mathResult.style.display = 'none';
         latexResult.style.display = 'none';
         return;
     }
-    
+
     // Store result for potential plotting
     mathlabState.lastResult = data;
-    
-    // Hide placeholder
-    resultPlaceholder.style.display = 'none';
-    
-    // Display result in math-result
-    mathResult.style.display = 'block';
-    
-    // Start with the equation
-    let resultHTML = `<div class="equation">${equation}</div>
-        <div class="solution">
-            <span class="label">Solution:</span>
-            <span class="value">${data.result}</span>
-        </div>`;
-        
-    // Add complexity note if available
-    if (data.note) {
-        // Check if this is a CRootOf explanation
-        if (data.note.includes('CRootOf') || data.has_crootof) {
-            resultHTML += `<div class="crootof-explanation">
-                <div class="title">About CRootOf Expressions</div>
-                <div class="message">${data.note}</div>
-               
-            </div>`;
-        } else {
-            resultHTML += `<div class="complexity-note">
-                <span class="icon">ℹ️</span>
-                <span class="message">${data.note}</span>
-            </div>`;
-        }
-    }
-    
-    // Add a warning based on complexity level
-    if (data.complexity) {
-        let warningMessage = "";
-        let warningIcon = "ℹ️";
-        
-        if (data.complexity === 'high' || data.complexity === 'very complex') {
-            warningIcon = "⚠️";
-            warningMessage = `<p>This expression is highly complex. Consider breaking it into smaller parts for better results.</p>
-                <ul class="suggestion-list">
-                    <li>Test simpler expressions first</li>
-                    <li>Break down terms and analyze separately</li>
-                    <li>For integrals, try using numerical methods with specific bounds</li>
-                </ul>`;
-        } else if (data.complexity === 'complex' || data.complexity === 'moderately complex') {
-            warningMessage = `<p>This expression has moderate complexity. Results may benefit from verification.</p>
-                <ul class="suggestion-list">
-                    <li>Verify key parts of the solution</li>
-                    <li>Consider simplifying if possible</li>
-                </ul>`;
-        }
-        
-        if (warningMessage) {
-            resultHTML += `<div class="complexity-warning">
-                <span class="icon">${warningIcon}</span>
-                <div class="message">${warningMessage}</div>
-            </div>`;
-        }
-    }
-    
-    // Special message for numerical solutions
-    if (data.is_numerical) {
-        resultHTML += `<div class="complexity-note">
-            <span class="icon">🔢</span>
-            <span class="message">Using numerical methods for this complex expression. For symbolic results, try simplifying the input.</span>
-        </div>`;
-    }
-    
-    // Add roots information if available
-    if (data.roots && data.roots.length > 0) {
-        resultHTML += `<div class="roots">
-            <span class="label">Roots:</span>
-            <span class="value">${data.roots.map(root => `x = ${parseFloat(root).toFixed(4)}`).join(', ')}</span>
-        </div>`;
-        
-        // Add a specific message about plotting with roots
-        if (data.roots.length >= 2) {
-            resultHTML += `<div class="plottable-message">
-                <p>This equation has ${data.roots.length} real roots. Click "Plot Solution" to visualize the function between the roots.</p>
-            </div>`;
-        } else if (data.roots.length === 1) {
-            resultHTML += `<div class="plottable-message">
-                <p>This equation has 1 real root at x = ${parseFloat(data.roots[0]).toFixed(4)}. Click "Plot Solution" to visualize the function around this root.</p>
-            </div>`;
-            
-            // Show single root warning popup
-            const root = parseFloat(data.roots[0]);
-            if (!isNaN(root) && isFinite(root)) {
-                showSingleRootWarning(root);
-            }
-        } else {
-            resultHTML += `<div class="plottable-message">
-                <p>This equation has roots that couldn't be calculated analytically. Click "Plot Solution" to visualize the function.</p>
-            </div>`;
-        }
-    }
-    // Otherwise add a general message if it's plottable
-    else if (isPlottable(data)) {
-        resultHTML += `<div class="plottable-message">
-            <p>This result can be visualized. Use the "Plot Solution" button below.</p>
-        </div>`;
-    }
-    
-    mathResult.innerHTML = resultHTML;
-    
-    // Add LaTeX if available
-    if (data.latex) {
-        latexResult.style.display = 'block';
-        
-        // Check for explicit error messages from the backend
-        if (data.latex.includes("too complex") || data.latex.includes("Could not render")) {
-            latexResult.innerHTML = `
-                <div class="latex-render">
-                    <span class="label">LaTeX:</span>
-                    <div class="math-error">${data.latex}</div>
-                    <div class="note">Note: The expression is too complex for LaTeX rendering.</div>
-                </div>
-            `;
-        } 
-        // Check for problematic expressions like the one in your example
-        else if (
-            // Detect very complex nested fractions and roots with complex numbers
-            (data.latex.includes("\\sqrt") && data.latex.includes("\\cdot i") && data.latex.includes("\\frac")) ||
-            // Detect expressions with multiple complex numbers and cube roots
-            (data.latex.includes("\\sqrt[3]") && data.latex.includes("\\cdot i")) ||
-            // Detect very long expressions (common in complex roots)
-            (data.latex.length > 300 && (data.latex.includes("\\sqrt") || data.latex.includes("\\frac")))
-        ) {
-            // Handle these problematic expressions with a text representation
-            latexResult.innerHTML = `
-                <div class="latex-render">
-                    <span class="label">LaTeX:</span>
-                    <div class="complex-math-display">
-                        <div class="complex-notice">Complex expression detected - showing simplified version</div>
-                        <pre class="latex-text-display">${formatLatexForDisplay(data.latex)}</pre>
-                        <div class="complex-hint">This expression contains complex mathematical notation that may not render properly.</div>
-                    </div>
-                </div>
-            `;
-            
-            // Add some styling for the text representation
-            const style = document.createElement('style');
-            style.textContent = `
-                .complex-math-display { padding: 10px; background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; }
-                .complex-notice { color: #e67e22; margin-bottom: 8px; font-weight: bold; }
-                .complex-hint { color: #666; font-size: 0.85em; margin-top: 8px; }
-                .latex-text-display { max-height: 100px; overflow: auto; padding: 10px; background: #fff; 
-                                     border: 1px solid #eee; font-family: monospace; margin: 0; }
-            `;
-            document.head.appendChild(style);
-        } else {
-            // Normal rendering with error handling
-            try {
-                // Special handling for CRootOf expressions
-                if (data.has_crootof || (data.latex && data.latex.includes('CRootOf'))) {
-                    // Generate a unique ID for this CRootOf LaTeX content
-                    const uniqueCrootOfId = generateUniqueLatexId('crootof');
-                    
-                    latexResult.innerHTML = `
-                        <div class="latex-render">
-                            <span class="label">LaTeX:</span>
-                            <div class="math" id="${uniqueCrootOfId}">${data.latex}</div>
-                            <div class="help-text">
-                                <small>Note: CRootOf expressions may be clearer in the numerical approximation above.</small>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Ensure proper rendering for CRootOf expressions
-                    setTimeout(() => {
-                        const mathContent = document.getElementById(uniqueCrootOfId);
-                        if (mathContent) {
-                            // Create a proper MathJax element
-                            const mathJaxScript = document.createElement('script');
-                            mathJaxScript.type = 'math/tex; mode=display';
-                            mathJaxScript.text = data.latex;
-                            
-                            // Replace our placeholder with the proper MathJax element
-                            mathContent.innerHTML = '';
-                            mathContent.appendChild(mathJaxScript);
-                            
-                            // Force MathJax to process this specific element
-                            if (window.MathJax && window.MathJax.typesetPromise) {
-                                window.MathJax.typesetPromise([mathContent]);
-                            }
-                        }
-                    }, 0);
-                } else {
-                    // Check if the LaTeX expression is too complex (very long or has many complex notations)
-                    const isVeryComplex = data.latex.length > 300 || 
-                                        (data.latex.match(/\\sqrt/g) || []).length > 5 || 
-                                        (data.latex.match(/\\frac/g) || []).length > 8 ||
-                                        (data.latex.split('+').length > 10) ||
-                                        data.latex.includes('\\cdot i');
-                    
-                    if (isVeryComplex && data.complexity === 'high') {
-                        // For very complex expressions, wrap in an additional container with pre-processing
-                        // Generate a unique ID for this complex expression
-                        const uniqueComplexId = generateUniqueLatexId('complex');
-                        
-                        latexResult.innerHTML = `
-                            <div class="latex-render">
-                                <span class="label">LaTeX:</span>
-                                <div class="math-complex">
-                                    <div class="complex-warning">Complex expression - rendering with special handling</div>
-                                    <div class="math" id="${uniqueComplexId}">${data.latex}</div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Special handling for complex expressions
-                        setTimeout(() => {
-                            const mathContent = document.getElementById(uniqueComplexId);
-                            if (mathContent) {
-                                // Create a proper MathJax element
-                                const mathJaxScript = document.createElement('script');
-                                mathJaxScript.type = 'math/tex; mode=display';
-                                mathJaxScript.text = data.latex;
-                                
-                                // Replace our placeholder with the proper MathJax element
-                                mathContent.innerHTML = '';
-                                mathContent.appendChild(mathJaxScript);
-                                
-                                // Force MathJax to process this specific element
-                                if (window.MathJax && window.MathJax.typesetPromise) {
-                                    window.MathJax.typesetPromise([mathContent])
-                                    .then(() => {
-                                        // Add horizontal scrolling for very large renderings
-                                        const container = mathContent.querySelector('mjx-container');
-                                        if (container) {
-                                            container.style.overflowX = 'auto';
-                                            container.style.maxWidth = '100%';
-                                        }
-                                    })
-                                    .catch(err => console.warn('MathJax complex rendering error:', err));
-                                }
-                            }
-                        }, 0);
-                    } else {
-                        // Generate a unique ID for this LaTeX content
-                        const uniqueId = generateUniqueLatexId('standard');
-                        
-                        // Normal rendering for simpler expressions
-                        latexResult.innerHTML = `
-                            <div class="latex-render">
-                                <span class="label">LaTeX:</span>
-                                <div class="math" id="${uniqueId}">${data.latex}</div>
-                            </div>
-                        `;
-                        
-                        // Ensure proper rendering by using MathJax's specific methods
-                        setTimeout(() => {
-                            const mathContent = document.getElementById(uniqueId);
-                            if (mathContent) {
-                                // Create a proper MathJax element
-                                const mathJaxScript = document.createElement('script');
-                                mathJaxScript.type = 'math/tex; mode=display';
-                                mathJaxScript.text = data.latex;
-                                
-                                // Replace our placeholder with the proper MathJax element
-                                mathContent.innerHTML = '';
-                                mathContent.appendChild(mathJaxScript);
-                                
-                                // Force MathJax to process this specific element
-                                if (window.MathJax && window.MathJax.typesetPromise) {
-                                    window.MathJax.typesetPromise([mathContent]);
-                                }
-                            }
-                        }, 0);
-                    }
-                }
-            } catch (e) {
-                // Fallback for client-side errors
-                latexResult.innerHTML = `
-                    <div class="latex-render">
-                        <span class="label">LaTeX:</span>
-                        <div class="math-error">LaTeX rendering failed: Expression too complex</div>
-                    </div>
-                `;
-            }
-        }
-    } else {
-        latexResult.style.display = 'none';
-    }
-    
-    // Re-render any LaTeX with error handling
-    if (window.MathJax) {
-        // Check if we need to apply special handling for very complex expressions
-        const hasVeryComplexExpression = document.querySelector('.math-complex') !== null;
-        
-        // Add a timeout to prevent browser hanging on extremely complex LaTeX
-        const mathjaxTimeout = setTimeout(() => {
-            console.warn('MathJax processing timeout - expression might be too complex');
-            
-            // Find any still-unprocessed LaTeX and replace with warning
-            document.querySelectorAll('.math').forEach(el => {
-                // Check if MathJax has processed this element
-                if (!el.querySelector('.MJX-math') && !el.querySelector('mjx-math')) {
-                    const parent = el.parentNode;
-                    const warning = document.createElement('div');
-                    warning.className = 'math-error';
-                    warning.innerHTML = 'Expression too complex to render. Try simplifying the input.';
-                    parent.replaceChild(warning, el);
-                }
-            });
-        }, 5000); // 5 second timeout
-        
-        // Use a more compatible way to trigger MathJax typesetting
-        try {
-            // For very complex expressions, try pre-processing to help with rendering
-            if (hasVeryComplexExpression) {
-                console.log("Processing complex LaTeX expression with special handling");
-                
-                // Add special styling to help with complex expressions
-                const styleId = 'complex-math-styles';
-                if (!document.getElementById(styleId)) {
-                    const style = document.createElement('style');
-                    style.id = styleId;
-                    style.textContent = `
-                        .math-complex .math { overflow-x: auto; max-width: 100%; padding: 10px 0; }
-                        .math-complex mjx-container { min-width: 0 !important; }
-                        .complex-warning { color: #ff9800; font-size: 0.8em; margin-bottom: 5px; }
-                    `;
-                    document.head.appendChild(style);
-                }
-            }
-            
-            // Check which MathJax API is available (v3 vs v2)
-            if (typeof MathJax.typesetPromise === 'function') {
-                // MathJax v3 API with custom options for complex expressions
-                const options = hasVeryComplexExpression ? 
-                    { scale: 0.9, displayAlign: 'left', displayIndent: '0' } : {};
-                
-                MathJax.typesetPromise()
-                .then(() => {
-                    // Clear timeout if rendering completes successfully
-                    clearTimeout(mathjaxTimeout);
-                    
-                    // Add horizontal scrolling for very large expressions
-                    if (hasVeryComplexExpression) {
-                        document.querySelectorAll('.math-complex .math mjx-container').forEach(container => {
-                            container.style.overflowX = 'auto';
-                            container.style.maxWidth = '100%';
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('MathJax v3 error:', error);
-                    clearTimeout(mathjaxTimeout); // Clear the timeout
-                    handleMathJaxError();
-                });
-            } else if (typeof MathJax.Hub !== 'undefined' && typeof MathJax.Hub.Queue === 'function') {
-                // MathJax v2 API
-                MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
-                
-                // Also queue a function to clear the timeout
-                MathJax.Hub.Queue(() => {
-                    clearTimeout(mathjaxTimeout);
-                    console.log('MathJax v2 typesetting complete');
-                });
-            } else {
-                // If we can't detect the proper API, try a simple approach
-                console.warn('MathJax API not properly detected, attempting to render anyway');
-                if (typeof MathJax.typeset === 'function') {
-                    MathJax.typeset();
-                    clearTimeout(mathjaxTimeout);
-                } else {
-                    // Last resort
-                    console.warn('No MathJax API methods detected for typesetting');
-                    clearTimeout(mathjaxTimeout);
-                }
-            }
-        } catch (mjError) {
-            console.error('Error calling MathJax:', mjError);
-            clearTimeout(mathjaxTimeout);
-            handleMathJaxError();
-        }
-        
-        // Define a function to handle MathJax errors
-        function handleMathJaxError() {
-            // Try to recover from the error first by transforming LaTeX into a more digestible format
-            if (data.latex) {
-                try {
-                    // For very complex expressions, offer a text representation alternative
-                    const latexDisplay = document.createElement('pre');
-                    latexDisplay.className = 'latex-text-display';
-                    latexDisplay.style.maxHeight = '200px';
-                    latexDisplay.style.overflow = 'auto';
-                    latexDisplay.style.padding = '10px';
-                    latexDisplay.style.background = '#f8f8f8';
-                    latexDisplay.style.color = '#333';
-                    latexDisplay.style.border = '1px solid #ddd';
-                    latexDisplay.style.borderRadius = '4px';
-                    latexDisplay.style.fontSize = '0.9em';
-                    latexDisplay.style.marginTop = '10px';
-                    latexDisplay.style.whiteSpace = 'pre-wrap';
-                    latexDisplay.style.wordBreak = 'break-all';
-                    
-                    // Format the LaTeX for better readability
-                    let formattedLatex = formatLatexForDisplay(data.latex);
-                    
-                    latexDisplay.textContent = formattedLatex;
-                    
-                    // Replace the existing LaTeX container with our text representation
-                    const mathElements = document.querySelectorAll('.math');
-                    mathElements.forEach(el => {
-                        el.innerHTML = '<div class="math-error">LaTeX expression too complex for browser rendering</div>';
-                        el.appendChild(latexDisplay);
-                    });
-                    
-                    // Add special notice
-                    const noticeDiv = document.createElement('div');
-                    noticeDiv.className = 'latex-notice';
-                    noticeDiv.style.fontSize = '0.85em';
-                    noticeDiv.style.marginTop = '5px';
-                    noticeDiv.style.color = '#666';
-                    noticeDiv.textContent = "The raw LaTeX code is displayed above because the expression is too complex for rendering";
-                    
-                    mathElements[0].appendChild(noticeDiv);
-                    return; // Early return since we handled it
-                } catch(e) {
-                    console.error("Error in LaTeX recovery:", e);
-                    // Continue with standard error handling
-                }
-            }
-            
-            // Standard error handling if recovery fails
-            const mathElements = document.querySelectorAll('.math');
-            mathElements.forEach(el => {
-                el.innerHTML = '<div class="math-error">Error: LaTeX expression too complex to render. Try breaking it into smaller parts.</div>';
-            });
-            
-            // Add a suggestion if this was a complex expression
-            if (data.complexity === 'high' || data.complexity === 'very complex' || data.complexity === 'complex') {
-                const suggestionDiv = document.createElement('div');
-                suggestionDiv.className = 'complexity-warning';
-                suggestionDiv.innerHTML = `
-                    <p><strong>⚠️ Rendering Error:</strong> This expression is too complex for LaTeX rendering.</p>
-                    <ul class="suggestion-list">
-                        <li>Try breaking it down into smaller parts</li>
-                        <li>Verify the expression manually</li>
-                        <li>For complex expressions, focus on numeric results</li>
-                    </ul>
-                `;
-                resultContainer.appendChild(suggestionDiv);
-            }
-        }
-    }
-    
-    // Update constants UI if in differential tab
-    if (mathlabState.activeTab === 'differential') {
-        updateConstantsUI(data.solution);
-    }
-}
 
-/**
- * Check if a result can be plotted
- */
-function isPlottable(data) {
-    // Logic to determine if the result is plottable
-    // For example, check if it's a function or equation
-    return data.result && (
-        data.result.includes('x') || 
-        data.result.includes('=') ||
-        data.result.includes('Function')
-    );
+    // Display the result (plain text only, no LaTeX)
+    mathResult.innerHTML = `
+        <div class="solution">
+            <span class="label">Result:</span>
+            <span class="value">${data.result}</span>
+        </div>
+    `;
+    mathResult.style.display = 'block';
+
+    // Hide LaTeX result container
+    latexResult.style.display = 'none';
 }
 
 /**
@@ -1278,7 +811,6 @@ window.plotResult = function() {
             equation = mathlabState.lastResult.result;
             break;
     }
-    
     // Prepare plot data
     const plotData = {
         equation: equation,
@@ -1287,7 +819,46 @@ window.plotResult = function() {
         xMax: xMax,
         points: 1000  // More points for smoother curves
     };
-    
+    // For derivative plots, force label and title from the visible Solution text
+    if (mathlabState.activeTab === 'derivative') {
+        // Try to get the plain text from the Results panel
+        let solutionText = '';
+        const mathResultDiv = document.getElementById('math-result');
+        if (mathResultDiv) {
+            // Try to extract the text after 'Solution:' if present
+            const match = mathResultDiv.textContent.match(/Solution:\s*(.*)/i);
+            if (match && match[1]) {
+                solutionText = match[1].trim();
+            } else {
+                solutionText = mathResultDiv.textContent.trim();
+            }
+        }
+        // Fallback to lastResult.result if nothing found
+        if (!solutionText && mathlabState.lastResult && mathlabState.lastResult.result) {
+            solutionText = mathlabState.lastResult.result;
+        }
+        // Sanitize: remove LaTeX-like artifacts (backslashes, braces, \left, \right, etc.)
+        solutionText = solutionText
+            .replace(/\\left|\\right/g, '')
+            .replace(/\\/g, '')
+            .replace(/[{}]/g, '')
+            .replace(/\^/g, '^')
+            .replace(/\_/g, '_')
+            .replace(/\tan/g, 'tan')
+            .replace(/\cos/g, 'cos')
+            .replace(/\sin/g, 'sin')
+            .replace(/\exp/g, 'exp')
+            .replace(/\log/g, 'log')
+            .replace(/\sqrt/g, 'sqrt')
+            .replace(/\cdot/g, '*')
+            .replace(/\operatorname\{([^}]*)\}/g, '$1')
+            .replace(/\mathrm\{([^}]*)\}/g, '$1')
+            .replace(/\,|\!/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        plotData.label = solutionText;
+        plotData.title = solutionText;
+    }
     // Add constants for differential equations
     if (mathlabState.activeTab === 'differential') {
         const constantsMode = document.getElementById('constants-mode')?.value || 'auto';
@@ -1429,7 +1000,7 @@ function processDiffEqSolution(data) {
     // Store result for potential plotting
     mathlabState.lastResult = data;
 
-    // Display the solution
+    // Display the solution (plain text only, no LaTeX)
     mathResult.innerHTML = `
         <div class="solution">
             <span class="label">Solution:</span>
@@ -1441,60 +1012,8 @@ function processDiffEqSolution(data) {
     `;
     mathResult.style.display = 'block';
 
-    // Display LaTeX if available
-    if (data.latex) {
-        // Generate a unique ID for this differential equation
-        const uniqueDiffEqId = generateUniqueLatexId('diffeq');
-        
-        latexResult.innerHTML = `
-            <div class="latex-render">
-                <span class="label">LaTeX:</span>
-                <div class="math" id="${uniqueDiffEqId}">${data.latex}</div>
-            </div>
-        `;
-        latexResult.style.display = 'block';
-        
-        // Enhanced LaTeX rendering for differential equations
-        setTimeout(() => {
-            const mathContent = document.getElementById(uniqueDiffEqId);
-            if (mathContent) {
-                // Create a proper MathJax element
-                const mathJaxScript = document.createElement('script');
-                mathJaxScript.type = 'math/tex; mode=display';
-                mathJaxScript.text = data.latex;
-                
-                // Replace our placeholder with the proper MathJax element
-                mathContent.innerHTML = '';
-                mathContent.appendChild(mathJaxScript);
-                
-                // Force MathJax to process this specific element
-                if (window.MathJax && window.MathJax.typesetPromise) {
-                    window.MathJax.typesetPromise([mathContent])
-                        .catch(err => console.warn('MathJax differential equation render error:', err));
-                }
-            }
-        }, 0);
-        
-        // Backup re-render method using global MathJax functionality
-        if (window.MathJax) {
-            // Use our global typeset function if available
-            if (window.typesetMath) {
-                window.typesetMath().catch(err => console.warn('MathJax typeset error:', err));
-            } 
-            // Fallback methods if global function isn't available
-            else if (typeof MathJax.typesetPromise === 'function') {
-                MathJax.typesetPromise().catch(err => console.warn('MathJax error:', err));
-            } else if (typeof MathJax.Hub !== 'undefined' && typeof MathJax.Hub.Queue === 'function') {
-                MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
-            } else if (typeof MathJax.typeset === 'function') {
-                MathJax.typeset();
-            } else {
-                console.warn('No compatible MathJax API found for rendering');
-            }
-        }
-    } else {
-        latexResult.style.display = 'none';
-    }
+    // Hide LaTeX result container
+    latexResult.style.display = 'none';
 
     // Update the UI for handling solution constants (e.g., C1, C2)
     updateConstantsUI(data.solution);

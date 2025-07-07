@@ -82,9 +82,23 @@ function render2DPlot(container, data) {
     plotDiv.style.height = '500px';
     container.appendChild(plotDiv);
 
+    // Use label for derivative plots
+    let curveName = 'f(x)';
+    let plotTitle = data.title || data.label || 'Function Plot';
+    if (data.type === 'derivative' && (data.label || data.title)) {
+        curveName = data.label || data.title;
+        plotTitle = data.label || data.title;
+    }
+
     if (data.traces && Array.isArray(data.traces) && data.traces.length > 0) {
+        // For derivative, override all trace names with the label/title if present
+        if (data.type === 'derivative' && (data.label || data.title)) {
+            data.traces.forEach(trace => {
+                trace.name = data.label || data.title;
+            });
+        }
         Plotly.newPlot(plotDiv, data.traces, {
-            title: data.title,
+            title: plotTitle,
             xaxis: { title: 'x', showgrid: true, zeroline: true },
             yaxis: { title: 'y', showgrid: true, zeroline: true },
             showlegend: true,
@@ -98,7 +112,7 @@ function render2DPlot(container, data) {
         y: data.y,
         mode: 'lines',
         line: { color: '#4299e1', width: 3 },
-        name: 'f(x)',
+        name: curveName,
         showlegend: false
     }, {
         x: data.x,
@@ -156,7 +170,7 @@ function render2DPlot(container, data) {
 
     const layout = {
         title: {
-            text: data.title || 'Function Plot',
+            text: plotTitle,
             font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' },
             xref: 'paper',
             x: 0.5,
