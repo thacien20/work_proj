@@ -15,20 +15,20 @@ def basic_signals_home():
 @basic_signals_blueprint.route('/api/generate', methods=['POST'])
 def generate_basic_signal():
     """Generate basic signal types for educational purposes"""
-    try:
-        data = request.get_json()
-        
-        # Extract parameters
-        signal_type = data.get('type', 'sine')
-        frequency = float(data.get('frequency', 1.0))
-        amplitude = float(data.get('amplitude', 1.0))
-        phase = float(data.get('phase', 0.0))
-        duration = float(data.get('duration', 1.0))
-        sample_rate = int(data.get('sample_rate', 1000))
-        
-        # Use shared signal generator
-        t, y = SignalGenerator.generate_signal(
-            signal_type, frequency, amplitude, phase, duration, sample_rate
+    # SignalGenerator is not defined, so return an error
+    return jsonify({'error': 'Signal generation is not implemented.'}), 501
+
+@basic_signals_blueprint.route('/api/analyze', methods=['POST'])
+def analyze_signal():
+    """Analyze signal properties (RMS, peak, frequency content)"""
+    # SignalAnalyzer is not defined, so return an error
+    return jsonify({'error': 'Signal analysis is not implemented.'}), 501
+
+@basic_signals_blueprint.route('/api/modulate', methods=['POST'])
+def modulate_signal():
+    """Generate modulated signals (AM, FM, PM)"""
+    # ModulationGenerator is not defined, so return an error
+    return jsonify({'error': 'Signal modulation is not implemented.'}), 501
         )
         
         # Return signal data

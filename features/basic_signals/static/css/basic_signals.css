@@ -68,47 +68,36 @@ body {
 
 /* Header Styles */
 .main-header {
-    text-align: center;
-    margin-bottom: 20px;
-    padding: 15px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
-    color: white;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    padding: 12px 18px 10px 18px;
+    margin: 18px auto 12px auto;
+    background: linear-gradient(90deg, #e0e7ff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e0e0e0;
+    max-width: 700px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .main-header h1 {
-    font-size: 2.3rem;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 1.6rem;
+    margin: 0 0 4px 0;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-align: center;
 }
 
-.subtitle {
-    font-size: 1.1rem;
-    margin: 8px 0;
-    opacity: 0.9;
+.main-header .subtitle {
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+    color: #555;
+    text-align: center;
 }
 
-/* Navigation */
 .feature-nav {
-    margin-top: 15px;
-}
-
-.nav-btn {
-    display: inline-block;
-    padding: 10px 20px;
-    margin: 0 10px;
-    background: rgba(255,255,255,0.2);
-    color: white;
-    text-decoration: none;
-    border-radius: 25px;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-}
-
-.nav-btn:hover {
-    background: rgba(255,255,255,0.3);
-    transform: translateY(-2px);
+    margin-top: 4px;
+    margin-bottom: 0;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
 }
 
 /* Section Styles */
@@ -424,12 +413,15 @@ section h2 {
 
 /* Footer */
 .main-footer {
-    text-align: center;
-    padding: 20px;
-    background: #343a40;
-    color: white;
+    max-width: 700px;
+    margin: 18px auto 0 auto;
+    padding: 10px 18px 8px 18px;
+    background: linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%);
     border-radius: 10px;
-    margin-top: 30px;
+    font-size: 1rem;
+    color: #444;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
 /* Plot and Properties Container */
@@ -978,4 +970,90 @@ section h2 {
     padding-bottom: 8px !important;
     margin-bottom: 0 !important;
     margin-top: 0 !important;
+}
+
+/* Style for secondary buttons (if not already present) */
+.secondary-btn {
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    padding: 7px 18px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    margin-left: 0;
+}
+
+.secondary-btn:hover, .secondary-btn:focus {
+    background-color: #e0e0e0;
+    color: #111;
+    outline: none;
+}
+
+/* Optional: Specific style for the Analyze button */
+#analyzeComparisonBtn {
+    /* You can add custom styles here if needed */
+    /* Example: */
+    /* font-weight: bold; */
+}
+
+/* Dropdown Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    color: #000;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    min-width: 140px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 100;
+    border-radius: 4px;
+    padding: 6px 0;
+    left: 0;
+    top: 100%;
+}
+
+.dropdown-content a {
+    color: #000;
+    padding: 8px 18px;
+    text-decoration: none;
+    display: block;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.dropdown-content a:hover {
+    background-color: #f0f0f0;
+}
+
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu > a:after {
+    content: '';
+}
+
+.submenu-content {
+    left: 100%;
+    top: 0;
+    position: absolute;
+    display: none;
+    margin-left: -4px;
+    z-index: 101;
+}
+
+.dropdown-content .dropdown-submenu:hover > .submenu-content,
+.dropdown-content .dropdown-submenu:focus-within > .submenu-content {
+    display: block;
 }

@@ -19,8 +19,8 @@ def signal_to_signal_operation(signal1, signal2, operation):
     else:
         raise ValueError(f"Invalid operation: {operation}")
 
-# If you want to use compute_fft from shared_utils, import like this:
-# from shared_utils.shared_funcs import compute_fft, FS
+# There is no import of compute_fft or compute_complex_fft in this file.
+# Only signal_to_signal_operation is defined here.
 
 
 

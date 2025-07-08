@@ -217,8 +217,29 @@
                     <input type="number" class="comp-frequency" value="1.0" min="0.1" max="10" step="0.1" placeholder="Frequency">
                 </div>
             </div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; position: relative;">
+                <button id="generateComparisonBtn" class="primary-btn">Generate Comparison</button>
+                <div class="dropdown" style="position: relative;">
+                    <button id="analyzeComparisonBtn" class="secondary-btn dropdown-btn">Analyze ▼</button>
+                    <div class="dropdown-content" id="analyzeDropdownContent" style="display: none; min-width: 160px; position: absolute;">
+                        <div class="dropdown-submenu">
+                            <a href="#" id="fftDropdownBtn">FFT ▶</a>
+                            <div class="dropdown-content submenu-content" id="fftDropdownContent" style="display: none; left: 100%; top: 0; min-width: 140px;">
+                                <a href="#" id="fftShowMagnitude">Show Magnitude</a>
+                                <a href="#" id="fftShowPhase">Show Phase</a>
+                            </div>
+                        </div>
+                        <div class="dropdown-submenu">
+                            <a href="#" id="modDropdownBtn">Modulation ▶</a>
+                            <div class="dropdown-content submenu-content" id="modDropdownContent" style="display: none; left: 100%; top: 0; min-width: 140px;">
+                                <a href="#" id="modShowAM">AM Analysis</a>
+                                <a href="#" id="modShowFM">FM Analysis</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-            <button id="generateComparisonBtn" class="primary-btn">Generate Comparison</button>
         </div>
         
         <div id="comparisonPlot" class="plot-container"></div>
@@ -227,5 +248,7 @@
     <!-- Include JavaScript -->
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals.js') }}"></script>
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals_ui.js') }}"></script>
+</body>
+</html>
 </body>
 </html>

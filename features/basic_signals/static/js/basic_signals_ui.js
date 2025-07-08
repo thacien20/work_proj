@@ -44,4 +44,89 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Dropdown logic for FFT and Modulation
+    function setupDropdown(dropdownBtnId, dropdownContentId) {
+        const btn = document.getElementById(dropdownBtnId);
+        const content = document.getElementById(dropdownContentId);
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Hide all dropdowns first
+            document.querySelectorAll('.dropdown-content').forEach(el => el.classList.remove('show'));
+            // Toggle this one
+            content.classList.toggle('show');
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!btn.contains(e.target) && !content.contains(e.target)) {
+                content.classList.remove('show');
+            }
+        });
+
+        // Hide dropdown after making a selection
+        content.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function() {
+                content.classList.remove('show');
+            });
+        });
+    }
+
+    setupDropdown('fftDropdownBtn', 'fftDropdownContent');
+    setupDropdown('modDropdownBtn', 'modDropdownContent');
+
+    // Analyze dropdown logic
+    const analyzeBtn = document.getElementById('analyzeComparisonBtn');
+    const analyzeDropdown = document.getElementById('analyzeDropdownContent');
+    const fftDropdownBtn = document.getElementById('fftDropdownBtn');
+    const fftDropdown = document.getElementById('fftDropdownContent');
+    const modDropdownBtn = document.getElementById('modDropdownBtn');
+    const modDropdown = document.getElementById('modDropdownContent');
+
+    analyzeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // Hide other dropdowns
+        fftDropdown.style.display = 'none';
+        modDropdown.style.display = 'none';
+        // Toggle analyze dropdown
+        analyzeDropdown.style.display = (analyzeDropdown.style.display === 'block') ? 'none' : 'block';
+    });
+
+    // Show submenu on hover or click
+    fftDropdownBtn.addEventListener('mouseenter', function() {
+        fftDropdown.style.display = 'block';
+        modDropdown.style.display = 'none';
+    });
+    fftDropdownBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        fftDropdown.style.display = (fftDropdown.style.display === 'block') ? 'none' : 'block';
+        modDropdown.style.display = 'none';
+    });
+
+    modDropdownBtn.addEventListener('mouseenter', function() {
+        modDropdown.style.display = 'block';
+        fftDropdown.style.display = 'none';
+    });
+    modDropdownBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        modDropdown.style.display = (modDropdown.style.display === 'block') ? 'none' : 'block';
+        fftDropdown.style.display = 'none';
+    });
+
+    // Hide all dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        analyzeDropdown.style.display = 'none';
+        fftDropdown.style.display = 'none';
+        modDropdown.style.display = 'none';
+    });
+
+    // Hide dropdown after making a selection
+    document.querySelectorAll('.dropdown-content a').forEach(link => {
+        link.addEventListener('click', function() {
+            analyzeDropdown.style.display = 'none';
+            fftDropdown.style.display = 'none';
+            modDropdown.style.display = 'none';
+        });
+    });
 });
