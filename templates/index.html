@@ -3,64 +3,943 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signal FFT Demo</title>
-    <!-- Fixed CSS path -->
+    <title>Tech & Data</title>
+    <!-- External CSS and JavaScript libraries -->
     <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
+    <!-- Memory Monitor Script - Remove this line to disable memory monitoring -->
+    <script src="/static/js/memory_monitor.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Signal Processing Demo</h1>
+    <!-- Main header with navigation buttons and title -->
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <!-- Navigation button categories/sections -->
+        <nav style="display: flex; gap: 15px;">
+            <button class="header-btn" id="dataBtn">Data</button>
+            <button class="header-btn" id="healthBtn">Health</button>
+            <button class="header-btn" id="ictBtn">ICT</button>
+            <button class="header-btn" id="scienceBtn">Science</button>
+            <button class="header-btn" id="economicsBtn">Economics</button>
+            <button class="header-btn" id="aiBtn">AI</button>
+            <button class="header-btn" id="businessBtn">Business</button>
+            <a href="/circuits" class="header-btn" style="text-decoration:none;">Circuits Lab</a>
+            <a href="/basic_signals" class="header-btn" style="text-decoration:none;">📡 Basic Signals</a>
+            <a href="/mathlab" class="header-btn" style="text-decoration:none;">🧮 Math Lab</a>
+            <button class="header-btn" id="cleanupBtn" title="Clear memory and reset application">🧹 Cleanup</button>
+        </nav>
+        <!-- Main application title -->
+        <h1 style="margin: 20px ">Tech & Data </h1>
     </header>
-    <main>
-        <section id="signal-section">
-            <form id="signalForm">
-                <div class="form-group">
-                    <label for="frequency">Frequency (Hz, 0.1–100):</label>
-                    <input type="number" id="frequency" name="frequency" min="0.1" max="100" step="0.1" value="5" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="points">Points (power of 2, 64–8192):</label>
-                    <input type="number" id="points" name="points" min="64" max="8192" step="64" value="1024" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="noise">Noise Level (0–1):</label>
-                    <input type="number" id="noise" name="noise" min="0" max="1" step="0.01" value="0.1" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="signalType">Signal Type:</label>
-                    <select id="signalType" name="signalType">
-                        <option value="sine">Sine</option>
-                        <option value="square">Square</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" id="customFormulaGroup" style="display:none;">
-                    <label for="customFormula">Custom Formula:</label>
-                    <input type="text" id="customFormula" name="customFormula" 
-                           placeholder="e.g., sin(2*pi*frequency*t) + 0.5*sin(4*pi*frequency*t)">
-                </div>
-                
-                <div class="button-group">
-                    <button type="button" id="generateBtn">Generate Signal</button>
+    
+    <!-- ===== ANIMATED VISUAL ELEMENTS ===== -->
+    
+    <!-- Galaxy animation sidebar - positioned on the left side -->
+    <!-- Uses absolute positioning to scroll with page content -->
+    <div id="galaxy-sidebar" style="
+        position:absolute;
+        left:150;
+        top:10px;
+        width:130px;
+        height:210px;
+        z-index:1000;
+        background:transparent;
+        display:flex;
+        align-items:flex-end;
+        justify-content:right;
+        pointer-events:none;
+    ">
+        <!-- Canvas element for galaxy animation - controlled by galaxy.js -->
+        <canvas id="galaxy-canvas" width="120" height="120" style="display:block; margin:0 auto; background:#101020; border-radius:10px; pointer-events:none;"></canvas>
+    </div>
+    
+    <!-- Rwanda flag animation container - positioned on the right side -->
+    <!-- Features smooth floating animation with gentle depth and movement effects -->
+    <div id="rwanda-canvas-container" style="
+        position:absolute;
+        right:10px;
+        top:10px;
+        width:240px;
+        height:160px;
+        z-index:999;
+        pointer-events:none;
+        background:rgba(0,0,0,0.1);
+        border-radius:15px;
+        border:2px solid rgba(255,255,255,0.2);
+        overflow:hidden;
+    ">
+        <!-- Rwanda flag image with improved floating animation -->
+        <!-- Image maintains proper aspect ratio and orientation during animation -->
+        <img id="rwanda-flag" src="/static/imag/rwanda.PNG" alt="Rwanda Flag" style="
+            position:absolute;
+            width:320px;
+            height:240px;
+            object-fit:contain;
+            object-position:center;
+            border-radius:8px;
+            box-shadow:0 10px 25px rgba(0,0,0,0.7);
+            left:50%;
+            top:50%;
+            transform:translate(-50%, -50%);
+            transition: box-shadow 0.3s ease;
+        ">
+    </div>
+
+    <!-- ===== CUSTOM STYLES ===== -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #66cbea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        /* Rwanda flag container hover effect */
+        #rwanda-canvas-container:hover {
+            background:rgba(0,0,0,0.2);
+        }
+        
+        /* Header navigation button styling */
+        .header-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Header button hover animation - lifts up with enhanced shadow */
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        /* Header button active state - returns to normal position */
+        .header-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Processing sidebar button styling - gray theme */
+        .processing-btn {
+            background: linear-gradient(135deg, #808080 0%, #606060 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Processing button hover animation */
+        .processing-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #606060 0%, #808080 100%);
+        }
+        
+        /* Processing button active state */
+        .processing-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Canvas button styling - gray theme */
+        .canvas-btn {
+            background: linear-gradient(135deg, #808080 0%, #606060 100%);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Canvas button hover animation */
+        .canvas-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #606060 0%, #808080 100%);
+        }
+        
+        /* Canvas button active state */
+        .canvas-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Plot management button styling - matches header-btn for consistency */
+        .plot-undo-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Plot button hover animation - matches header-btn behavior */
+        .plot-undo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        /* Plot button active state */
+        .plot-undo-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Processing controls container - flex column layout */
+        #processingControls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            width: 150px;
+        }
+        
+        /* In-plot control button styling */
+        #plot-controls button {
+            margin-top: 8px;
+            width: 90px;
+            align-self: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 0;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+        }
+
+        #plot-controls button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.18);
+            transform: translateY(-2px);
+        }
+
+        #plot-controls button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+        }
+        
+        /* Bottom plot controls button hover and active effects */
+        #plot-controls-bottom button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.18);
+            transform: translateY(-2px);
+        }
+
+        #plot-controls-bottom button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+        }
+        
+        /* Dropdown content styling - hidden by default */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 6px;
+            z-index: 1002;
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+        }
+        
+        /* Show dropdown content when dropdown is active */
+        .dropdown.active .dropdown-content {
+            display: block;
+        }
+        
+        /* Dropdown item buttons */
+        .dropdown-content button {
+            color: black;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 0;
+        }
+        
+        /* Dropdown item hover effect */
+        .dropdown-content button:hover {
+            background-color: #f1f1f1;
+        }
+        
+        /* First and last dropdown items rounded corners */
+        .dropdown-content button:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .dropdown-content button:last-child {
+            border-radius: 0 0 6px 6px;
+        }
+        
+        /* Button container styling - positioned below plot */
+        .button-stack {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px auto;
+            padding: 20px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            max-width: 500px;
+        }
+        
+        /* Draggable button canvas styling */
+        .draggable-button-canvas {
+            position: absolute;
+            top: 830px;
+            left: 590px;
+            transform: none;
+            display: flex;
+            gap: 8px;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, rgba(128, 128, 128, 0.9), rgba(96, 96, 96, 0.9));
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: move;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            user-select: none;
+        }
+        
+        /* Draggable canvas hover effect */
+        .draggable-button-canvas:hover {
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        
+        /* Button styling inside draggable canvas */
+        .draggable-button-canvas .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 6px 10px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+        
+        .draggable-button-canvas .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        /* Vertical signal controls canvas styling */
+        .vertical-signal-canvas {
+            position: absolute;
+            top: 515px;
+            left: 1520px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(128, 128, 128, 0.9), rgba(96, 96, 96, 0.9));
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: move;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            user-select: none;
+            width: 140px;
+            min-width: 140px;
+            max-width: 140px;
+        }
+        
+        /* Vertical canvas hover effect */
+        .vertical-signal-canvas:hover {
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        
+        /* Button styling inside vertical canvas */
+        .vertical-signal-canvas button {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .vertical-signal-canvas button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Big canvas container styling - wraps all main content */
+        .big-canvas-container {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255,255,255,0.08));
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin: 50px;
+            padding: 50px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            min-height: 900px; /* Increased to accommodate larger plot */
+        }
+        
+        /* Big canvas container hover effect */
+        .big-canvas-container:hover {
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        }
+        
+        /* Plot container styling - increased size with proper margins for controls */
+        #plot {
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            display: block;
+            position: relative;
+            flex: 1;
+            min-width: 900px; /* Increased from 400px */
+            min-height: 700px; /* Will be set inline as well */
+            width: 100%;
+            height: 700px; /* Fixed height for better visibility */
+        }
+        /* Filter view plot container - will be adjusted for side-by-side view */
+        #filter-view-plot {
+            /* width: 600px; */ /* Let flexbox handle sizing */
+            /* height: 400px; */ /* Let autosize handle height */
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0 auto;
+            overflow: hidden;
+            display: block;
+        }
+        
+        /* File dropdown styling */
+        .file-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .file-button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .file-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 6px;
+            z-index: 1002;
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+        }
+        
+        .file-dropdown:hover .file-dropdown-content {
+            display: block;
+        }
+        
+        .file-dropdown-content button {
+            color: black;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        
+        .file-dropdown-content button:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+    
+    <!-- ===== BIG CANVAS CONTAINER ===== -->
+    <!-- Unified container wrapping all main application content -->
+    <div class="big-canvas-container">
+        <!-- ===== MAIN APPLICATION CONTENT ===== -->
+        <!-- Flexbox layout: row-reverse puts sidebar on right, content on left -->
+        <main style="display: flex; flex-direction:row-reverse; align-items: flex-start;">
+            
+            <!-- Main content area with signal processing controls -->
+            <div style="flex:1;">
+            
+            <!-- ===== FILE OPERATIONS DROPDOWN ===== -->
+            <!-- Dropdown for CSV import/export functionality -->
+            <div class="file-dropdown" style="margin-top: -115px; transform: translate(-50px);">
+                <button id="filesBtn" class="file-button">Files ▼</button>
+                <div class="file-dropdown-content">
                     <button type="button" id="exportBtn">Export CSV</button>
+                    <!-- Hidden file input for CSV import -->
                     <input type="file" id="importFile" accept=".csv" style="display:none">
                     <button type="button" id="importBtn">Import CSV</button>
-                    <button type="button" id="addOverlayBtn">Add Overlay</button>
                 </div>
-            </form>
-            
-            <div class="canvas-container">
-                <canvas id="combinedCanvas" width="800" height="600"></canvas>
             </div>
-        </section>
+            
+            <!-- ===== SIGNAL GENERATION FORM ===== -->
+            <!-- Main form for configuring and generating various signal types -->
+            <section id="signal-section">
+                <form id="signalForm">
+                    
+                    <!-- Basic frequency input (0.1-1000 Hz range) -->
+                    <!-- Former frequency input removed: now handled in-plot -->
+                    <!-- <div class="form-group">
+                        <label for="frequency">Frequency (Hz, 0.1–1000):</label>
+                        <input type="number" id="frequency" name="frequency" min="0.1" max="1000" step="any" value="50.12" required>
+                    </div> -->
+                    
+                    <!-- Phase control - hidden for multi-frequency signals -->
+                    <!-- Former phase input removed: now handled in-plot -->
+                    <!-- <div class="form-group" id="phaseGroup" style="display:none;">
+                        <label for="phaseValue">Phase (degrees):</label>
+                        <input type="number" id="phaseValue" name="phaseValue" min="0" max="360" step="10" value="0" style="width:70px; text-align:center;">
+                    </div> -->
+                    
+                    <!-- Multi-frequency support - shown only for 'multi' signal type -->
+                    <div class="form-group" id="multiFreqGroup" style="display:none;">
+                        <label for="multiFrequencies">Frequencies ( Hz):</label>
+                        <input type="text" id="multiFrequencies" name="multiFrequencies" placeholder="e.g., 120 200 300" value="120, 200, 300">
+                    </div>
+                    <div class="form-group" id="multiAmpGroup" style="display:none;">
+                        <label for="multiAmplitudes">Amplitudes</label>
+                        <input type="text" id="multiAmplitudes" name="multiAmplitudes" placeholder="e.g., 1 1 1" value="1 1 1">
+                    </div>
+                    
+                </form>
+                
+                <!-- ===== PLOT DISPLAY AREA ===== -->
+                
+                <!-- Plot area with left sidebar for processing controls -->
+                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                    <!-- ===== PROCESSING CONTROLS SIDEBAR ===== -->
+                    <!-- Vertical sidebar with processing operation buttons -->
+                    <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.05); padding: 15px; border-radius: 8px; width: 150px;">
+                        <!-- Main processing button -->
+                        <button class="processing-btn" id="processingBtn">Processing</button>
+                        
+                        <!-- Filter operations dropdown -->
+                        <div class="dropdown" id="filterDropdownContainer" style="position: relative;">
+                            <button class="processing-btn" id="filterBtn" style="width: 100%;">Filter ▼</button>
+                            <div class="dropdown-content" id="filterDropdownContent">
+                                <button type="button" id="filterBtn_highPass">High Pass Filter</button>
+                                <button type="button" id="filterBtn_lowPass">Low Pass Filter</button>
+                                <button type="button" id="filterBtn_bandPass">Band Pass Filter</button>
+                                <button type="button" id="filterBtn_view">Filter View</button> <!-- Filter visualization -->
+                            </div>
+                        </div>
+                        
+                        <!-- Analysis operations dropdown -->
+                        <div class="dropdown" style="position: relative;">
+                            <button class="processing-btn" id="analyzeBtn" style="width: 100%;">Analyze ▼</button>
+                            <div class="dropdown-content" id="analyzeDropdown">
+                                <button type="button" id="realFFTBtn">Real FFT</button>
+                                <button type="button" id="iFFTBtn">iFFT</button>
+                                <button type="button" id="resultsBtn">Results</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Mathematical operations dropdown -->
+                        <div class="dropdown" style="position: relative;">
+                            <button class="processing-btn" id="operationsBtn" style="width: 100%;">Operations ▼</button>
+                            <div class="dropdown-content" id="operationsDropdown">
+                                <button type="button" id="opsBtn_add">Add</button>
+                                <button type="button" id="opsBtn_subtract">Subtract</button>
+                                <button type="button" id="opsBtn_multiply">Multiply</button>
+                                <button type="button" id="opsBtn_divide">Divide</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main plot container -->
+                    <div id="plot" style="position: relative; width: 100%; min-height: 700px;">
+                        <!-- In-plot controls are correctly inside the plot div -->
+                        <div id="plot-controls" style="
+                            position: absolute;
+                            top: 40px;
+                            left: 15px;
+                            z-index: 10;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                            background: rgba(40,40,60,0.92);
+                            border-radius: 8px;
+                            padding: 7px 6px 7px 8px;
+                            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+                            min-width: 90px;
+                            max-width: 110px;
+                            align-items: flex-start;
+                        ">
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;" id="frequency_inplot_label">Freq.
+                                <input type="text" id="frequency_inplot" value="50.12" style="width:50px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Noise
+                                <input type="number" id="noise_inplot" min="0" max="1" step="0.01" value="0.1" style="width:44px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Points
+                                <input type="number" id="points_inplot" min="1024" max="65000" step="64" value="1024" style="width:54px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Signal
+                                <select id="signalType_inplot" style="width:62px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                                    <option value="sine">Sine</option>
+                                    <option value="square">Square</option>
+                                    <option value="triangle">Triangle</option>
+                                    <option value="multi">Multi</option>
+                                    <option value="expdecay">Exponential Decay</option>
+                                    <option value="random">Random Noise</option>
+                                    <option value="gaussian">Gaussian Noise</option>
+                                </select>
+                            </label>
+                            <label style="font-size:12px; color:#fff; margin-bottom:1px;">Phase
+                                <input type="number" id="phase_inplot" min="0" max="360" step="10" value="0" style="width:44px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <!-- Decay Constant - shown only for expdecay signal -->
+                            <label id="tau_inplot_label" style="font-size:12px; color:#fff; margin-bottom:1px; display:none;">Decay (τ)
+                                <input type="number" id="tau_inplot" min="0.001" max="10" step="0.001" value="0.02" style="width:44px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <!-- Multi-frequency inputs - shown only for multi signal -->
+                            <label id="multiFreq_inplot_label" style="font-size:12px; color:#fff; margin-bottom:1px; display:none;">Freqs
+                                <input type="text" id="multiFrequencies" value="120, 200, 300" style="width:54px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <label id="multiAmp_inplot_label" style="font-size:12px; color:#fff; margin-bottom:1px; display:none;">Amps
+                                <input type="text" id="multiAmplitudes" value="1, 1, 1" style="width:54px; margin-left:4px; padding:1px 2px; font-size:12px; border-radius:3px; border:1px solid #bbb;">
+                            </label>
+                            <!-- In-plot Generate Signal button -->
+                            <button type="button" id="generateBtn_inplot">Generate Signal</button>
+                            <button type="button" id="addOverlayBtn_inplot">Overlay</button>
+                            <button type="button" id="deconvBtn_inplot" style="display:none;">Deconvolution</button>
+                            <button type="button" id="applyFilterBtn_inplot" style="display:none;">Apply Filter</button>
+                        </div>
+                        
+                        <!-- Bottom-left in-plot controls (Undo, Clear, Data Status) -->
+                        <div id="plot-controls-bottom" style="
+                            position: absolute;
+                            bottom: 10px;
+                            left: 15px;
+                            z-index: 10;
+                            display: flex;
+                            flex-direction: row;
+                            gap: 6px;
+                            background: rgba(40,40,60,0.92);
+                            border-radius: 8px;
+                            padding: 7px 8px;
+                            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+                        ">
+                            <button type="button" id="clearBtn" style="
+                                width: 60px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: #fff;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                font-size: 13px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+                            ">Clear</button>
+                            <button type="button" id="undo-btn" style="
+                                width: 60px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: #fff;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                font-size: 13px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+                            ">Undo</button>
+                            <button type="button" id="showStateBtn" style="
+                                width: 80px;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: #fff;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 0;
+                                font-size: 13px;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.10);
+                            ">Data Status</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ===== DECONVOLUTION CONTROLS ===== -->
+                <!-- Slider for deconvolution regularization parameter - hidden by default -->
+                
+                    
+                   
+                <!-- Warning display for multi-signal type issues -->
+                <div id="multi-warning" style="display:none;"></div>
+                
+                <!-- ===== RC CIRCUIT SIMULATION CONTROLS ===== -->
+                <section id="rc-circuit-section" style="display:none; margin-top:30px; padding:15px; background:rgba(240,240,255,0.12); border-radius:10px; max-width:500px;">
+                    <h3>RC Circuit Step Response</h3>
+                    <div class="form-group">
+                        <label for="rcR">Resistance R (Ohms):</label>
+                        <input type="number" id="rcR" min="1" max="1000000" value="1000" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcC">Capacitance C (Farads):</label>
+                        <input type="number" id="rcC" min="1e-9" max="1" value="1e-6" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcVin">Input Voltage V<sub>in</sub> (V):</label>
+                        <input type="number" id="rcVin" min="0.01" max="100" value="1.0" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcDuration">Duration (seconds):</label>
+                        <input type="number" id="rcDuration" min="0.001" max="10" value="0.05" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="rcPoints">Points:</label>
+                        <input type="number" id="rcPoints" min="10" max="2000" value="500" step="1">
+                    </div>
+                    <button type="button" id="rcSimBtn" class="processing-btn" style="width:100%;margin-top:10px;">Simulate RC Circuit</button>
+                </section>
+            </section>
+        </div>
     </main>
+
+    </div> <!-- End of big-canvas-container -->
     
-    <!-- Fixed JS path -->
-    <script src="/static/js/script.js"></script>
+    <!-- ===== EXTERNAL JAVASCRIPT MODULES ===== -->
+    <!-- Main UI functionality and event handlers -->
+    <script type="module" src="/static/js/ui.js"></script>
+    <!-- Galaxy animation controller -->
+    <script type="module" src="/static/js/galaxy.js"></script>
+    
+    <!-- ===== INLINE JAVASCRIPT ===== -->
+    <script>
+        // ===== RWANDA FLAG DEPTH ANIMATION =====
+        // Creates a smooth floating effect with gentle back-and-forth movement
+        // while keeping the flag properly oriented (vertical)
+        function animateRwandaFlag() {
+            const flag = document.getElementById('rwanda-flag');
+            let animationFrame;
+            let startTime = Date.now();
+            
+            function animateDepth() {
+                const currentTime = Date.now();
+                const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
+                
+                // Create smooth back-and-forth motion using sine wave (12-second cycle)
+                const depthCycle = (Math.sin(elapsed * Math.PI / 6) + 1) / 2; // 0 to 1
+                
+                // Create gentle horizontal floating motion (8-second cycle)
+                const horizontalOffset = Math.sin(elapsed * Math.PI / 4) * 15; // ±15px movement
+                
+                // Create subtle vertical floating motion (10-second cycle)
+                const verticalOffset = Math.cos(elapsed * Math.PI / 5) * 8; // ±8px movement
+                
+                // Scale: from 1.0 (normal size) to 1.4 (closer view)
+                // Smooth scaling creates depth illusion without rotation issues
+                const scale = 1.0 + (depthCycle * 0.4);
+                
+                // Opacity: from 0.8 (slightly faded) to 1.0 (fully visible)
+                const opacity = 0.8 + (depthCycle * 0.2);
+                
+                // Very gentle rotation: ±3 degrees for subtle life-like movement
+                const rotation = Math.sin(elapsed * Math.PI / 7) * 3; // 14-second cycle
+                
+                // Apply transformations: maintain vertical orientation with floating movement
+                // The order matters: translate to center, then apply floating offsets, scale, and gentle rotation
+                flag.style.transform = `translate(calc(-50% + ${horizontalOffset}px), calc(-50% + ${verticalOffset}px)) scale(${scale}) rotate(${rotation}deg)`;
+                flag.style.opacity = opacity;
+                
+                // Add subtle box-shadow variation for depth effect
+                const shadowIntensity = 0.6 + (depthCycle * 0.3);
+                const shadowBlur = 20 + (depthCycle * 15);
+                flag.style.boxShadow = `0 10px ${shadowBlur}px rgba(0,0,0,${shadowIntensity})`;
+                
+                // Continue animation loop
+                animationFrame = requestAnimationFrame(animateDepth);
+            }
+            
+            // Cleanup function for proper memory management
+            function cleanup() {
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            }
+            
+            // Add cleanup on page unload
+            window.addEventListener('beforeunload', cleanup);
+            window.addEventListener('pagehide', cleanup);
+            
+            // Start the animation when function is called
+            animateDepth();
+        }
+        
+        // ===== INITIALIZATION =====
+        // Start Rwanda flag animation when page loads
+        document.addEventListener('DOMContentLoaded', animateRwandaFlag);
+        
+        // ===== DROPDOWN FUNCTIONALITY =====
+        // Handle dropdown button clicks to show/hide dropdown content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all dropdown buttons
+            const dropdownButtons = document.querySelectorAll('#filterBtn, #analyzeBtn, #operationsBtn');
+            
+            dropdownButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    console.log('Dropdown button clicked:', this.id); // DEBUG: log click
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Get the parent dropdown container
+                    const dropdown = this.parentElement;
+                    
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown').forEach(otherDropdown => {
+                        if (otherDropdown !== dropdown) {
+                            otherDropdown.classList.remove('active');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    dropdown.classList.toggle('active');
+                });
+            });
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown').forEach(dropdown => {
+                        dropdown.classList.remove('active');
+                    });
+                }
+            });
+            
+            // Close filter dropdown when any filter option is clicked
+            const filterDropdownButtons = document.querySelectorAll('#filterBtn_highPass, #filterBtn_lowPass, #filterBtn_bandPass, #filterBtn_view');
+            filterDropdownButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Close the filter dropdown immediately
+                    const filterDropdown = document.getElementById('filterDropdownContainer');
+                    if (filterDropdown) {
+                        filterDropdown.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Close operations dropdown when any operation option is clicked
+            const operationsDropdownButtons = document.querySelectorAll('#opsBtn_add, #opsBtn_subtract, #opsBtn_multiply, #opsBtn_divide');
+            operationsDropdownButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Close the operations dropdown immediately
+                    const operationsDropdown = document.querySelector('#operationsBtn').parentElement;
+                    if (operationsDropdown) {
+                        operationsDropdown.classList.remove('active');
+                    }
+                });
+            });
+            
+            // --- ADDED: Auto-update plot on decay constant change ---
+            const tauInput = document.getElementById('tau_inplot');
+            
+            // Add event listener for tau input changes to automatically generate signal
+            tauInput.addEventListener('input', function() {
+                const signalType = document.getElementById('signalType_inplot').value;
+                // Only auto-generate if the current signal type is exponential decay
+                if (signalType === 'expdecay') {
+                    // Small debounce to prevent excessive calls while typing
+                    clearTimeout(window.tauUpdateTimeout);
+                    window.tauUpdateTimeout = setTimeout(() => {
+                        // Import and call generateSignal
+                        // The generateSignal function already handles overlay logic properly
+                        import('./static/js/signal.js').then(module => {
+                            module.generateSignal().catch(err => {
+                                console.error('Error generating signal:', err);
+                            });
+                        });
+                    }, 300); // 300ms debounce
+                }
+            });
+            
+            // --- ADDED: Show/hide input fields based on signal type ---
+            const signalTypeInplot = document.getElementById('signalType_inplot');
+            const tauLabel = document.getElementById('tau_inplot_label');
+            const multiFreqLabel = document.getElementById('multiFreq_inplot_label');
+            const multiAmpLabel = document.getElementById('multiAmp_inplot_label');
+            const freqLabel = document.getElementById('frequency_inplot_label');
+
+            function toggleInputFields() {
+                const signalType = signalTypeInplot.value;
+                
+                if (signalType === 'expdecay') {
+                    tauLabel.style.display = 'block';
+                    multiFreqLabel.style.display = 'none';
+                    multiAmpLabel.style.display = 'none';
+                    freqLabel.style.display = 'block';
+                } else if (signalType === 'multi') {
+                    tauLabel.style.display = 'none';
+                    multiFreqLabel.style.display = 'block';
+                    multiAmpLabel.style.display = 'block';
+                    freqLabel.style.display = 'none'; // Hide single frequency input for multi
+                } else {
+                    tauLabel.style.display = 'none';
+                    multiFreqLabel.style.display = 'none';
+                    multiAmpLabel.style.display = 'none';
+                    freqLabel.style.display = 'block';
+                }
+            }
+
+            // Check on initial load
+            toggleInputFields(); 
+            
+            // Add event listener for changes
+            signalTypeInplot.addEventListener('change', toggleInputFields);
+            });
+    </script>
+
+    <!-- ===== MODAL DIALOGS (REMOVED) ===== -->
 </body>
 </html>

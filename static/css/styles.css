@@ -1,83 +1,91 @@
+/*
+Main body styling: sets the font, background color, and layout padding for the entire app.
+Prevents horizontal scrolling and ensures a visually distinct background for the workspace.
+All page content inherits these base styles for a consistent look.
+*/
 body {
+
     font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
+    margin: 80px;
+    padding: 50px;
+    background-color:green;
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
-header, footer {
+/*
+Header styling: styles the top navigation bar and title area.
+Ensures the header stands out with a dark background and centered text.
+Provides padding for visual separation from the rest of the page.
+*/
+header {
     background-color: #333;
     color: #fff;
     text-align: center;
     padding: 1em 0;
 }
 
-nav ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-nav ul li {
-    display: inline-block;
-    margin-right: 15px;
-    position: relative;
-}
-
-nav ul li a {
-    color: #fff;
-    text-decoration: none;
-    padding: 4px 8px;
-    border-radius: 3px;
-}
-
-nav ul li a:focus, nav ul li a:hover {
-    background-color: #444;
-    outline: none;
-}
-
-nav ul li ul {
-    display: none;
-    position: absolute;
-    background-color: #333;
-    padding: 10px;
-    min-width: 100px;
-    z-index: 10;
-}
-
-nav ul li:hover ul,
-nav ul li:focus-within ul {
-    display: block;
-}
-
-nav ul li ul li {
-    display: block;
-    margin: 5px 0;
-}
-
+/*
+Main content area: uses flex layout for main content and sidebar.
+Sets a max width and centers the main app area on the page.
+Applies a subtle background for content separation.
+*/
 main {
+    display: flex;
     padding: 2em;
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
+    background: grey(255, 255, 255, 0.95);
 }
 
+/*
+Sidebar styling: vertical navigation and dropdowns.
+Defines width, layout, and button appearance for sidebar controls.
+Ensures sidebar remains visually distinct and functional.
+*/
+.sidebar {
+    width: 50px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+/*
+Signal section: main area for signal controls and forms.
+Allows the section to grow and align with the main content.
+Removes left margin for flush alignment with the sidebar.
+*/
+#signal-section {
+    flex-grow:1;
+    margin-left: 0px;
+
+}
+
+/*
+Form styling: sets spacing, border, and appearance for all form elements.
+Ensures consistent look for labels, inputs, selects, and buttons.
+Improves usability and visual clarity for user input areas.
+*/
 form {
     margin: 1em 0;
 }
 
 form label {
     display: inline-block;
-    width: 150px;
+    width: 100px;
 }
 
-form input {
-    margin: 5px 0;
-    padding: 5px;
+form input, form select {
+    margin: 10px 0;
+    padding: 0px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
 }
 
 form button {
-    margin: 10px 5px;
-    padding: 8px 16px;
+    margin: 5px;
+    padding: 8px 10px;
     background-color: #007bff;
     color: #fff;
     border: none;
@@ -91,23 +99,26 @@ form button:hover, form button:focus {
     outline: none;
 }
 
+/*
+Canvas container and canvas styling: wraps and styles all <canvas> elements.
+Ensures canvases are block-level, have a border, and fill their container.
+Adds hover/focus effects for better user feedback during interactions.
+*/
 .canvas-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
-}
-
-.canvas-wrapper {
-    text-align: center;
+    position: relative;
+    
+    
 }
 
 canvas {
     display: block;
     border: 1px solid #ccc;
-    max-width: 100%;
-    cursor: move;
+    width: 100%;
+    height: 100%;
     background: #fff;
+    cursor: crosshair; /* Better for zoom rectangle drawing */
+    
+
 }
 
 canvas:hover, canvas:focus {
@@ -115,6 +126,413 @@ canvas:hover, canvas:focus {
     outline: none;
 }
 
-h4 {
-    margin: 0.5em 0;
+/*
+Zoom instructions and fallback: styles for zoom help text and fallback messages.
+Improves accessibility and user guidance for interactive canvas features.
+*/
+.zoom-instructions {
+    font-size: 12px;
+    color: #555;
+    margin-top: 5px;
+}
+
+.canvas-fallback {
+    display: none;
+    color: red;
+    margin-top: 5px;
+}
+
+canvas:not(:supported) + .canvas-fallback {
+    display: block;
+}
+
+/*
+Sidebar button and dropdown styling: styles for main sidebar buttons and dropdown menus.
+Ensures dropdowns are visually distinct, easy to use, and accessible.
+Provides hover and active states for better interactivity.
+*/
+.sidebar .main-btn {
+    background-color: grey#007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 170px;
+    text-align: left;
+}
+
+.sidebar .dropdown {
+    position: relative;
+    width: 170px;
+}
+
+.sidebar .dropbtn {
+    background-color: #0056b3;
+    color: #fff;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+.sidebar .dropdown-content {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: #f9f9f9;
+    min-width: 170px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+    z-index: 2;
+    flex-direction: column;
+}
+
+.sidebar .dropdown-content.show {
+    display: flex;
+}
+
+.sidebar .dropdown-content button {
+    background: #f9f9f9;
+    border: none;
+    color: #333;
+    padding: 10px 18px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.sidebar .dropdown-content button:hover {
+    background-color: #e0e0e0;
+}
+
+/*
+File dropdown styling: styles for the file import/export dropdown.
+Positions the dropdown and its button, and ensures the menu is easy to use.
+Provides hover effects for better usability.
+*/
+.file-dropdown {
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    z-index: 201;
+    width: 80px
+}
+
+.file-dropdown .file-button {
+    width: 100%;
+    text-align: left;
+    background-color:white
+}
+
+.file-dropdown-content {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+    z-index: 202;
+    flex-direction: column;
+    padding: 6px 0;
+}
+
+.file-dropdown-content button {
+    background: none;
+    border: none;
+    color: hsl(0, 0%, 20%);
+    padding: 10px 18px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.file-dropdown-content button:hover {
+    background-color: #e0e0e0;
+}
+
+.file-dropdown.show .file-dropdown-content {
+    display: flex;
+}
+
+/*
+Button stack and plot control buttons: positions and styles clear/undo buttons.
+Ensures these controls are always visible and easy to access.
+Adds hover/focus effects for better feedback.
+*/
+.button-stack {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+.plot-clear-btn, .plot-undo-btn {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 5px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background 0.2s;
+    width: 80px;
+}
+
+.plot-clear-btn:hover, .plot-clear-btn:focus,
+.plot-undo-btn:hover, .plot-undo-btn:focus {
+    background-color: #0056b3;
+}
+
+/*
+Custom legend styling: styles for the custom legend area below plots.
+Ensures legend items are visually grouped, easy to read, and interactive.
+Adds color-coded lines and remove buttons for each legend entry.
+*/
+#custom-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    min-height: 36px;
+    position: relative;
+    z-index: 10;
+    background: rgba(255,255,255,0.95);
+    padding: 4px 8px 4px 4px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #e0e0e0;
+    max-width: 900px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.legend-line {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    display: inline-block;
+}
+.legend-line-black {
+    background: #000;
+}
+.legend-line-red {
+    background: #d62728;
+}
+
+/* Custom legend entry for JS-generated legend */
+.legend-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 2px 10px 2px 8px;
+    margin-right: 4px;
+    font-size: 15px;
+    min-width: 90px;
+    min-height: 28px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.legend-remove {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 6px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+}
+.legend-remove:hover {
+    background: #c0392b;
+}
+
+/*
+Multi-warning styling: styles the warning message for multi-signal issues.
+Ensures the warning is visually distinct and easy to notice.
+Adds padding, border, and shadow for emphasis.
+*/
+#multi-warning {
+    display: none;
+    background: #fff3cd;
+    color: #856404;
+    border: 1.5px solid #ffeeba;
+    border-radius: 5px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    max-width: 900px;
+    z-index: 100;
+}
+
+/*
+Galaxy sidebar: fixed-position animated sidebar for visual flair.
+Ensures the galaxy canvas is always visible and styled appropriately.
+Prevents the sidebar from blocking UI interactions.
+*/
+#galaxy-sidebar {
+    position: fixed;
+    left: 0; /* or -10px for slightly off-screen */
+    top: 80px;
+    width: 60px;
+    height: 60px;
+    z-index: 1000;
+    background: transparent;
+    display: flex;
+    align-items: flex-end;
+    justify-content: right;
+    pointer-events: none; /* So it doesn't block UI */
+}
+#galaxy-canvas {
+    width: 100%;
+    height: 100%;
+    background: #101020;
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto;
+    pointer-events: none;
+}
+
+/*
+Circuit section and controls: styles for the RC circuit simulation area.
+Aligns form elements, buttons, and section layout for clarity and usability.
+Adds gradients and hover effects for interactive controls.
+*/
+#circuit-section {
+    position: absolute;
+    left: 0;
+    top: 200px; /* Moved up by 50px from previous 440px */
+    transform: translateY(0); /* No upward shift, start at X axis */
+    max-width: 160px;
+    width: 160px;
+    padding-left: 0;
+    z-index: 20;
+}
+#circuit-section .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: 10px;
+    padding: 0;
+    gap: 2px;
+}
+#circuit-section label {
+    font-weight: 500;
+    text-align: right;
+    min-width: 90px;
+    margin-bottom: 2px;
+}
+#circuit-section input,
+#circuit-section select {
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px solid #bbb;
+    font-size: 13px;
+    width: 90px;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+#circuitSimBtn {
+    margin-top: 8px;
+    padding: 6px 10px;
+    width: 90px;
+    min-width: 90px;
+    max-width: 100px;
+    font-size: 14px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: block;
+    margin-left:450px;
+    margin-right: auto;
+}
+#circuitSimBtn:hover, #circuitSimBtn:focus {
+    background: linear-gradient(90deg, #5a67d8 0%, #6b47b6 100%);
+}
+
+/* Differentiator and Integrator Buttons */
+#differentiatorBtn, #integratorBtn {
+    padding: 6px 14px;
+    font-size: 14px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #43cea2 0%, #185a9d 100%);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+}
+#differentiatorBtn:hover, #integratorBtn:hover,
+#differentiatorBtn:focus, #integratorBtn:focus {
+    background: linear-gradient(90deg, #185a9d 0%, #43cea2 100%);
+    transform: translateY(-2px) scale(1.04);
+}
+
+/* Style for new dropdown options (Differentiator/Integrator) */
+#circuitType option[value="differentiator"],
+#circuitType option[value="integrator"] {
+    font-weight: bold;
+    color: #185a9d;
+    background: #e6f2ff;
+}
+
+#circuitType {
+    font-size: 15px;
+    font-weight: 500;
+    color: #333;
+    background: #f8faff;
+    border: 1.5px solid #43cea2;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-bottom: 4px;
+    transition: border 0.2s;
+}
+#circuitType:focus {
+    border: 1.5px solid #185a9d;
+    outline: none;
+}
+
+/*
+Main plot container: sets the size, position, and background for the main Plotly plot.
+Ensures the plot is sized and positioned consistently with the app layout.
+Background color helps the plot stand out from the rest of the UI.
+*/
+#plot {
+    width: 100%;
+    min-height: 700px;
+    height: auto;
+    top: 0;
+    left: 0;
+    flex: 1;
+    position: relative;
+    background-color: #f8f9fa;
 }
