@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Set the step to 0.5 degree for finer control
     if (phaseSpin) {
-        phaseSpin.step = "0.1";
+        phaseSpin.step = "0.5";
     }
 
     // Utility: convert degrees to radians
