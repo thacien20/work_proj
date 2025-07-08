@@ -93,31 +93,43 @@ function initializeApp() {
  * Set up all event listeners for the application
  */
 function setupEventListeners() {
-    // Signal generation controls
-    document.getElementById('generateBtn').addEventListener('click', handleGenerateSignal);
-    document.getElementById('resetBtn').addEventListener('click', handleReset);
-    document.getElementById('infoBtn').addEventListener('click', handleShowInfo);
-    
-    // Quick Action buttons
-    document.getElementById('trigonometry-btn').addEventListener('click', () => handleQuickAction('trigonometry'));
-    
-    // Properties dialog controls
-    document.getElementById('showPropertiesBtn').addEventListener('click', showPropertiesDialog);
-    document.getElementById('closePropertiesBtn').addEventListener('click', hidePropertiesDialog);
-    
-    // Close dialog when clicking on overlay
-    document.getElementById('propertiesDialog').addEventListener('click', (e) => {
-        if (e.target.id === 'propertiesDialog') {
-            hidePropertiesDialog();
-        }
-    });
-    
-    // Comparison controls
-    document.getElementById('compareBtn').addEventListener('click', handleShowComparison);
-    document.getElementById('generateComparisonBtn').addEventListener('click', handleGenerateComparison);
-    document.getElementById('closeComparisonBtn').addEventListener('click', handleCloseComparison);
-    
-    // Keyboard shortcuts
+    // Only add event listeners if the elements exist
+    const generateBtn = document.getElementById('generateBtn');
+    if (generateBtn) generateBtn.addEventListener('click', handleGenerateSignal);
+
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', handleReset);
+
+    const infoBtn = document.getElementById('infoBtn');
+    if (infoBtn) infoBtn.addEventListener('click', handleShowInfo);
+
+    const trigBtn = document.getElementById('trigonometry-btn');
+    if (trigBtn) trigBtn.addEventListener('click', () => handleQuickAction('trigonometry'));
+
+    const showPropertiesBtn = document.getElementById('showPropertiesBtn');
+    if (showPropertiesBtn) showPropertiesBtn.addEventListener('click', showPropertiesDialog);
+
+    const closePropertiesBtn = document.getElementById('closePropertiesBtn');
+    if (closePropertiesBtn) closePropertiesBtn.addEventListener('click', hidePropertiesDialog);
+
+    const propertiesDialog = document.getElementById('propertiesDialog');
+    if (propertiesDialog) {
+        propertiesDialog.addEventListener('click', (e) => {
+            if (e.target.id === 'propertiesDialog') {
+                hidePropertiesDialog();
+            }
+        });
+    }
+
+    const compareBtn = document.getElementById('compareBtn');
+    if (compareBtn) compareBtn.addEventListener('click', handleShowComparison);
+
+    const generateComparisonBtn = document.getElementById('generateComparisonBtn');
+    if (generateComparisonBtn) generateComparisonBtn.addEventListener('click', handleGenerateComparison);
+
+    const closeComparisonBtn = document.getElementById('closeComparisonBtn');
+    if (closeComparisonBtn) closeComparisonBtn.addEventListener('click', handleCloseComparison);
+
     document.addEventListener('keydown', handleKeyboardShortcuts);
 }
 
@@ -407,10 +419,17 @@ function handleCloseComparison() {
 async function handleGenerateComparison() {
     try {
         showLoading(true);
-        
+
         const signalConfigs = getComparisonSignalConfigs();
         const duration = parseFloat(document.getElementById('duration').value);
-        
+
+        // Convert phase from degrees to radians for each signal config
+        signalConfigs.forEach(cfg => {
+            if (typeof cfg.phase === 'number') {
+                cfg.phase = cfg.phase * Math.PI / 180;
+            }
+        });
+
         const response = await fetch('/basic_signals/api/compare', {
             method: 'POST',
             headers: {
@@ -422,19 +441,19 @@ async function handleGenerateComparison() {
                 sample_rate: 200
             })
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             plotComparison(data);
         } else {
             throw new Error(data.error || 'Comparison generation failed');
         }
-        
+
     } catch (error) {
         console.error('❌ Error generating comparison:', error);
         showError('Comparison generation failed: ' + error.message);
@@ -537,7 +556,7 @@ function plotComparison(data) {
         // Subplot layout
         const layout = {
             grid: { rows: 2, columns: 1, pattern: 'independent', roworder: 'top to bottom' },
-            xaxis: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },
+            //xaxis: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },//this is not needed as we have two xaxes
             yaxis: { title: 'Amplitude (V)', gridcolor: '#e0e0e0', showgrid: true },
             xaxis2: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },
             yaxis2: { title: 'Sum Amplitude (V)', gridcolor: '#e0e0e0', showgrid: true },
@@ -596,49 +615,78 @@ function plotComparison(data) {
 async function handleShowInfo() {
     try {
         const signalType = document.getElementById('signalType').value;
-        
-        const response = await fetch(`/basic_signals/api/signal_info/${signalType}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            displaySignalInfo(data.info);
+
+        // Always use static info for the popup
+        const info = getStaticSignalInfo(signalType);
+
+        // Ensure the info dialog exists or create it
+        let infoDialog = document.getElementById('signalInfoDialog');
+        if (!infoDialog) {
+            infoDialog = document.createElement('div');
+            infoDialog.id = 'signalInfoDialog';
+            infoDialog.className = 'dialog-overlay';
+            infoDialog.style.position = 'fixed';
+            infoDialog.style.top = '0';
+            infoDialog.style.left = '0';
+            infoDialog.style.width = '100vw';
+            infoDialog.style.height = '100vh';
+            infoDialog.style.background = 'rgba(0,0,0,0.25)';
+            infoDialog.style.display = 'flex';
+            infoDialog.style.alignItems = 'center';
+            infoDialog.style.justifyContent = 'center';
+            infoDialog.innerHTML = `
+                <div class="dialog-box" style="background: #fff; color: #222; min-width: 320px; max-width: 480px; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.15); padding: 20px;">
+                    <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0;">ℹ️ Signal Information</h3>
+                        <button id="closeSignalInfoBtn" class="close-btn" style="font-size: 1.5em; background: none; border: none; cursor: pointer;">&times;</button>
+                    </div>
+                    <div class="dialog-content" id="signalInfoContent" style="margin-top: 12px;">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(infoDialog);
+
+            // Close button logic
+            document.getElementById('closeSignalInfoBtn').onclick = function () {
+                infoDialog.style.display = 'none';
+            };
+            // Close on overlay click
+            infoDialog.onclick = function (e) {
+                if (e.target === infoDialog) infoDialog.style.display = 'none';
+            };
         } else {
-            throw new Error(data.error || 'Failed to get signal information');
+            infoDialog.style.display = 'flex';
         }
-        
+
+        // Print static info in the dialog
+        displaySignalInfo(info);
+
     } catch (error) {
-        console.error('❌ Error fetching signal info:', error);
+        console.error('❌ Error showing signal info:', error);
         showError('Failed to load signal information: ' + error.message);
     }
 }
 
 /**
- * Display signal information in the info panel
+ * Display signal information in the info dialog
  * @param {Object} info - Signal information
  */
 function displaySignalInfo(info) {
     const infoContent = document.getElementById('signalInfoContent');
-    
+    if (!infoContent) return;
     infoContent.innerHTML = `
         <h4>${info.name}</h4>
         <p><strong>Description:</strong> ${info.description}</p>
-        
         <div class="signal-formula">
             <strong>Formula:</strong> ${info.formula}
         </div>
-        
         <div class="mt-3">
             <strong>Properties:</strong>
             <ul class="signal-properties-list">
                 ${info.properties.map(prop => `<li>${prop}</li>`).join('')}
             </ul>
         </div>
-        
         <div class="mt-3">
             <strong>Applications:</strong>
             <ul class="signal-properties-list">
@@ -646,12 +694,102 @@ function displaySignalInfo(info) {
             </ul>
         </div>
     `;
-    
-    // Add fade-in animation
-    infoContent.classList.add('fade-in');
-    
-    // Scroll to info panel
-    document.getElementById('signalInfo').scrollIntoView({ behavior: 'smooth' });
+}
+
+// --- Add a static fallback for signal info ---
+function getStaticSignalInfo(type) {
+    const infoMap = {
+        sine: {
+            name: "Sine Wave",
+            description: "A smooth, periodic oscillation that is fundamental in signal processing and physics.",
+            formula: "A·sin(2πft + φ)",
+            properties: [
+                "Continuous and periodic",
+                "Single frequency component",
+                "Peak amplitude: A",
+                "Frequency: f (Hz)",
+                "Phase: φ (radians or degrees)"
+            ],
+            applications: [
+                "AC power",
+                "Audio signals",
+                "Radio waves",
+                "Mathematical modeling"
+            ]
+        },
+        cosine: {
+            name: "Cosine Wave",
+            description: "A sine wave shifted by 90°, commonly used in trigonometry and signal analysis.",
+            formula: "A·cos(2πft + φ)",
+            properties: [
+                "Continuous and periodic",
+                "Single frequency component",
+                "Peak amplitude: A",
+                "Frequency: f (Hz)",
+                "Phase: φ (radians or degrees)"
+            ],
+            applications: [
+                "Signal modulation",
+                "Fourier analysis",
+                "Physics and engineering"
+            ]
+        },
+        square: {
+            name: "Square Wave",
+            description: "A non-sinusoidal periodic waveform that alternates between two levels with a 50% duty cycle.",
+            formula: "A·sgn(sin(2πft + φ))",
+            properties: [
+                "Discontinuous, sharp transitions",
+                "Contains odd harmonics",
+                "Peak amplitude: A",
+                "Frequency: f (Hz)"
+            ],
+            applications: [
+                "Digital clocks",
+                "Timing circuits",
+                "Switching signals"
+            ]
+        },
+        triangle: {
+            name: "Triangle Wave",
+            description: "A non-sinusoidal waveform with linear rise and fall, resembling a triangle.",
+            formula: "A·(2/π)·arcsin(sin(2πft + φ))",
+            properties: [
+                "Continuous, linear slopes",
+                "Contains odd harmonics (faster decay than square)",
+                "Peak amplitude: A",
+                "Frequency: f (Hz)"
+            ],
+            applications: [
+                "Audio synthesis",
+                "Signal testing",
+                "Function generators"
+            ]
+        },
+        sawtooth: {
+            name: "Sawtooth Wave",
+            description: "A non-sinusoidal waveform with a linear rise and a sharp drop (or vice versa).",
+            formula: "A·(2(t/T - floor(0.5 + t/T)))",
+            properties: [
+                "Contains both even and odd harmonics",
+                "Sharp transitions",
+                "Peak amplitude: A",
+                "Frequency: f (Hz)"
+            ],
+            applications: [
+                "Music synthesis",
+                "Oscilloscopes",
+                "Television scanning"
+            ]
+        }
+    };
+    return infoMap[type] || {
+        name: "Unknown Signal",
+        description: "No information available.",
+        formula: "-",
+        properties: [],
+        applications: []
+    };
 }
 
 // =============================================================================
@@ -1251,7 +1389,7 @@ function showNotification(message) {
  */
 function cleanup() {
     console.log('🧹 Cleaning up Basic Signals resources...');
-    
+
     // Clear plots
     if (AppState.currentPlot) {
         try {
@@ -1261,7 +1399,7 @@ function cleanup() {
         }
         AppState.currentPlot = null;
     }
-    
+
     if (AppState.comparisonPlot) {
         try {
             Plotly.purge('comparisonPlot');
@@ -1270,11 +1408,11 @@ function cleanup() {
         }
         AppState.comparisonPlot = null;
     }
-    
+
     // Clear state
     AppState.currentSignal = null;
     AppState.isLoading = false;
-    
+
     console.log('✅ Basic Signals cleanup completed');
 }
 

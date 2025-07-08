@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const phaseSpin = document.getElementById('phaseSpin');
     const generateBtn = document.getElementById('generateComparisonBtn');
 
-    // Set the step to 1 degree for finer control
+    // Set the step to 0.5 degree for finer control
     if (phaseSpin) {
-        phaseSpin.step = "1";
+        phaseSpin.step = "0.1";
     }
 
     // Utility: convert degrees to radians
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (phaseSpin) {
         phaseSpin.addEventListener('input', function () {
-            let val = parseInt(phaseSpin.value, 10);
+            let val = parseFloat(phaseSpin.value);
             if (isNaN(val)) val = 0;
             val = clamp(val, -180, 180);
             phaseSpin.value = val;
