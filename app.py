@@ -137,7 +137,7 @@ def signal_operation():
     except (KeyError, ValueError):
         return jsonify({'error': 'Invalid or missing parameters'}), 400
     try:
-        from signal_processing import signal_to_signal_operation, compute_fft, compute_complex_fft
+        from shared_utils.shared_funcs import compute_fft, compute_complex_fft, signal_to_signal_operation
         result_signal = signal_to_signal_operation(signal1, signal2, operation)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -226,7 +226,7 @@ def apply_filter_fft_endpoint():
     # Return only the original signal length
     filtered_signal = filtered_signal[:len(signal)]
     # Compute FFT of filtered signal (magnitude and freq axis)
-    from signal_processing import compute_fft, FS
+    from shared_utils.shared_funcs import compute_fft, FS
     filtered_fft_mag, filtered_freq_axis = compute_fft(filtered_signal, FS)
     return jsonify({
         'filtered': filtered_signal.tolist(),

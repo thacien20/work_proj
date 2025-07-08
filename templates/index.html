@@ -12,9 +12,9 @@
 </head>
 <body>
     <!-- Main header with navigation buttons and title -->
-    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 2px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 1200px; margin: 0 auto; border-radius: 16px;">
         <!-- Navigation button categories/sections -->
-        <nav style="display: flex; gap: 15px;">
+        <nav style="display: flex; gap: 15px; flex-wrap: wrap;">
             <button class="header-btn" id="dataBtn">Data</button>
             <button class="header-btn" id="healthBtn">Health</button>
             <button class="header-btn" id="ictBtn">ICT</button>
@@ -28,7 +28,7 @@
             <button class="header-btn" id="cleanupBtn" title="Clear memory and reset application">🧹 Cleanup</button>
         </nav>
         <!-- Main application title -->
-        <h1 style="margin: 20px ">Tech & Data </h1>
+        <h1 style="margin: 0;">Tech & Data </h1>
     </header>
     
     <!-- ===== ANIMATED VISUAL ELEMENTS ===== -->
@@ -87,6 +87,8 @@
     <!-- ===== CUSTOM STYLES ===== -->
     <style>
         body {
+            margin: 0;
+            padding-top: 0;
             background: linear-gradient(135deg, #66cbea 0%, #764ba2 100%);
             color: #fff;
             min-height: 100vh;

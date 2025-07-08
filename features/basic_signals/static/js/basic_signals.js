@@ -106,21 +106,6 @@ function setupEventListeners() {
     const trigBtn = document.getElementById('trigonometry-btn');
     if (trigBtn) trigBtn.addEventListener('click', () => handleQuickAction('trigonometry'));
 
-    const showPropertiesBtn = document.getElementById('showPropertiesBtn');
-    if (showPropertiesBtn) showPropertiesBtn.addEventListener('click', showPropertiesDialog);
-
-    const closePropertiesBtn = document.getElementById('closePropertiesBtn');
-    if (closePropertiesBtn) closePropertiesBtn.addEventListener('click', hidePropertiesDialog);
-
-    const propertiesDialog = document.getElementById('propertiesDialog');
-    if (propertiesDialog) {
-        propertiesDialog.addEventListener('click', (e) => {
-            if (e.target.id === 'propertiesDialog') {
-                hidePropertiesDialog();
-            }
-        });
-    }
-
     const compareBtn = document.getElementById('compareBtn');
     if (compareBtn) compareBtn.addEventListener('click', handleShowComparison);
 
@@ -330,58 +315,9 @@ function plotSignal(signal) {
  * @param {Object} properties - Signal properties to display
  */
 function displaySignalProperties(properties) {
-    // Show the properties button
-    const propertiesBtn = document.getElementById('showPropertiesBtn');
-    propertiesBtn.style.display = 'block';
-    
-    // Store properties for dialog
-    AppState.currentProperties = properties;
-    
-    // Update dialog content
-    updatePropertiesDialog(properties);
-}
-
-/**
- * Update the properties dialog with current signal data
- * @param {Object} properties - Signal properties to display
- */
-function updatePropertiesDialog(properties) {
-    // Update each property value in the dialog
-    document.getElementById('prop-frequency').textContent = properties.frequency.toFixed(2);
-    document.getElementById('prop-period').textContent = properties.period.toFixed(3);
-    document.getElementById('prop-amplitude').textContent = properties.peak_amplitude.toFixed(3);
-    document.getElementById('prop-rms').textContent = properties.rms_value.toFixed(3);
-    document.getElementById('prop-mean').textContent = properties.mean_value.toFixed(3);
-    document.getElementById('prop-rate').textContent = properties.sample_rate.toString();
-    document.getElementById('prop-duration').textContent = properties.duration.toFixed(1);
-    document.getElementById('prop-samples').textContent = properties.num_samples.toString();
-}
-
-/**
- * Show the properties dialog
- */
-function showPropertiesDialog() {
-    const dialog = document.getElementById('propertiesDialog');
-    dialog.style.display = 'flex';
-    
-    // Add fade-in animation
-    setTimeout(() => {
-        dialog.querySelector('.dialog-box').classList.add('fade-in');
-    }, 10);
-}
-
-/**
- * Hide the properties dialog
- */
-function hidePropertiesDialog() {
-    const dialog = document.getElementById('propertiesDialog');
-    if (dialog) {
-        dialog.style.display = 'none';
-        const dialogBox = dialog.querySelector('.dialog-box');
-        if (dialogBox) {
-            dialogBox.classList.remove('fade-in');
-        }
-    }
+    // This function is now a no-op since the Show Properties button and dialog are removed.
+    // If you want to display properties elsewhere, implement here.
+    // Otherwise, leave empty to avoid errors.
 }
 
 // =============================================================================
