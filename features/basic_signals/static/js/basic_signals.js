@@ -483,10 +483,10 @@ function plotComparison(data) {
         if (AppState.comparisonPlot) {
             Plotly.purge('comparisonPlot');
         }
-        
+
+        // Prepare traces for the two signals
         const traces = data.signals.map((signal, index) => {
             const signalConfig = SignalConfig[signal.type];
-            
             return {
                 x: data.time,
                 y: signal.amplitude,
@@ -500,30 +500,86 @@ function plotComparison(data) {
                 hovertemplate: '<b>%{fullData.name}</b><br>' +
                               'Time: %{x:.3f} s<br>' +
                               'Amplitude: %{y:.3f} V<br>' +
-                              '<extra></extra>'
+                              '<extra></extra>',
+                xaxis: 'x1',
+                yaxis: 'y1'
             };
         });
-        
-        const layout = {
-            ...DefaultPlotLayout,
-            title: {
-                text: 'Signal Comparison',
-                font: { size: 18, family: 'Arial' }
-            }
+
+        // --- Add sum subplot ---
+        // Compute the sum of the two signals (assume both have same length and time axis)
+        let sumY = [];
+        if (data.signals.length === 2) {
+            const y1 = data.signals[0].amplitude;
+            const y2 = data.signals[1].amplitude;
+            sumY = y1.map((v, i) => v + y2[i]);
+        }
+
+        const sumTrace = {
+            x: data.time,
+            y: sumY,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Sum (Signal 1 + Signal 2)',
+            line: {
+                color: '#111',
+                width: 2,
+                dash: 'dot'
+            },
+            hovertemplate: '<b>Sum</b><br>' +
+                          'Time: %{x:.3f} s<br>' +
+                          'Amplitude: %{y:.3f} V<br>' +
+                          '<extra></extra>',
+            xaxis: 'x2',
+            yaxis: 'y2'
         };
-        
+
+        // Subplot layout
+        const layout = {
+            grid: { rows: 2, columns: 1, pattern: 'independent', roworder: 'top to bottom' },
+            xaxis: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },
+            yaxis: { title: 'Amplitude (V)', gridcolor: '#e0e0e0', showgrid: true },
+            xaxis2: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },
+            yaxis2: { title: 'Sum Amplitude (V)', gridcolor: '#e0e0e0', showgrid: true },
+            plot_bgcolor: '#fafafa',
+            paper_bgcolor: '#ffffff',
+            margin: { l: 60, r: 30, t: 50, b: 50 },
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: {
+                x: 0.02,
+                y: 0.98,
+                bgcolor: 'rgba(255,255,255,0.8)',
+                bordercolor: '#333',
+                borderwidth: 1
+            },
+            title: {
+                text: 'Signal Comparison (top) and Sum (bottom)',
+                font: { size: 18, family: 'Arial' }
+            },
+            height: 700
+        };
+
         const config = {
             responsive: true,
             displayModeBar: true,
             modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
             displaylogo: false
         };
-        
-        Plotly.newPlot('comparisonPlot', traces, layout, config);
+
+        // Plot both signals in the first subplot, sum in the second
+        Plotly.newPlot('comparisonPlot', [
+            // Signals (row 1)
+            { ...traces[0], xaxis: 'x1', yaxis: 'y1' },
+            { ...traces[1], xaxis: 'x1', yaxis: 'y1' },
+            // Sum (row 2)
+            sumTrace
+        ], layout, config);
+
         AppState.comparisonPlot = true;
-        
-        console.log('📊 Comparison plot generated successfully');
-        
+
+        console.log('📊 Comparison plot with sum subplot generated successfully');
+
     } catch (error) {
         console.error('❌ Error plotting comparison:', error);
         showError('Comparison plotting failed: ' + error.message);

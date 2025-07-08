@@ -334,6 +334,13 @@ section h2 {
 
 .comparison-controls {
     margin-bottom: 20px;
+    padding: 8px 0 4px 0;
+    margin-bottom: 0;
+    min-height: unset;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .comparison-signals {
@@ -344,23 +351,37 @@ section h2 {
 }
 
 .signal-config {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95em;
+    max-width: 250px; /* Make the container narrower */
+    min-width: 180px;
 }
 
-.signal-config h4 {
-    margin-top: 0;
-    color: #495057;
+.signal-config label {
+    min-width: 54px;
+    font-size: 0.95em;
+    margin-right: 3px;
 }
 
-.comp-signal-type, .comp-frequency {
-    width: 100%;
-    padding: 8px;
-    margin: 5px 0;
-    border: 1px solid #ced4da;
+.signal-config .comp-signal-type,
+.signal-config .comp-frequency {
+    font-size: 0.95em;
+    padding: 2px 5px;
+    height: 24px;
+    width: 78px;
+    margin-right: 3px;
     border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.signal-config .comp-frequency {
+    width: 54px;
 }
 
 /* Loading Indicator */
@@ -758,6 +779,13 @@ section h2 {
 
 .comparison-controls {
     margin-bottom: 20px;
+    padding: 8px 0 4px 0;
+    margin-bottom: 0;
+    min-height: unset;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .signal-configs {
@@ -873,4 +901,81 @@ section h2 {
     background-color: #ffe066;
     color: #111;
     outline: none;
+}
+
+/* Make controls and config sections compact */
+.left-column,
+.comparison-controls,
+.signal-generator,
+.signal-configs,
+.signal-config,
+.quick-actions,
+#propertiesDialog .dialog-box,
+#comparisonSection .phase-control {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    gap: 4px !important;
+    font-size: 0.95em !important;
+}
+
+.signal-config {
+    padding: 2px 6px !important;
+    max-width: 220px !important;
+    min-width: 140px !important;
+}
+
+.signal-config label {
+    min-width: 48px !important;
+    font-size: 0.95em !important;
+    margin-right: 2px !important;
+}
+
+.signal-config .comp-signal-type,
+.signal-config .comp-frequency {
+    font-size: 0.95em !important;
+    padding: 1px 4px !important;
+    height: 22px !important;
+    width: 70px !important;
+    margin-right: 2px !important;
+    border-radius: 4px !important;
+    border: 1px solid #ccc !important;
+}
+
+.signal-config .comp-frequency {
+    width: 48px !important;
+}
+
+/* Make the plot container fill available space */
+.plot-properties-container,
+#signalPlot.plot-container,
+#comparisonPlot.plot-container {
+    width: 100% !important;
+    height: 480px !important;
+    min-height: 320px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #fff !important;
+}
+
+#comparisonPlot.plot-container {
+    height: 700px !important;
+}
+
+/* Remove extra space above/below plots */
+.right-column {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Reduce header/footer space */
+.main-header, .main-footer {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
 }
