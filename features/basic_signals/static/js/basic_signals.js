@@ -23,7 +23,6 @@
 const AppState = {
     currentSignal: null,
     currentPlot: null,
-    comparisonPlot: null,
     isLoading: false,
     plotCount: 0,
     lastRequestTime: 0,
@@ -79,13 +78,51 @@ const DefaultPlotLayout = {
  */
 function initializeApp() {
     console.log('🔧 Initializing Basic Signals Application...');
-    
     // Set up event listeners
     setupEventListeners();
-    
     // Setup cleanup handlers
     setupCleanupHandlers();
-    
+    // --- Set up initial wrapper and plot size (wrapper larger than plot) ---
+    const wrapper = document.getElementById('signalPlotWrapper');
+    const plotDiv = document.getElementById('signalPlot');
+    if (wrapper && plotDiv) {
+        // Set wrapper size slightly larger than plot
+        wrapper.style.width = '660px'; // e.g. 600px plot + 60px
+        wrapper.style.height = '420px'; // e.g. 360px plot + 60px
+        wrapper.style.minWidth = '360px';
+        wrapper.style.minHeight = '240px';
+        wrapper.style.maxWidth = '100vw';
+        wrapper.style.maxHeight = '90vh';
+        wrapper.style.position = 'relative';
+        wrapper.style.overflow = 'hidden'; // Prevent plot overflow
+        plotDiv.style.width = '600px';
+        plotDiv.style.height = '360px';
+        plotDiv.style.margin = '30px'; // center plot inside wrapper
+        plotDiv.style.boxSizing = 'border-box';
+        plotDiv.style.display = 'block';
+    }
+    // --- Hide Analyze dropdown and options on load ---
+    const analyzeDropdown = document.getElementById('analyzeDropdown');
+    if (analyzeDropdown) {
+        analyzeDropdown.style.display = 'none';
+    }
+    // Optionally hide dropdown options if they have a class
+    const analyzeOptions = document.querySelectorAll('.analyze-option');
+    analyzeOptions.forEach(opt => opt.style.display = 'none');
+    // --- Ensure signal controls have valid defaults before plotting ---
+    const signalType = document.getElementById('signalType');
+    const frequency = document.getElementById('frequency');
+    const amplitude = document.getElementById('amplitude');
+    const phase = document.getElementById('phase');
+    const duration = document.getElementById('duration');
+    if (signalType) signalType.value = 'sine';
+    if (frequency) frequency.value = '1.0';
+    if (amplitude) amplitude.value = '1.0';
+    if (phase) phase.value = '0';
+    if (duration) duration.value = '2.0';
+    // --- End initial wrapper/plot sizing ---
+    // Draw initial signal
+    handleGenerateSignal();
     console.log('✅ Basic Signals Application initialized successfully');
 }
 
@@ -103,19 +140,26 @@ function setupEventListeners() {
     const infoBtn = document.getElementById('infoBtn');
     if (infoBtn) infoBtn.addEventListener('click', handleShowInfo);
 
-    const trigBtn = document.getElementById('trigonometry-btn');
-    if (trigBtn) trigBtn.addEventListener('click', () => handleQuickAction('trigonometry'));
-
-    const compareBtn = document.getElementById('compareBtn');
-    if (compareBtn) compareBtn.addEventListener('click', handleShowComparison);
-
-    const generateComparisonBtn = document.getElementById('generateComparisonBtn');
-    if (generateComparisonBtn) generateComparisonBtn.addEventListener('click', handleGenerateComparison);
-
-    const closeComparisonBtn = document.getElementById('closeComparisonBtn');
-    if (closeComparisonBtn) closeComparisonBtn.addEventListener('click', handleCloseComparison);
-
     document.addEventListener('keydown', handleKeyboardShortcuts);
+    // --- Analyze dropdown show/hide logic ---
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const analyzeDropdown = document.getElementById('analyzeDropdown');
+    if (analyzeBtn && analyzeDropdown) {
+        analyzeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (analyzeDropdown.style.display === 'block') {
+                analyzeDropdown.style.display = 'none';
+            } else {
+                analyzeDropdown.style.display = 'block';
+            }
+        });
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!analyzeDropdown.contains(e.target) && e.target !== analyzeBtn) {
+                analyzeDropdown.style.display = 'none';
+            }
+        });
+    }
 }
 
 /**
@@ -260,9 +304,7 @@ function plotSignal(signal) {
         if (AppState.currentPlot) {
             Plotly.purge('signalPlot');
         }
-        
         const signalConfig = SignalConfig[signal.type];
-        
         const trace = {
             x: signal.time,
             y: signal.amplitude,
@@ -278,7 +320,7 @@ function plotSignal(signal) {
                           'Amplitude: %{y:.3f} V<br>' +
                           '<extra></extra>'
         };
-        
+        // --- Responsive layout for plot container ---
         const layout = {
             ...DefaultPlotLayout,
             title: {
@@ -286,28 +328,151 @@ function plotSignal(signal) {
                 font: { size: 18, family: 'Arial' }
             }
         };
-        
+        // Ensure plot fills wrapper on initial render
+        const wrapper = document.getElementById('signalPlotWrapper');
+        const plotDiv = document.getElementById('signalPlot');
+        if (wrapper && plotDiv) {
+            layout.width = plotDiv.clientWidth;
+            layout.height = plotDiv.clientHeight;
+        }
+        // --- Enable zooming/panning in both axes ---
+        layout.dragmode = 'pan';
+        layout.xaxis.fixedrange = false;
+        layout.yaxis.fixedrange = false;
+        layout.xaxis.autorange = true;
+        layout.yaxis.autorange = true;
+        // --- End zoom/pan fix ---
         const config = {
             responsive: true,
             displayModeBar: true,
             modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-            displaylogo: false
+            displaylogo: false,
+            scrollZoom: true // allow mouse wheel zoom
         };
-        
         Plotly.newPlot('signalPlot', [trace], layout, config);
         AppState.currentPlot = true;
         AppState.plotCount++;
-        
         // Add fade-in animation
-        const plotDiv = document.getElementById('signalPlot');
         plotDiv.classList.add('fade-in');
-        
+        // --- Responsive resizing: update plot on container resize ---
+        if (wrapper && plotDiv && window.Plotly) {
+            if (window._signalPlotResizeObserver) {
+                window._signalPlotResizeObserver.disconnect();
+            }
+            window._signalPlotResizeObserver = new ResizeObserver(() => {
+                Plotly.relayout(plotDiv, {
+                    width: plotDiv.clientWidth,
+                    height: plotDiv.clientHeight
+                });
+                Plotly.Plots.resize(plotDiv);
+            });
+            window._signalPlotResizeObserver.observe(plotDiv);
+        }
+        // --- End responsive resize ---
+        // --- Make the wrapper resizable in both directions (like circuits) ---
+        makePlotWrapperResizable();
+        // --- End resizable wrapper ---
         console.log(`📊 Signal plotted successfully (Plot #${AppState.plotCount})`);
-        
     } catch (error) {
         console.error('❌ Error plotting signal:', error);
         showError('Plotting failed: ' + error.message);
     }
+}
+
+/**
+ * Make the plot wrapper resizable in both directions with a visible handle (like circuits)
+ */
+function makePlotWrapperResizable() {
+    const wrapper = document.getElementById('signalPlotWrapper');
+    const plotDiv = document.getElementById('signalPlot');
+    if (!wrapper || !plotDiv) return;
+    wrapper.style.overflow = 'hidden';
+    // Only add handle if not already present
+    if (!wrapper.querySelector('.resize-handle')) {
+        const handle = document.createElement('div');
+        handle.className = 'resize-handle';
+        handle.style.position = 'absolute';
+        handle.style.right = '0';
+        handle.style.bottom = '0';
+        handle.style.width = '18px';
+        handle.style.height = '18px';
+        handle.style.cursor = 'nwse-resize';
+        handle.style.background = 'linear-gradient(135deg, #b0b0b0 60%, #fff 100%)'; // match circuit lab
+        handle.style.borderRadius = '0 0 6px 0';
+        handle.style.zIndex = '10';
+        handle.style.border = '1px solid #aaa';
+        handle.style.boxShadow = '0 1px 4px rgba(0,0,0,0.10)';
+        wrapper.appendChild(handle);
+        if (getComputedStyle(wrapper).position === 'static') {
+            wrapper.style.position = 'relative';
+        }
+        wrapper.style.minWidth = '360px';
+        wrapper.style.minHeight = '240px';
+        wrapper.style.maxWidth = '100vw';
+        wrapper.style.maxHeight = '90vh';
+        let isResizing = false;
+        let startX, startY, startW, startH;
+        handle.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startW = wrapper.offsetWidth;
+            startH = wrapper.offsetHeight;
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            // Resize wrapper
+            const newW = Math.max(360, Math.min(startW + dx, window.innerWidth));
+            const newH = Math.max(240, Math.min(startH + dy, window.innerHeight * 0.9));
+            wrapper.style.width = newW + 'px';
+            wrapper.style.height = newH + 'px';
+            // Resize plot to fill wrapper (with margin)
+            const margin = 30;
+            plotDiv.style.width = (newW - margin * 2) + 'px';
+            plotDiv.style.height = (newH - margin * 2) + 'px';
+            plotDiv.style.margin = margin + 'px';
+            plotDiv.style.boxSizing = 'border-box';
+            // Relayout Plotly plot
+            if (window.Plotly) {
+                Plotly.relayout(plotDiv, {
+                    width: plotDiv.clientWidth,
+                    height: plotDiv.clientHeight
+                });
+                Plotly.Plots.resize(plotDiv);
+            }
+        });
+        document.addEventListener('mouseup', function() {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.userSelect = '';
+            }
+        });
+    }
+    // --- Attach ResizeObserver to wrapper for live Plotly relayout (circuit lab style) ---
+    if (window._signalPlotWrapperResizeObserver) {
+        window._signalPlotWrapperResizeObserver.disconnect();
+    }
+    window._signalPlotWrapperResizeObserver = new ResizeObserver(() => {
+        const margin = 30;
+        const w = wrapper.clientWidth;
+        const h = wrapper.clientHeight;
+        plotDiv.style.width = (w - margin * 2) + 'px';
+        plotDiv.style.height = (h - margin * 2) + 'px';
+        plotDiv.style.margin = margin + 'px';
+        plotDiv.style.boxSizing = 'border-box';
+        if (window.Plotly) {
+            Plotly.relayout(plotDiv, {
+                width: plotDiv.clientWidth,
+                height: plotDiv.clientHeight
+            });
+            Plotly.Plots.resize(plotDiv);
+        }
+    });
+    window._signalPlotWrapperResizeObserver.observe(wrapper);
 }
 
 /**
@@ -325,71 +490,141 @@ function displaySignalProperties(properties) {
 // =============================================================================
 
 /**
- * Show the comparison section
+ * Show the comparison section (no-op, always visible in new UI)
  */
 function handleShowComparison() {
-    const comparisonSection = document.getElementById('comparisonSection');
-    comparisonSection.style.display = 'block';
-    comparisonSection.scrollIntoView({ behavior: 'smooth' });
+    // Instead of old logic, trigger the same logic as the test plot button
+    if (window.Plotly) {
+        const plotDiv = document.getElementById('dualSignalPlot');
+        if (plotDiv) plotDiv.innerHTML = '';
+        // Get current signal parameters from UI
+        const params1 = {
+            signal_type: document.getElementById('signalType').value,
+            frequency: parseFloat(document.getElementById('frequency').value),
+            amplitude: parseFloat(document.getElementById('amplitude').value),
+            phase: parseFloat(document.getElementById('phase').value) * Math.PI / 180,
+            duration: parseFloat(document.getElementById('duration').value),
+            sample_rate: 200
+        };
+        // Generate a new signal with different parameters (e.g., +1 Hz frequency)
+        const params2 = {
+            ...params1,
+            frequency: params1.frequency + 1
+        };
+        (async function() {
+            try {
+                const [resp1, resp2] = await Promise.all([
+                    fetch('/basic_signals/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params1) }),
+                    fetch('/basic_signals/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params2) })
+                ]);
+                const data1 = await resp1.json();
+                const data2 = await resp2.json();
+                if (data1.success && data2.success) {
+                    const t = data1.signal.time;
+                    Plotly.newPlot('dualSignalPlot', [
+                        { x: t, y: data1.signal.amplitude, type: 'scatter', mode: 'lines', name: `${params1.signal_type.charAt(0).toUpperCase() + params1.signal_type.slice(1)} (${params1.frequency} Hz)`, line: { color: '#007bff' } },
+                        { x: t, y: data2.signal.amplitude, type: 'scatter', mode: 'lines', name: `${params2.signal_type.charAt(0).toUpperCase() + params2.signal_type.slice(1)} (${params2.frequency} Hz)`, line: { color: '#7b2ff2' } }
+                    ], {
+                        title: 'Compare: Current and New Signal',
+                        xaxis: { title: 'Time (s)' },
+                        yaxis: { title: 'Amplitude' },
+                        plot_bgcolor: '#fafafa',
+                        paper_bgcolor: '#fff',
+                        margin: { l: 60, r: 30, t: 50, b: 50 },
+                        height: document.getElementById('dualSignalPlotWrapper').offsetHeight || 320,
+                        width: document.getElementById('dualSignalPlotWrapper').offsetWidth || 600
+                    }, { responsive: true });
+                } else {
+                    Plotly.purge('dualSignalPlot');
+                    plotDiv.innerHTML = '<div style="color:red;padding:16px;">Failed to generate comparison signals.</div>';
+                }
+            } catch (err) {
+                Plotly.purge('dualSignalPlot');
+                plotDiv.innerHTML = '<div style="color:red;padding:16px;">Error: ' + err.message + '</div>';
+            }
+        })();
+    }
 }
 
 /**
- * Close the comparison section
+ * Close the comparison section (no-op in new UI)
  */
 function handleCloseComparison() {
-    const comparisonSection = document.getElementById('comparisonSection');
-    if (comparisonSection) {
-        comparisonSection.style.display = 'none';
+    // No longer needed: comparison section is always visible in new UI
+    // Optionally, clear the dual signal plot
+    if (window.Plotly && document.getElementById('dualSignalPlot')) {
+        Plotly.purge('dualSignalPlot');
     }
-    
-    // Clean up comparison plot
-    if (AppState.comparisonPlot) {
-        Plotly.purge('comparisonPlot');
-        AppState.comparisonPlot = null;
-    }
+    window.lastComparedSignals = null;
 }
 
 /**
- * Generate signal comparison
+ * Get parameters for Signal 2 from the main signal controls (always use main controls)
+ */
+function getComparisonSignal2Parameters() {
+    // Always use the main signal controls for Signal 2
+    return {
+        signalType: document.getElementById('signalType').value,
+        frequency: parseFloat(document.getElementById('frequency').value),
+        amplitude: parseFloat(document.getElementById('amplitude').value),
+        phase: parseFloat(document.getElementById('phase').value),
+        duration: parseFloat(document.getElementById('duration').value)
+    };
+}
+
+/**
+ * Generate signal comparison: Signal 1 is the current signal, Signal 2 is generated from main controls
  */
 async function handleGenerateComparison() {
     try {
         showLoading(true);
-
-        const signalConfigs = getComparisonSignalConfigs();
-        const duration = parseFloat(document.getElementById('duration').value);
-
-        // Convert phase from degrees to radians for each signal config
-        signalConfigs.forEach(cfg => {
-            if (typeof cfg.phase === 'number') {
-                cfg.phase = cfg.phase * Math.PI / 180;
-            }
-        });
-
-        const response = await fetch('/basic_signals/api/compare', {
+        // Signal 1: use the current signal in AppState, or generate from current UI if missing
+        let signal1 = AppState.currentSignal;
+        if (!signal1) {
+            const params = getSignalParameters();
+            const response1 = await fetch('/basic_signals/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    signal_type: params.signalType,
+                    frequency: params.frequency,
+                    amplitude: params.amplitude,
+                    phase: params.phase * Math.PI / 180,
+                    duration: params.duration,
+                    sample_rate: 200
+                })
+            });
+            if (!response1.ok) throw new Error('Failed to generate Signal 1');
+            const data1 = await response1.json();
+            if (!data1.success) throw new Error(data1.error || 'Signal 1 generation failed');
+            signal1 = data1.signal;
+            AppState.currentSignal = signal1;
+        }
+        // Always (re)generate Signal 2 from main controls
+        const signal2Params = getComparisonSignal2Parameters();
+        const response2 = await fetch('/basic_signals/api/generate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                signals: signalConfigs,
-                duration: duration,
+                signal_type: signal2Params.signalType,
+                frequency: signal2Params.frequency,
+                amplitude: signal2Params.amplitude,
+                phase: signal2Params.phase * Math.PI / 180,
+                duration: signal2Params.duration,
                 sample_rate: 200
             })
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response2.ok) throw new Error('Failed to generate Signal 2');
+        const data2 = await response2.json();
+        if (!data2.success) throw new Error(data2.error || 'Signal 2 generation failed');
+        // Ensure the new plot area is visible and clear any old plot
+        const dualPlot = document.getElementById('dualSignalPlot');
+        if (dualPlot && window.Plotly) {
+            Plotly.purge('dualSignalPlot');
         }
-
-        const data = await response.json();
-
-        if (data.success) {
-            plotComparison(data);
-        } else {
-            throw new Error(data.error || 'Comparison generation failed');
-        }
-
+        document.getElementById('dualSignalPlotWrapper').style.display = 'block';
+        // Plot both signals and their sum in the new area
+        plotDualSignal(signal1, data2.signal, data2.signal.time);
     } catch (error) {
         console.error('❌ Error generating comparison:', error);
         showError('Comparison generation failed: ' + error.message);
@@ -399,101 +634,75 @@ async function handleGenerateComparison() {
 }
 
 /**
- * Get comparison signal configurations from UI
- * @returns {Array} Array of signal configurations
+ * Plot both signals and their sum in the dual signal plot area
+ * @param {Object} signal1 - First signal
+ * @param {Object} signal2 - Second signal
+ * @param {Array} time - Time array
  */
-function getComparisonSignalConfigs() {
-    const signalConfigs = [];
-    const configElements = document.querySelectorAll('.signal-config');
-    
-    configElements.forEach((element, index) => {
-        const type = element.querySelector('.comp-signal-type').value;
-        const frequency = parseFloat(element.querySelector('.comp-frequency').value);
-        let phase = 0.0;
-        // For Signal 2, get phase from #phaseSpin
-        if (index === 1) {
-            const phaseSpin = document.getElementById('phaseSpin');
-            if (phaseSpin) {
-                phase = parseFloat(phaseSpin.value) || 0.0;
-            }
-        }
-        signalConfigs.push({
-            type: type,
-            frequency: frequency,
-            amplitude: 1.0,
-            phase: phase // phase in degrees
-        });
-    });
-    
-    return signalConfigs;
-}
-
-/**
- * Plot signal comparison
- * @param {Object} data - Comparison data
- */
-function plotComparison(data) {
+function plotDualSignal(signal1, signal2, time) {
     try {
-        // Clean up previous comparison plot
-        if (AppState.comparisonPlot) {
-            Plotly.purge('comparisonPlot');
+        const plotDiv = document.getElementById('dualSignalPlot');
+        if (!plotDiv) {
+            showError('Plot container for dual signal does not exist.');
+            console.error('❌ dualSignalPlot element missing.');
+            return;
         }
-
-        // Prepare traces for the two signals
-        const traces = data.signals.map((signal, index) => {
-            const signalConfig = SignalConfig[signal.type];
-            return {
-                x: data.time,
-                y: signal.amplitude,
-                type: 'scatter',
-                mode: 'lines',
-                name: `${signalConfig.name} (${signal.config.frequency} Hz)`,
-                line: {
-                    color: signalConfig.color,
-                    width: 2
-                },
-                hovertemplate: '<b>%{fullData.name}</b><br>' +
-                              'Time: %{x:.3f} s<br>' +
-                              'Amplitude: %{y:.3f} V<br>' +
-                              '<extra></extra>',
-                xaxis: 'x1',
-                yaxis: 'y1'
-            };
-        });
-
-        // --- Add sum subplot ---
-        // Compute the sum of the two signals (assume both have same length and time axis)
-        let sumY = [];
-        if (data.signals.length === 2) {
-            const y1 = data.signals[0].amplitude;
-            const y2 = data.signals[1].amplitude;
-            sumY = y1.map((v, i) => v + y2[i]);
+        if (!signal1 || !signal2 || !time) {
+            showError('Both signals and time array are required for comparison.');
+            console.error('❌ Missing signal1, signal2, or time:', { signal1, signal2, time });
+            return;
         }
-
+        if (!Array.isArray(signal1.amplitude) || !Array.isArray(signal2.amplitude) || !Array.isArray(time)) {
+            showError('Signal data arrays are invalid.');
+            console.error('❌ Invalid data arrays:', { signal1, signal2, time });
+            return;
+        }
+        if (signal1.amplitude.length !== signal2.amplitude.length || signal1.amplitude.length !== time.length) {
+            showError('Signal arrays are not the same length.');
+            console.error('❌ Array length mismatch:', {
+                signal1: signal1.amplitude.length,
+                signal2: signal2.amplitude.length,
+                time: time.length
+            });
+            return;
+        }
+        const signalConfig1 = SignalConfig[signal1.type];
+        const signalConfig2 = SignalConfig[signal2.type];
+        const sumY = signal1.amplitude.map((v, i) => v + signal2.amplitude[i]);
+        const trace1 = {
+            x: time,
+            y: signal1.amplitude,
+            type: 'scatter',
+            mode: 'lines',
+            name: `${signalConfig1.name} (${signal1.properties.frequency} Hz)` ,
+            line: { color: signalConfig1.color, width: 2 },
+            hovertemplate: '<b>%{fullData.name}</b><br>Time: %{x:.3f} s<br>Amplitude: %{y:.3f} V<br><extra></extra>',
+            xaxis: 'x1', yaxis: 'y1'
+        };
+        const trace2 = {
+            x: time,
+            y: signal2.amplitude,
+            type: 'scatter',
+            mode: 'lines',
+            name: `${signalConfig2.name} (${signal2.properties.frequency} Hz)` ,
+            line: { color: signalConfig2.color, width: 2 },
+            hovertemplate: '<b>%{fullData.name}</b><br>Time: %{x:.3f} s<br>Amplitude: %{y:.3f} V<br><extra></extra>',
+            xaxis: 'x1', yaxis: 'y1'
+        };
         const sumTrace = {
-            x: data.time,
+            x: time,
             y: sumY,
             type: 'scatter',
             mode: 'lines',
             name: 'Sum (Signal 1 + Signal 2)',
-            line: {
-                color: '#111',
-                width: 2,
-                dash: 'dot'
-            },
-            hovertemplate: '<b>Sum</b><br>' +
-                          'Time: %{x:.3f} s<br>' +
-                          'Amplitude: %{y:.3f} V<br>' +
-                          '<extra></extra>',
-            xaxis: 'x2',
-            yaxis: 'y2'
+            line: { color: '#111', width: 2, dash: 'dot' },
+            hovertemplate: '<b>Sum</b><br>Time: %{x:.3f} s<br>Amplitude: %{y:.3f} V<br><extra></extra>',
+            xaxis: 'x2', yaxis: 'y2'
         };
-
-        // Subplot layout
         const layout = {
             grid: { rows: 2, columns: 1, pattern: 'independent', roworder: 'top to bottom' },
-            //xaxis: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },//this is not needed as we have two xaxes
             yaxis: { title: 'Amplitude (V)', gridcolor: '#e0e0e0', showgrid: true },
+            xaxis: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },
             xaxis2: { title: 'Time (s)', gridcolor: '#e0e0e0', showgrid: true },
             yaxis2: { title: 'Sum Amplitude (V)', gridcolor: '#e0e0e0', showgrid: true },
             plot_bgcolor: '#fafafa',
@@ -512,32 +721,31 @@ function plotComparison(data) {
                 text: 'Signal Comparison (top) and Sum (bottom)',
                 font: { size: 18, family: 'Arial' }
             },
-            height: 700
+            height: document.getElementById('dualSignalPlotWrapper')?.clientHeight || 700,
+            width: document.getElementById('dualSignalPlotWrapper')?.clientWidth || 900
         };
-
         const config = {
             responsive: true,
             displayModeBar: true,
             modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
             displaylogo: false
         };
-
-        // Plot both signals in the first subplot, sum in the second
-        Plotly.newPlot('comparisonPlot', [
-            // Signals (row 1)
-            { ...traces[0], xaxis: 'x1', yaxis: 'y1' },
-            { ...traces[1], xaxis: 'x1', yaxis: 'y1' },
-            // Sum (row 2)
-            sumTrace
-        ], layout, config);
-
-        AppState.comparisonPlot = true;
-
-        console.log('📊 Comparison plot with sum subplot generated successfully');
-
+        Plotly.newPlot('dualSignalPlot', [trace1, trace2, sumTrace], layout, config);
+        // Responsive resizing
+        const wrapper = document.getElementById('dualSignalPlotWrapper');
+        if (wrapper && plotDiv && window.Plotly) {
+            const resizeObserver = new ResizeObserver(() => {
+                Plotly.relayout(plotDiv, {
+                    width: wrapper.offsetWidth,
+                    height: wrapper.offsetHeight
+                });
+                Plotly.Plots.resize(plotDiv);
+            });
+            resizeObserver.observe(wrapper);
+        }
     } catch (error) {
-        console.error('❌ Error plotting comparison:', error);
-        showError('Comparison plotting failed: ' + error.message);
+        showError('Dual signal plotting failed: ' + error.message);
+        console.error('❌ Plotly error:', error);
     }
 }
 
@@ -1144,7 +1352,13 @@ function plotTrigonometry(data) {
             displayModeBar: true,
             modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
         };
-        
+        // Ensure plot fills wrapper on initial render
+        const wrapper = document.getElementById('signalPlotWrapper');
+        const plotDiv = document.getElementById('signalPlot');
+        if (wrapper && plotDiv) {
+            layout.width = plotDiv.clientWidth;
+            layout.height = plotDiv.clientHeight;
+        }
         Plotly.newPlot(plotContainer, traces, layout, config);
         
     } catch (error) {
@@ -1277,6 +1491,13 @@ function plotSignalWithTransition(signal) {
             });
         } else {
             // First plot
+            // Ensure plot fills wrapper on initial render
+            const wrapper = document.getElementById('signalPlotWrapper');
+            const plotDiv = document.getElementById('signalPlot');
+            if (wrapper && plotDiv) {
+                layout.width = plotDiv.clientWidth;
+                layout.height = plotDiv.clientHeight;
+            }
             Plotly.newPlot('signalPlot', [trace], layout, config);
             AppState.currentPlot = 'signalPlot';
         }
@@ -1336,15 +1557,6 @@ function cleanup() {
         AppState.currentPlot = null;
     }
 
-    if (AppState.comparisonPlot) {
-        try {
-            Plotly.purge('comparisonPlot');
-        } catch (e) {
-            console.warn('Warning: Could not purge comparison plot:', e);
-        }
-        AppState.comparisonPlot = null;
-    }
-
     // Clear state
     AppState.currentSignal = null;
     AppState.isLoading = false;
@@ -1357,7 +1569,9 @@ function cleanup() {
 // =============================================================================
 
 // Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', function () {
+    initializeApp();
+});
 
 // Export for testing purposes (if needed)
 if (typeof module !== 'undefined' && module.exports) {
@@ -1447,3 +1661,4 @@ function showError(message) {
         }, 300);
     }, 5000);
 }
+

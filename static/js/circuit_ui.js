@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Floating controls
         clearPlotBtn: document.getElementById('clear-plot-btn'),
-        undoPlotBtn: document.getElementById('undo-plot-btn'),
         savePlotBtn: document.getElementById('save-plot-btn'),
         modulationInfoBtn: document.getElementById('modulation-info-btn'),
     };
@@ -83,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show circuit analysis controls
         dom.circuitAnalysisControls.style.display = 'block';
+        // Show circuit info panel
+        document.getElementById('circuit-info-panel').style.display = 'block';
         
         // Show voltage input and show current button as they're needed for Circuit Analysis
         if (document.getElementById('vin-container')) {
@@ -107,6 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show electronic signals controls
         dom.electronicSignalsControls.style.display = 'block';
+        // Hide circuit info panel
+        document.getElementById('circuit-info-panel').style.display = 'none';
         
         // Hide voltage input and show current button as they're not needed for Electronic Signals
         if (document.getElementById('vin-container')) {
@@ -517,12 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
         plotHistory.length = 0;
     });
     
-    dom.undoPlotBtn.addEventListener('click', () => {
-        if (plotHistory.length > 0) {
-            plotHistory.pop();
-        }
-    });
-    
     dom.savePlotBtn.addEventListener('click', () => {
         try {
             if (!dom.plotContainer) {
@@ -541,17 +538,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Make circuit plot resizable with interact.js
+    const plotWrapper = document.getElementById('circuit-plot-wrapper');
+    const plotDiv = document.getElementById('circuit-plot');
+    if (window.interact && plotWrapper && plotDiv && window.Plotly) {
+        interact(plotWrapper).resizable({
+            edges: { left: false, right: true, bottom: true, top: false },
+            listeners: {
+                move (event) {
+                    event.target.style.width = event.rect.width + 'px';
+                    event.target.style.height = event.rect.height + 'px';
+                    // Set Plotly plot width and height to match wrapper
+                    Plotly.relayout(plotDiv, { width: event.rect.width, height: event.rect.height });
+                    Plotly.Plots.resize(plotDiv);
+                }
+            },
+            modifiers: [
+                interact.modifiers.restrictSize({
+                    min: { width: 350, height: 250 },
+                    max: { width: 2000, height: 1200 }
+                })
+            ],
+            inertia: true
+        });
+        // Also resize on native resize (for browser handle)
+        const resizeObserver = new ResizeObserver(() => {
+            if (plotWrapper && plotDiv) {
+                Plotly.relayout(plotDiv, { width: plotWrapper.offsetWidth, height: plotWrapper.offsetHeight });
+                Plotly.Plots.resize(plotDiv);
+            }
+        });
+        resizeObserver.observe(plotWrapper);
+    }
+
     // Initialize with clean state
     hideAllSections();
     dom.equationText.innerHTML = 'Select Circuit Analysis or Electronic Signals to begin.';
-    
     // Verify all DOM elements are properly loaded
     for (const key in dom) {
-        if (!dom[key] && key !== 'exportPlotBtn') {  // We already handled exportPlotBtn
+        if (!dom[key] && key !== 'exportPlotBtn') {
             console.warn(`Missing DOM element: ${key}`);
         }
     }
-    
     // Modulation info button handler
     if (dom.modulationInfoBtn) {
         dom.modulationInfoBtn.addEventListener('click', () => {
@@ -563,14 +591,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
     // Initialize circuit-specific controls (hidden by default)
-    // Since we're already inside DOMContentLoaded, we can set these directly
     if (document.getElementById('vin-container') && document.getElementById('show-current-container')) {
-        // Initially hidden until a mode is selected
         document.getElementById('vin-container').style.display = 'none';
         document.getElementById('show-current-container').style.display = 'none';
     }
-    
+    // Activate Circuit Analysis mode by default on page load (move to very end)
+    activateCircuitAnalysis();
     console.log('Circuit Lab UI initialized');
 });

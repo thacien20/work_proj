@@ -102,6 +102,23 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
+        .resizable-plot-wrapper {
+            display: block;
+            position: relative;
+            min-width: 350px;
+            min-height: 250px;
+            width: 800px;
+            height: 500px;
+            max-width: 2000px;
+            max-height: 1200px;
+            resize: both;
+            overflow: auto;
+            background: rgba(255,255,255,0.98);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+            margin: 0 auto 18px auto;
+        }
+        
         /* Circuit diagram */
         #circuit-diagram-img {
             max-width: 100%;
@@ -438,7 +455,6 @@
                 <h2>🔧 Tools</h2>
                 <div class="action-buttons">
                     <button id="clear-plot-btn" class="secondary-btn" title="Clear the plot">🗑️ Clear</button>
-                    <button id="undo-plot-btn" class="secondary-btn" title="Undo the last change">↶ Undo</button>
                     <button id="save-plot-btn" class="secondary-btn" title="Save as PNG image">💾 Save</button>
                 </div>
             </div>
@@ -448,8 +464,9 @@
         <div class="right-column">
             <!-- Plot Panel -->
             <div class="panel">
-                <h2>📈 Circuit Response</h2>
-                <div id="circuit-plot" class="plot-container"></div>
+                <div class="resizable-plot-wrapper" id="circuit-plot-wrapper">
+                    <div id="circuit-plot" class="plot-container"></div>
+                </div>
             </div>
             
             <!-- Information Panel -->
@@ -473,5 +490,6 @@
     <script src="/static/js/modulation_info.js"></script>
     <script src="/static/js/circuit_frontEnd.js"></script>
     <script src="/static/js/circuit_ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
 </body>
 </html>
