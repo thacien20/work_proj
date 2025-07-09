@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return await resp.json();
     }
 
-    // Helper to overlay the compare signal and plot the sum in a separate plot
+    // Helper to overlay the compare signal and plot the sum in a separate plot and on the main plot
     async function overlayCompareSignalAndSum() {
         // All phase values are in radians (frontend and backend)
         const params1 = {
@@ -56,12 +56,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 const y1 = data1.signal.amplitude;
                 const t2 = data2.signal.time;
                 const y2 = data2.signal.amplitude;
-                // Remove previous overlay trace from main plot
+                // Remove previous overlay and sum traces from main plot
                 const plotDiv = document.getElementById('signalPlot');
                 if (window.Plotly && plotDiv) {
                     let tracesToRemove = [];
                     plotDiv.data.forEach((trace, idx) => {
-                        if (trace.name && trace.name.endsWith('(Compare)')) {
+                        if (
+                            (trace.name && trace.name.endsWith('(Compare)')) ||
+                            (trace.name && trace.name === 'Sum')
+                        ) {
                             tracesToRemove.push(idx);
                         }
                     });
@@ -77,7 +80,20 @@ document.addEventListener('DOMContentLoaded', function () {
                         name: params2.signal_type.charAt(0).toUpperCase() + params2.signal_type.slice(1) + ' (Compare)',
                         line: { color: '#e4572e' }
                     };
-                    Plotly.addTraces(plotDiv, [trace2]);
+                    // Sum trace
+                    let ysum = [];
+                    for (let i = 0; i < Math.min(y1.length, y2.length); ++i) {
+                        ysum.push(y1[i] + y2[i]);
+                    }
+                    const traceSum = {
+                        x: t1,
+                        y: ysum,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Sum',
+                        line: { color: '#2ca02c', dash: 'dashdot' }
+                    };
+                    Plotly.addTraces(plotDiv, [trace2, traceSum]);
                 }
                 // Plot sum in separate plot
                 let ysum = [];
