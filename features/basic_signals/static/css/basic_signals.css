@@ -40,7 +40,7 @@ body {
 /* Left Column - Controls */
 .controls-column {
     flex: 0 0 240px;
-    background: #493f3a;
+    background: #f9fafb;
     border-radius: 12px;
     padding: 18px 14px;
     min-width: 180px;
@@ -50,6 +50,8 @@ body {
     flex-direction: column;
     gap: 20px;
     align-items: flex-start;
+    color: #000000 !important;
+    font-weight: 600;
 }
 
 /* Right Column - Visualization */
@@ -235,29 +237,29 @@ section h2 {
     align-items: center;
     gap: 15px;
     margin-bottom: 20px;
-    background-color: #1d1b1c;
+    background-color: #444444;
 }
 
 .control-group label {
     font-weight: bold;
-    color: #f58080;
+    color: #ffffff;
     min-width: 120px;
 }
 
 .control-input {
     padding: 8px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid #aaaaaa;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.2);
-    color: #75a2d4;
+    background: #555555;
+    color: #ffffff;
     font-size: 14px;
     transition: all 0.3s ease;
 }
 
 .control-input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.3);
+    border-color: #ffffff;
+    background: #666666;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
@@ -285,12 +287,12 @@ section h2 {
 
 .param-group label {
     font-weight: bold;
-    color: #fff;
+    color: #ffffff;
 }
 
 .param-unit {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
+    color: #cccccc;
     font-style: italic;
 }
 
@@ -349,7 +351,7 @@ section h2 {
 .primary-btn {
     padding: 12px 24px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: white !important;
     border: none;
     border-radius: 25px;
     font-size: 16px;
@@ -367,18 +369,19 @@ section h2 {
 
 .secondary-btn {
     padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: #e0e0e0 !important;
+    color: #000000 !important;
+    border: 1px solid #b0b0b0 !important;
     border-radius: 25px;
     font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .secondary-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: #d0d0d0 !important;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
@@ -1004,7 +1007,18 @@ section h2 {
 }
 
 /* Make controls and config sections compact */
-.left-column,
+.left-column {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    gap: 4px !important;
+    font-size: 0.95em !important;
+    background: #f9fafb !important;
+    color: #000000 !important;
+    font-weight: 600;
+}
+
 .comparison-controls,
 .signal-generator,
 .signal-configs,
@@ -1128,15 +1142,23 @@ section h2 {
     min-height: 350px;
 }
 
-/* Make signal generator background light and readable */
-.signal-generator, .controls-column {
+/* Make signal generator background dark-grey for contrast */
+.signal-generator {
+    background: #333333 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.controls-column {
     background: #f9fafb !important;
-    color: #222;
+    color: #000000 !important;
+    font-weight: 600;
 }
 
 .signal-generator label, .signal-generator .param-group label {
-    color: #222;
-    font-weight: 500;
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .phase-btn-group {
@@ -1165,4 +1187,3 @@ section h2 {
     font-size: 1rem;
     margin: 0 2px;
 }
-

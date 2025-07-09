@@ -8,6 +8,9 @@
     <!-- Include Plotly for plotting -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     
+    <!-- Include interact.js for resizable elements -->
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    
     <!-- Include main CSS and feature-specific CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('basic_signals.static', filename='css/basic_signals.css') }}">
@@ -34,8 +37,6 @@
         <main class="main-content">
             <!-- Left Column - Controls -->
             <div class="left-column">
-                <!-- Quick Action Buttons Section -->
-                
                 <!-- Signal Generator Section -->
                 <section class="signal-generator">
                     <h2>📡 Signal Generator</h2>
@@ -180,7 +181,7 @@
                         type="number"
                         min="-180"
                         max="180"
-                        step="5"
+                        step="1"
                         value="0"
                         style="width: 56px; text-align: center;"
                         class="phase-spin"

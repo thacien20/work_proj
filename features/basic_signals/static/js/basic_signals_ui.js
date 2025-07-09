@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const signalPlotWrapper = document.getElementById('signalPlotWrapper');
     const signalPlot = document.getElementById('signalPlot');
     const compareBtn = document.getElementById('compareBtn');
-    const compareControls = document.getElementById('compareControls');
+    const compareControls = document.getElementById('comparisonSection');
     const overlayBtn = document.getElementById('overlayBtn');
     const hideCompareBtn = document.getElementById('hideCompareBtn');
 
@@ -202,6 +202,104 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    // Add event listener for close comparison button
+    const closeComparisonBtn = document.getElementById('closeComparisonBtn');
+    if (closeComparisonBtn && compareControls) {
+        closeComparisonBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            compareControls.style.display = 'none';
+        });
+    }
+
+    // Add event listener for generate comparison button
+    const generateComparisonBtn = document.getElementById('generateComparisonBtn');
+    if (generateComparisonBtn) {
+        generateComparisonBtn.addEventListener('click', async function (e) {
+            e.preventDefault();
+            const signalConfigs = document.querySelectorAll('.signal-config');
+            if (signalConfigs.length >= 2) {
+                const signal1Type = signalConfigs[0].querySelector('.comp-signal-type').value;
+                const signal1Freq = parseFloat(signalConfigs[0].querySelector('.comp-frequency').value);
+                const signal2Type = signalConfigs[1].querySelector('.comp-signal-type').value;
+                const signal2Freq = parseFloat(signalConfigs[1].querySelector('.comp-frequency').value);
+                const durationVal = parseFloat(duration.value) || 2.0;
+                const amplitudeVal1 = parseFloat(amplitude.value) || 1.0;
+                const amplitudeVal2 = amplitudeVal1; // Same amplitude for second signal
+                const phaseVal = parseFloat(phase.value) || 0;
+
+                const params1 = {
+                    signal_type: signal1Type,
+                    frequency: signal1Freq,
+                    amplitude: amplitudeVal1,
+                    phase: 0,
+                    duration: durationVal,
+                    sample_rate: 200
+                };
+                const params2 = {
+                    signal_type: signal2Type,
+                    frequency: signal2Freq,
+                    amplitude: amplitudeVal2,
+                    phase: phaseVal * Math.PI / 180, // Convert degrees to radians
+                    duration: durationVal,
+                    sample_rate: 200
+                };
+
+                try {
+                    const [data1, data2] = await Promise.all([fetchSignal(params1), fetchSignal(params2)]);
+                    if (data1.success && data2.success) {
+                        const trace1 = {
+                            x: data1.signal.time,
+                            y: data1.signal.amplitude,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: signal1Type.charAt(0).toUpperCase() + signal1Type.slice(1) + ' (' + signal1Freq + ' Hz)',
+                            line: { color: '#1f77b4' }
+                        };
+                        const trace2 = {
+                            x: data2.signal.time,
+                            y: data2.signal.amplitude,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: signal2Type.charAt(0).toUpperCase() + signal2Type.slice(1) + ' (' + signal2Freq + ' Hz)',
+                            line: { color: '#ff7f0e' }
+                        };
+                        // Calculate sum of the two signals
+                        const y1 = data1.signal.amplitude;
+                        const y2 = data2.signal.amplitude;
+                        let ySum = [];
+                        for (let i = 0; i < Math.min(y1.length, y2.length); i++) {
+                            ySum.push(y1[i] + y2[i]);
+                        }
+                        const traceSum = {
+                            x: data1.signal.time,
+                            y: ySum,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Sum of Signals',
+                            line: { color: '#2ca02c', dash: 'dashdot' }
+                        };
+                        const comparisonPlot = document.getElementById('comparisonPlot');
+                        if (window.Plotly && comparisonPlot) {
+                            Plotly.newPlot(comparisonPlot, [trace1, trace2, traceSum], {
+                                title: 'Signal Comparison',
+                                xaxis: { title: 'Time (s)' },
+                                yaxis: { title: 'Amplitude' },
+                                margin: { l: 60, r: 30, t: 50, b: 50 },
+                                plot_bgcolor: '#fff',
+                                paper_bgcolor: '#fff'
+                            }, { responsive: true });
+                        }
+                    } else {
+                        alert('Failed to generate signals for comparison.');
+                    }
+                } catch (err) {
+                    alert('Error generating comparison: ' + err.message);
+                }
+            } else {
+                alert('Signal configuration elements not found.');
+            }
+        });
+    }
 
     // When the main phase input changes, update the overlay and sum if overlay is present
     let phaseDebounceTimer = null;
@@ -212,6 +310,97 @@ document.addEventListener('DOMContentLoaded', function () {
                 const plotDiv = document.getElementById('signalPlot');
                 if (plotDiv && plotDiv.data && plotDiv.data.some(trace => trace.name && trace.name.endsWith('(Compare)'))) {
                     await overlayCompareSignalAndSum();
+                }
+            }, 150);
+        });
+    }
+
+    // When the phase spin input in comparison section changes, update the comparison plot
+    let phaseSpinDebounceTimer = null;
+    const phaseSpin = document.getElementById('phaseSpin');
+    if (phaseSpin) {
+        phaseSpin.addEventListener('change', function () {
+            if (phaseSpinDebounceTimer) clearTimeout(phaseSpinDebounceTimer);
+            phaseSpinDebounceTimer = setTimeout(async function () {
+                const comparisonPlot = document.getElementById('comparisonPlot');
+                if (comparisonPlot && comparisonPlot.data && comparisonPlot.data.length >= 2) {
+                    const signalConfigs = document.querySelectorAll('.signal-config');
+                    if (signalConfigs.length >= 2) {
+                        const signal1Type = signalConfigs[0].querySelector('.comp-signal-type').value;
+                        const signal1Freq = parseFloat(signalConfigs[0].querySelector('.comp-frequency').value);
+                        const signal2Type = signalConfigs[1].querySelector('.comp-signal-type').value;
+                        const signal2Freq = parseFloat(signalConfigs[1].querySelector('.comp-frequency').value);
+                        const durationVal = parseFloat(duration.value) || 2.0;
+                        const amplitudeVal1 = parseFloat(amplitude.value) || 1.0;
+                        const amplitudeVal2 = amplitudeVal1; // Same amplitude for second signal
+                        const phaseVal = parseFloat(phaseSpin.value) || 0;
+
+                        const params1 = {
+                            signal_type: signal1Type,
+                            frequency: signal1Freq,
+                            amplitude: amplitudeVal1,
+                            phase: 0,
+                            duration: durationVal,
+                            sample_rate: 200
+                        };
+                        const params2 = {
+                            signal_type: signal2Type,
+                            frequency: signal2Freq,
+                            amplitude: amplitudeVal2,
+                            phase: phaseVal * Math.PI / 180, // Convert degrees to radians
+                            duration: durationVal,
+                            sample_rate: 200
+                        };
+
+                        try {
+                            const [data1, data2] = await Promise.all([fetchSignal(params1), fetchSignal(params2)]);
+                            if (data1.success && data2.success) {
+                                const trace1 = {
+                                    x: data1.signal.time,
+                                    y: data1.signal.amplitude,
+                                    type: 'scatter',
+                                    mode: 'lines',
+                                    name: signal1Type.charAt(0).toUpperCase() + signal1Type.slice(1) + ' (' + signal1Freq + ' Hz)',
+                                    line: { color: '#1f77b4' }
+                                };
+                                const trace2 = {
+                                    x: data2.signal.time,
+                                    y: data2.signal.amplitude,
+                                    type: 'scatter',
+                                    mode: 'lines',
+                                    name: signal2Type.charAt(0).toUpperCase() + signal2Type.slice(1) + ' (' + signal2Freq + ' Hz)',
+                                    line: { color: '#ff7f0e' }
+                                };
+                                // Calculate sum of the two signals
+                                const y1 = data1.signal.amplitude;
+                                const y2 = data2.signal.amplitude;
+                                let ySum = [];
+                                for (let i = 0; i < Math.min(y1.length, y2.length); i++) {
+                                    ySum.push(y1[i] + y2[i]);
+                                }
+                                const traceSum = {
+                                    x: data1.signal.time,
+                                    y: ySum,
+                                    type: 'scatter',
+                                    mode: 'lines',
+                                    name: 'Sum of Signals',
+                                    line: { color: '#2ca02c', dash: 'dashdot' }
+                                };
+                                if (window.Plotly) {
+                                    Plotly.newPlot(comparisonPlot, [trace1, trace2, traceSum], {
+                                        title: 'Signal Comparison',
+                                        xaxis: { title: 'Time (s)' },
+                                        yaxis: { title: 'Amplitude' },
+                                        margin: { l: 60, r: 30, t: 50, b: 50 },
+                                        plot_bgcolor: '#fff',
+                                        paper_bgcolor: '#fff'
+                                    }, { responsive: true });
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error updating comparison plot with new phase: ', err);
+                        }
+                    }
                 }
             }, 150);
         });
