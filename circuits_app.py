@@ -79,10 +79,6 @@ def simulate_modulation():
             # Frequency Modulation: y(t) = cos(2πfc*t + β*sin(2πfm*t))
             modulated_signal = np.cos(2 * np.pi * carrier_freq * t + 
                                     modulation_index * modulating_signal)
-        elif modulation_type == 'PM':
-            # Phase Modulation: y(t) = cos(2πfc*t + β*cos(2πfm*t))
-            modulated_signal = np.cos(2 * np.pi * carrier_freq * t + 
-                                    modulation_index * modulating_signal)
         elif modulation_type == 'QM':
             # Quadrature Modulation: y(t) = I(t) * cos(2πfc*t) + Q(t) * sin(2πfc*t)
             i_freq = float(data.get('i_frequency', 50))

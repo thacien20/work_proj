@@ -347,8 +347,8 @@
                     <label for="signal-type">Signal Type:</label>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <select id="signal-type" class="control-input">
-                            <option value="modulation">Modulation</option>
-                            <option value="quadrature">Quadrature Signals</option>
+                            <option value="modulation">Amplitude Modulation</option>
+                            <option value="quadrature">Quadrature Modulation</option>
                             <option value="pll">PLL</option>
                             <option value="demodulation">Signal Demodulation</option>
                         </select>
@@ -357,18 +357,19 @@
                 </div>
                 
                 <!-- Signal Modulation Fields -->
-                <div id="modulation-fields" class="compact-form">
-                    <div class="form-group">
+                <div id="modulation-fields" class="compact-form" style="display: none;">
+                    <!-- Type dropdown for AM/FM -->
+                    <div class="form-group modulation-type-group">
                         <label for="modulation-type">Type:</label>
                         <div class="input-with-button" style="display: flex; gap: 0.5rem;">
                             <select id="modulation-type" class="control-input" style="flex: 1;">
                                 <option value="AM">AM</option>
                                 <option value="FM">FM</option>
-                                <option value="PM">PM</option>
                             </select>
                             <button type="button" id="modulation-info-btn" class="info-btn">ℹ️</button>
                         </div>
                     </div>
+                    <!-- AM/FM specific controls -->
                     <div class="form-group">
                         <label for="carrier-freq">Carrier (Hz):</label>
                         <input type="number" id="carrier-freq" class="control-input" value="60" min="1" step="0.5">
@@ -385,7 +386,7 @@
 
                 <!-- Quadrature Signals Fields -->
                 <div id="quadrature-fields" class="compact-form" style="display: none;">
-                    <div class="form-group">
+                    <div class="form-group" style="grid-column: span 2;">
                         <label for="quad-carrier-freq">Carrier Frequency (Hz):</label>
                         <input type="number" id="quad-carrier-freq" class="control-input" value="10.0" min="1" step="0.5">
                     </div>

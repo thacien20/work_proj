@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modulationFields: document.getElementById('modulation-fields'),
         quadratureFields: document.getElementById('quadrature-fields'),
         pllFields: document.getElementById('pll-fields'),
-        demodulationFields: document.getElementById('demodulation-fields'),
+
         
         // Simulation buttons
         circuitSimulateBtn: document.getElementById('circuit-simulate-btn'),
@@ -35,6 +35,24 @@ document.addEventListener('DOMContentLoaded', () => {
         clearPlotBtn: document.getElementById('clear-plot-btn'),
         savePlotBtn: document.getElementById('save-plot-btn'),
         modulationInfoBtn: document.getElementById('modulation-info-btn'),
+
+        // Quadrature demodulation buttons (newly added)
+        quadratureHoverButtons: document.getElementById('quadrature-hover-buttons'),
+    };
+
+    const DEFAULT_SIGNAL_PARAMS = {
+        // AM/FM parameters
+        carrierFreq: 100,
+        modulatingFreq: 10,
+        modulationIndex: 0.5,
+        // Quadrature parameters
+        quadCarrierFreq: 100,  // Carrier needs to be higher than I/Q frequencies
+        quadIFreq: 10,         // In-Phase frequency
+        quadQFreq: 20,         // Out-of-Phase frequency
+        quadPhase: 90,         // Phase shift in degrees
+        // Common parameters
+        duration: 1.0,
+        sampleRate: 1000
     };
 
     const plotHistory = [];
@@ -108,27 +126,34 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Show electronic signals controls
         dom.electronicSignalsControls.style.display = 'block';
-        // Hide circuit info panel
-        document.getElementById('circuit-info-panel').style.display = 'none';
         
-        // Hide voltage input and show current button as they're not needed for Electronic Signals
-        if (document.getElementById('vin-container')) {
-            document.getElementById('vin-container').style.display = 'none';
-        }
-        if (document.getElementById('show-current-container')) {
-            document.getElementById('show-current-container').style.display = 'none';
-        }
+        // Clear any existing circuit diagrams or equations
+        dom.equationText.innerHTML = '';
         
-        // Update UI state
-        updateSignalFields();
-        dom.equationText.innerHTML = equations[dom.signalType.value];
+        // Initialize all controls with default values
+        initializeSignalControls();
+        
+        // Update button states
+        updateButtonStates();
         
         console.log('Electronic Signals mode activated');
     }
 
     function hideAllSections() {
+        // Hide control panels
         dom.circuitAnalysisControls.style.display = 'none';
         dom.electronicSignalsControls.style.display = 'none';
+        
+        // Hide circuit-specific elements
+        const circuitInfoPanel = document.getElementById('circuit-info-panel');
+        const showCurrentContainer = document.getElementById('show-current-container');
+        const vinContainer = document.getElementById('vin-container');
+        const circuitDiagram = document.getElementById('circuit-diagram-img');
+        
+        if (circuitInfoPanel) circuitInfoPanel.style.display = 'none';
+        if (showCurrentContainer) showCurrentContainer.style.display = 'none';
+        if (vinContainer) vinContainer.style.display = 'none';
+        if (circuitDiagram) circuitDiagram.style.display = 'none';
     }
 
     function updateCircuitFields() {
@@ -178,23 +203,47 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dom.pllFields) dom.pllFields.style.display = 'none';
         if (dom.demodulationFields) dom.demodulationFields.style.display = 'none';
 
+        // Hide type dropdown for quadrature
+        const modulationTypeGroup = document.querySelector('.modulation-type-group');
+        if (modulationTypeGroup) {
+            modulationTypeGroup.style.display = selectedSignal === 'quadrature' ? 'none' : 'block';
+        }
+
         // Show appropriate fields
         switch(selectedSignal) {
             case 'modulation':
-                if (dom.modulationFields) dom.modulationFields.style.display = 'block';
+                if (dom.modulationFields) {
+                    dom.modulationFields.style.display = 'grid';
+                    // Reset modulation type to AM by default
+                    const modulationType = document.getElementById('modulation-type');
+                    if (modulationType) modulationType.value = 'AM';
+                }
                 break;
             case 'quadrature':
-                if (dom.quadratureFields) dom.quadratureFields.style.display = 'block';
+                if (dom.quadratureFields) {
+                    dom.quadratureFields.style.display = 'grid';
+                }
                 break;
             case 'pll':
-                if (dom.pllFields) dom.pllFields.style.display = 'block';
+                if (dom.pllFields) {
+                    dom.pllFields.style.display = 'grid';
+                }
                 break;
             case 'demodulation':
-                if (dom.demodulationFields) dom.demodulationFields.style.display = 'block';
+                if (dom.demodulationFields) {
+                    dom.demodulationFields.style.display = 'grid';
+                }
                 break;
         }
-        
-        dom.equationText.innerHTML = equations[selectedSignal];
+
+        // Show/hide the common carrier frequency field based on signal type
+        const carrierField = document.querySelector('.form-group:has(#carrier-freq)');
+        if (carrierField) {
+            carrierField.style.display = selectedSignal === 'quadrature' ? 'none' : 'block';
+        }
+
+        // Update equations
+        updateEquationDisplay();
     }
 
     // Event listeners for dropdowns
@@ -228,15 +277,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentMode === 'circuit') {
                 await simulateCircuit();
             } else if (currentMode === 'electronic-signals') {
-                console.log('Selected signal type:', dom.signalType.value);
+                // Create a submit event for the simulation
+                const event = new Event('submit');
+                event.preventDefault = () => {}; // Add preventDefault to match real event
                 
-                // Debug: Log all input values before simulation
-                console.log('Carrier freq input:', document.getElementById('carrier-freq')?.value);
-                console.log('Modulating freq input:', document.getElementById('modulating-freq')?.value);
-                console.log('Modulation index input:', document.getElementById('modulation-index')?.value);
-                console.log('Modulation type input:', document.getElementById('modulation-type')?.value);
-                
-                await simulateElectronicSignals();
+                // Call simulateSignal directly
+                await simulateSignal(event);
             } else {
                 throw new Error('Please select Circuit Analysis or Electronic Signals first');
             }
@@ -338,16 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 break;
             case 'demodulation':
-                endpoint = '/circuits/modulation';
-                body = {
-                    modulation_type: params.demodType,
-                    carrier_frequency: params.demodCarrierFreq,
-                    modulating_frequency: params.demodSignalFreq,
-                    modulation_index: 0.8, // Good modulation index for demod demo
-                    duration: params.duration,
-                    sample_rate: Math.floor(params.points / params.duration),
-                    signal_type: 'demodulation' // Special flag
-                };
+                // Show "Coming Soon" message for demodulation
+                alert('Signal demodulation feature is being rebuilt from scratch and will be available soon!');
+                return; // Early return to prevent API call
                 break;
         }
 
@@ -364,18 +403,28 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log('Electronic signals simulation response:', data);
+        const result = await response.json();
+        console.log('Electronic signals simulation response:', result);
 
         // Transform data if needed
         const transformedData = {
-            t: data.time || data.t,
-            carrier: data.carrier_signal || data.carrier,
-            modulating: data.modulating_signal || data.modulating,
-            modulated: data.modulated_signal || data.modulated,
-            I: data.I, // for quadrature
-            Q: data.Q  // for quadrature
+            t: result.time || result.t,
+            carrier: result.carrier_signal || result.carrier,
+            modulating: result.modulating_signal || result.modulating,
+            modulated: result.modulated_signal || result.modulated,
+            I: result.I, // for quadrature
+            Q: result.Q  // for quadrature
         };
+
+        // Update for QM case
+        if (params.signalType === 'quadrature-demod' && result.success) {
+            // Store the quadrature signal data for demodulation
+            window.currentQuadratureSignal = {
+                signal: result.modulated_signal,
+                time: result.time,
+                carrier_freq: result.parameters.carrier_frequency
+            };
+        }
 
         plotSignalResponse(params, transformedData);
     }
@@ -420,59 +469,52 @@ document.addEventListener('DOMContentLoaded', () => {
         return params;
     }
 
+    // Get parameters for electronic signals simulation
     function getSignalParameters() {
-        const params = {
-            signalType: dom.signalType.value,
-            duration: parseFloat(document.getElementById('signal-duration').value) || 2.0,
-            points: parseInt(document.getElementById('signal-points').value) || 1000,
+        // Get signal type from dropdown, default to 'modulation' if not set
+        const signalType = dom.signalType?.value || 'modulation';
+        
+        // Start with default parameters
+        let params = { ...DEFAULT_SIGNAL_PARAMS };
+        
+        // Add basic parameters
+        params = {
+            ...params,
+            signalType
         };
 
-        console.log('Getting signal parameters for type:', params.signalType);
+        // Helper function to safely get numeric values from form
+        const getNumericValue = (id, defaultValue) => {
+            const element = document.getElementById(id);
+            if (!element || element.value === '') return defaultValue;
+            const value = parseFloat(element.value);
+            return isNaN(value) ? defaultValue : value;
+        };
 
-        // Get parameters based on selected signal type
-        switch(params.signalType) {
-            case 'modulation':
-                const modulationType = document.getElementById('modulation-type')?.value;
-                const carrierFreq = document.getElementById('carrier-freq')?.value;
-                const modulatingFreq = document.getElementById('modulating-freq')?.value;
-                const modulationIndex = document.getElementById('modulation-index')?.value;
-                
-                console.log('Raw modulation values:', { modulationType, carrierFreq, modulatingFreq, modulationIndex });
-                
-                params.modulationType = modulationType || 'AM';
-                params.carrierFreq = parseFloat(carrierFreq) || 10.0;
-                params.modulatingFreq = parseFloat(modulatingFreq) || 1.0;
-                params.modulationIndex = parseFloat(modulationIndex) || 0.5;
-                
-                console.log('Parsed modulation params:', { 
-                    modulationType: params.modulationType, 
-                    carrierFreq: params.carrierFreq, 
-                    modulatingFreq: params.modulatingFreq, 
-                    modulationIndex: params.modulationIndex 
-                });
-                break;
-            case 'quadrature':
-                params.quadCarrierFreq = parseFloat(document.getElementById('quad-carrier-freq')?.value) || 10.0;
-                params.quadIFreq = parseFloat(document.getElementById('quad-i')?.value) || 50;
-                params.quadQFreq = parseFloat(document.getElementById('quad-q')?.value) || 80;
-                params.quadPhase = parseFloat(document.getElementById('quad-phase')?.value) || 90;
-                console.log('Quadrature params:', params);
-                break;
-            case 'pll':
-                params.pllInputFreq = parseFloat(document.getElementById('pll-input-freq')?.value) || 10.0;
-                params.pllVcoFreq = parseFloat(document.getElementById('pll-vco-freq')?.value) || 9.5;
-                params.pllLoopGain = parseFloat(document.getElementById('pll-loop-gain')?.value) || 0.1;
-                console.log('PLL params:', params);
-                break;
-            case 'demodulation':
-                params.demodType = document.getElementById('demod-type')?.value || 'AM';
-                params.demodCarrierFreq = parseFloat(document.getElementById('demod-carrier-freq')?.value) || 10.0;
-                params.demodSignalFreq = parseFloat(document.getElementById('demod-signal-freq')?.value) || 1.0;
-                console.log('Demodulation params:', params);
-                break;
+        // Get common parameters
+        params.duration = getNumericValue('signal-duration', DEFAULT_SIGNAL_PARAMS.duration);
+        params.points = Math.floor(getNumericValue('signal-points', DEFAULT_SIGNAL_PARAMS.sampleRate));
+
+        // Get values based on signal type
+        if (signalType === 'quadrature') {
+            params.modulationType = 'QM';
+            params.carrierFreq = getNumericValue('quad-carrier-freq', 100);  // Use quadrature carrier
+            params.iFreq = getNumericValue('quad-i', 10);  // I signal frequency
+            params.qFreq = getNumericValue('quad-q', 20);  // Q signal frequency
+            params.phaseShift = getNumericValue('quad-phase', 90);  // Phase shift in degrees
+
+            // Validate carrier frequency is higher than both I and Q
+            if (params.carrierFreq <= Math.max(params.iFreq, params.qFreq)) {
+                throw new Error('Carrier frequency must be high enough for both I and Q frequencies for Quadrature Modulation.');
+            }
+        } else {
+            // Handle AM/FM parameters
+            params.modulationType = document.getElementById('modulation-type')?.value || 'AM';
+            params.carrierFreq = getNumericValue('carrier-freq', DEFAULT_SIGNAL_PARAMS.carrierFreq);
+            params.modulatingFreq = getNumericValue('modulating-freq', DEFAULT_SIGNAL_PARAMS.modulatingFreq);
+            params.modulationIndex = getNumericValue('modulation-index', DEFAULT_SIGNAL_PARAMS.modulationIndex);
         }
 
-        console.log('Final signal parameters:', params);
         return params;
     }
 
@@ -501,68 +543,124 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Dedicated function for plotting quadrature signals
+    function plotQuadratureSignals(data) {
+        // Clear both plots first
+        Plotly.purge(dom.plotContainer);
+        const iqPanel = document.getElementById('quadrature-iq-panel');
+        const iqPlot = document.getElementById('quadrature-iq-plot');
+        if (iqPlot) Plotly.purge(iqPlot);
+
+        // Plot 1: I and Q signals
+        const basebandTraces = [
+            {
+                x: data.t,
+                y: data.i_signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'I-Signal',  // Exact legend name as requested
+                line: { color: '#2ecc71', width: 2 }  // Green
+            },
+            {
+                x: data.t,
+                y: data.q_signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Q-Signal',  // Exact legend name as requested
+                line: { color: '#e74c3c', width: 2 }  // Red
+            }
+        ];
+
+        const basebandLayout = {
+            title: {
+                text: 'I and Q Signals',
+                font: { size: 20 }
+            },
+            xaxis: { 
+                title: 'Time (s)',
+                titlefont: { size: 14 }
+            },
+            yaxis: { 
+                title: 'Amplitude',
+                titlefont: { size: 14 }
+            },
+            plot_bgcolor: '#ffffff',
+            paper_bgcolor: '#ffffff',
+            showlegend: true,
+            legend: {
+                x: 0.02,
+                y: 0.98,
+                xanchor: 'left',
+                yanchor: 'top',
+                bgcolor: 'rgba(255, 255, 255, 0.9)',
+                bordercolor: 'rgba(0, 0, 0, 0.1)',
+                borderwidth: 1,
+                font: { size: 12 }
+            },
+            margin: { l: 60, r: 30, t: 50, b: 50 }
+        };
+
+        Plotly.newPlot(dom.plotContainer, basebandTraces, basebandLayout);
+
+        // Plot 2: Quadrature Modulated Signal
+        if (iqPanel && iqPlot) {
+            iqPanel.style.display = 'block';
+            
+            const modulatedTrace = [{
+                x: data.t,
+                y: data.qm_signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Quad-Modulated',  // Exact legend name as requested
+                line: { color: '#3498db', width: 2 }  // Blue
+            }];
+
+            const modulatedLayout = {
+                title: {
+                    text: 'Quadrature Modulated Signal',
+                    font: { size: 20 }
+                },
+                xaxis: { 
+                    title: 'Time (s)',
+                    titlefont: { size: 14 }
+                },
+                yaxis: { 
+                    title: 'Amplitude',
+                    titlefont: { size: 14 }
+                },
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#ffffff',
+                showlegend: true,
+                legend: {
+                    x: 0.02,
+                    y: 0.98,
+                    xanchor: 'left',
+                    yanchor: 'top',
+                    bgcolor: 'rgba(255, 255, 255, 0.9)',
+                    bordercolor: 'rgba(0, 0, 0, 0.1)',
+                    borderwidth: 1,
+                    font: { size: 12 }
+                },
+                margin: { l: 60, r: 30, t: 50, b: 50 }
+            };
+
+            Plotly.newPlot(iqPlot, modulatedTrace, modulatedLayout);
+        }
+    }
+
     function plotSignalResponse(params, data) {
         console.log('Plotting signal response:', { params, data });
 
-        // Clear the existing plot first
-        Plotly.purge(dom.plotContainer);
-
-        // Quadrature I/Q plot DOM
-        const iqPanel = document.getElementById('quadrature-iq-panel');
-        const iqPlot = document.getElementById('quadrature-iq-plot');
-
         if (params.signalType === 'quadrature') {
-            // Show I/Q panel
-            if (iqPanel) iqPanel.style.display = 'block';
-
-            // Plot modulated signal
-            Plotly.newPlot(dom.plotContainer, [{
-                x: data.t,
-                y: data.modulated,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Quadrature Modulated Signal',
-                line: { color: '#3182ce' }
-            }], {
-                title: 'Quadrature Modulated Signal',
-                xaxis: { title: 'Time (s)' },
-                yaxis: { title: 'Amplitude' },
-                plot_bgcolor: '#fff',
-                paper_bgcolor: '#fff'
-            });
-
-            // Plot I and Q below
-            if (iqPlot) {
-                Plotly.newPlot(iqPlot, [
-                    {
-                        x: data.t,
-                        y: data.I || [],
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'I (In-phase)',
-                        line: { color: '#2ca02c' }
-                    },
-                    {
-                        x: data.t,
-                        y: data.Q || [],
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Q (Quadrature)',
-                        line: { color: '#d62728' }
-                    }
-                ], {
-                    title: 'I and Q Signals',
-                    xaxis: { title: 'Time (s)' },
-                    yaxis: { title: 'Amplitude' },
-                    plot_bgcolor: '#fff',
-                    paper_bgcolor: '#fff'
-                });
-            }
+            // Use dedicated quadrature plotting function
+            plotQuadratureSignals(data);
         } else {
-            // Hide I/Q panel if not quadrature
+            // Hide quadrature panel for AM/FM signals
+            const iqPanel = document.getElementById('quadrature-iq-panel');
             if (iqPanel) iqPanel.style.display = 'none';
-            // For other signals, plot as before
-            plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.modulationType || params.signalType);
+            
+            // Use existing AM/FM plotting function
+            plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.modulationType);
         }
     }
 
@@ -696,5 +794,309 @@ Why Quadrature?
                 }
             }, 100);
         });
+    }
+        
+        // Add Quadrature Demodulation buttons control
+        const signalTypeSelect = document.getElementById('signal-type');
+        const quadratureDemodButtons = document.getElementById('quadrature-demod-buttons');
+        
+        if (signalTypeSelect && quadratureDemodButtons) {
+            signalTypeSelect.addEventListener('change', function() {
+                if (this.value === 'quadrature-demod') {
+                    quadratureDemodButtons.style.display = 'flex';
+                } else {
+                    quadratureDemodButtons.style.display = 'none';
+                }
+            });
+            
+            // Initial state
+            if (signalTypeSelect.value === 'quadrature-demod') {
+                quadratureDemodButtons.style.display = 'flex';
+            }
+        }
+        
+        // Add click handlers for the buttons
+        document.getElementById('real-signal-btn')?.addEventListener('click', handleQuadratureDemodulation.bind(null, 'I'));
+        document.getElementById('imaginary-signal-btn')?.addEventListener('click', handleQuadratureDemodulation.bind(null, 'Q'));
+
+
+    // Initialize currentQuadratureSignal
+    window.currentQuadratureSignal = {
+        signal: null,
+        time: null,
+        carrier_freq: null
+    };
+
+    async function handleQuadratureDemodulation(component) {
+        try {
+            if (!window.currentQuadratureSignal?.signal) {
+                alert('Please generate a quadrature modulated signal first.');
+                return;
+            }
+
+            const response = await fetch('/circuits/demodulate_quadrature', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    signal: window.currentQuadratureSignal.signal,
+                    time: window.currentQuadratureSignal.time,
+                    carrier_freq: window.currentQuadratureSignal.carrier_freq,
+                    component: component
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // Create the plot data
+                const plotData = [{
+                    x: result.time,
+                    y: result.demodulated_signal,
+                    name: `Demodulated ${component} Component`,
+                    type: 'scatter',
+                    mode: 'lines'
+                }];
+
+                if (result[`${component}_filtered`]) {
+                    plotData.push({
+                        x: result.time,
+                        y: result[`${component}_filtered`],
+                        name: `Filtered ${component} Component`,
+                        type: 'scatter',
+                        mode: 'lines'
+                    });
+                }
+
+                // Plot FFT
+                plotData.push({
+                    x: result.fft.frequencies,
+                    y: result.fft.magnitudes,
+                    name: `FFT of ${component} Component`,
+                    yaxis: 'y2',
+                    type: 'scatter',
+                    mode: 'lines'
+                });
+
+                // Set up the layout with two y-axes
+                const layout = {
+                    title: `Quadrature Demodulation - ${component} Component`,
+                    xaxis: { title: 'Time (s)' },
+                    yaxis: { title: 'Amplitude' },
+                    yaxis2: {
+                        title: 'FFT Magnitude',
+                        overlaying: 'y',
+                        side: 'right'
+                    },
+                    showlegend: true,
+                    legend: { x: 1.1, y: 1 }
+                };
+
+                // Plot using Plotly
+                Plotly.newPlot(dom.plotContainer, plotData, layout);
+            } else {
+                console.error('Demodulation failed:', result.error);
+                alert('Failed to demodulate signal: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error during demodulation:', error);
+            alert('Error during demodulation. See console for details.');
+        }
+    }
+
+    // Hide quadrature buttons by default
+    if (dom.quadratureHoverButtons) {
+        dom.quadratureHoverButtons.style.display = 'none';
+    }
+
+    async function simulateSignal(event) {
+        event.preventDefault();
+        
+        try {
+            const params = getSignalParameters();
+            
+            // Determine if this is a quadrature demodulation request
+            const isQuadratureDemod = params.signalType.startsWith('quadrature-demod-');
+            if (isQuadratureDemod && !window.currentQuadratureSignal?.signal) {
+                alert('Please generate a quadrature modulated signal first using Quadrature Modulation (QM).');
+                return;
+            }
+
+            let endpoint = '/circuits/modulation';
+            let requestData = {};
+
+            if (isQuadratureDemod) {
+                // Handle demodulation request
+                const component = params.signalType === 'quadrature-demod-i' ? 'I' : 'Q';
+                endpoint = '/circuits/demodulate_quadrature';
+                requestData = {
+                    signal: window.currentQuadratureSignal.signal,
+                    time: window.currentQuadratureSignal.time,
+                    carrier_freq: window.currentQuadratureSignal.carrier_freq,
+                    component: component
+                };
+            } else {            // Handle regular modulation request
+            requestData = {
+                modulation_type: params.modulationType || 'AM',
+                carrier_frequency: parseFloat(params.carrierFreq) || 100,
+                modulating_frequency: parseFloat(params.modulatingFreq) || 10,
+                modulation_index: parseFloat(params.modulationIndex) || 0.5,
+                duration: parseFloat(params.duration) || 1.0,
+                sample_rate: Math.floor(parseFloat(params.sampleRate)) || 1000,
+                points: Math.floor(parseFloat(params.sampleRate) * parseFloat(params.duration)) // Calculate total points
+            };
+
+                // Add extra parameters for QM
+                if (params.modulationType === 'QM') {
+                    requestData = {
+                        ...requestData,
+                        i_frequency: params.iFreq,
+                        q_frequency: params.qFreq,
+                        phase_shift: params.phaseShift
+                    };
+                }
+            }
+
+            console.log('Sending request:', { endpoint, requestData });
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Unknown error occurred');
+            }
+
+            // Store QM signal for later demodulation
+            if (params.modulationType === 'QM') {
+                window.currentQuadratureSignal = {
+                    signal: result.modulated_signal,
+                    time: result.time,
+                    carrier_freq: result.parameters.carrier_frequency
+                };
+            }
+
+            // Plot the results
+            if (isQuadratureDemod) {
+                // Plot demodulated signal and FFT
+                const plotData = [{
+                    x: result.time,
+                    y: result.demodulated_signal,
+                    name: `Demodulated ${requestData.component} Component`,
+                    type: 'scatter',
+                    mode: 'lines'
+                }];
+
+                if (result[`${requestData.component}_filtered`]) {
+                    plotData.push({
+                        x: result.time,
+                        y: result[`${requestData.component}_filtered`],
+                        name: `Filtered ${requestData.component} Component`,
+                        type: 'scatter',
+                        mode: 'lines'
+                    });
+                }
+
+                // Add FFT plot
+                plotData.push({
+                    x: result.fft.frequencies,
+                    y: result.fft.magnitudes,
+                    name: `FFT of ${requestData.component} Component`,
+                    yaxis: 'y2',
+                    type: 'scatter',
+                    mode: 'lines'
+                });
+
+                const layout = {
+                    title: `Quadrature Demodulation - ${requestData.component} Component`,
+                    xaxis: { title: 'Time (s)' },
+                    yaxis: { title: 'Amplitude' },
+                    yaxis2: {
+                        title: 'FFT Magnitude',
+                        overlaying: 'y',
+                        side: 'right'
+                    },
+                    showlegend: true,
+                    legend: { x: 1.1, y: 1 }
+                };
+
+                Plotly.newPlot(dom.plotContainer, plotData, layout);
+            } else {
+                // Plot modulated signal
+                const plotData = [
+                    {
+                        x: result.time,
+                        y: result.carrier_signal,
+                        name: 'Carrier',
+                        type: 'scatter',
+                        mode: 'lines'
+                    },
+                    {
+                        x: result.time,
+                        y: result.modulating_signal,
+                        name: 'Modulating',
+                        type: 'scatter',
+                        mode: 'lines'
+                    },
+                    {
+                        x: result.time,
+                        y: result.modulated_signal,
+                        name: 'Modulated',
+                        type: 'scatter',
+                        mode: 'lines'
+                    }
+                ];
+
+                Plotly.newPlot(dom.plotContainer, plotData);
+            }
+        } catch (error) {
+            console.error('Error during simulation:', error);
+            alert('Error during simulation: ' + error.message);
+        }
+    }
+
+    function initializeSignalControls() {
+        // Set default values for all signal control fields
+        const fields = {
+            // AM/FM fields
+            'carrier-freq': DEFAULT_SIGNAL_PARAMS.carrierFreq,
+            'modulating-freq': DEFAULT_SIGNAL_PARAMS.modulatingFreq,
+            'modulation-index': DEFAULT_SIGNAL_PARAMS.modulationIndex,
+            // Quadrature fields
+            'quad-carrier-freq': DEFAULT_SIGNAL_PARAMS.quadCarrierFreq,
+            'quad-i': DEFAULT_SIGNAL_PARAMS.quadIFreq,
+            'quad-q': DEFAULT_SIGNAL_PARAMS.quadQFreq,
+            'quad-phase': DEFAULT_SIGNAL_PARAMS.quadPhase,
+            // Common fields
+            'signal-duration': DEFAULT_SIGNAL_PARAMS.duration,
+            'signal-points': DEFAULT_SIGNAL_PARAMS.sampleRate
+        };
+
+        // Set values for all fields that exist
+        Object.entries(fields).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value;
+            }
+        });
+
+        // Set default modulation type to AM
+        const modulationType = document.getElementById('modulation-type');
+        if (modulationType) {
+            modulationType.value = 'AM';
+        }
+
+        // Set default signal type to modulation (AM)
+        if (dom.signalType) {
+            dom.signalType.value = 'modulation';
+        }
+
+        // Update fields visibility based on current selection
+        updateSignalFields();
     }
 });
