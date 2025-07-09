@@ -107,18 +107,18 @@ body {
 .resizable-plot-wrapper {
     display: block;
     position: relative;
-    min-width: 500px;
-    min-height: 350px;
-    width: 900px;
-    height: 520px;
-    max-width: 1200px;
-    max-height: 700px;
+    min-width: 900px;
+    min-height: 520px;
+    width: 100%;
+    height: 600px;
+    max-width: 1400px;
+    max-height: 900px;
     flex: 1 1 0%;
     resize: both;
     overflow: hidden;
     background: #fff;
     border-radius: 12px;
-    margin: 24px auto 18px 0;
+    margin: 8px 0 0 0; /* Move up and left: top margin small, no left margin */
     box-shadow: 0 2px 12px rgba(0,0,0,0.10);
     z-index: 1;
 }
@@ -1071,10 +1071,10 @@ section h2 {
 #comparisonPlot.plot-container {
     width: 100% !important;
     height: 100% !important;
-    min-width: 350px !important;
-    min-height: 250px !important;
-    max-width: none !important;
-    max-height: none !important;
+    min-width: 900px !important;
+    min-height: 520px !important;
+    max-width: 1400px !important;
+    max-height: 900px !important;
     display: block !important;
     resize: none !important;
     overflow: auto !important;
@@ -1127,3 +1127,42 @@ section h2 {
     height: 100%;
     min-height: 350px;
 }
+
+/* Make signal generator background light and readable */
+.signal-generator, .controls-column {
+    background: #f9fafb !important;
+    color: #222;
+}
+
+.signal-generator label, .signal-generator .param-group label {
+    color: #222;
+    font-weight: 500;
+}
+
+.phase-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+.phase-btn-group button {
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+    border: 1px solid #bbb;
+    background: #fff;
+    color: #222;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.phase-btn-group button:hover {
+    background: #e0e7ef;
+}
+.phase-btn-group input[type="number"] {
+    width: 60px;
+    text-align: center;
+    font-size: 1rem;
+    margin: 0 2px;
+}
+

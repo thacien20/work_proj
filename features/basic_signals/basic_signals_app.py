@@ -79,9 +79,9 @@ def generate_basic_signal():
         
         # Generate signal based on type
         if signal_type == 'sine':
-            y = amplitude * np.sin(2 * np.pi * frequency * t + phase)
+            y = amplitude * np.sin(2 * np.pi * frequency * t + phase)  # phase in radians
         elif signal_type == 'cosine':
-            y = amplitude * np.cos(2 * np.pi * frequency * t + phase)
+            y = amplitude * np.cos(2 * np.pi * frequency * t + phase)  # phase in radians
         elif signal_type == 'square':
             y = amplitude * np.sign(np.sin(2 * np.pi * frequency * t + phase))
         elif signal_type == 'triangle':

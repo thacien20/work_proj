@@ -12,7 +12,6 @@
     <!-- Include MathJax for mathematical expressions -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- All custom CSS moved to basic_signals.css for maintainability -->
 </head>
 <body>
     <div class="lab-canvas">
@@ -28,7 +27,7 @@
                 <div class="controls-column">
                     <!-- Signal Generator Section -->
                     <section class="signal-generator">
-                        <h2>📡 Signal Generator</h2>
+                        <h2 style="color: #111; background: transparent;">📡 Signal Generator</h2>
                         <div class="parameters-column">
                             <div class="param-group" style="display: flex; justify-content: flex-end;">
                                 <button id="infoBtn" class="info-btn" title="Learn about this signal">ℹ️</button>
@@ -52,8 +51,8 @@
                                 <input type="number" id="amplitude" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
                             </div>
                             <div class="param-group">
-                                <label for="phase">Phase (deg):</label>
-                                <input type="number" id="phase" class="control-input" value="0" min="-180" max="180" step="15">
+                                <label for="phase">Phase (rad):</label>
+                                <input type="number" id="phase" class="control-input" value="0" min="-6.28" max="6.28" step="0.087">
                             </div>
                             <div class="param-group">
                                 <label for="duration">Duration (s):</label>
@@ -74,24 +73,54 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- Second signal controls for comparison (hidden by default) -->
+                            <div id="compareControls" style="display:none; margin-top: 18px; border-top: 1px solid #eee; padding-top: 12px;">
+                                <div class="param-group" style="font-weight:bold;">Compare Signal</div>
+                                <div class="param-group" style="display: flex; align-items: center; gap: 4px;">
+                                    <label for="signalType2" style="flex: 0 0 auto;">Signal Type:</label>
+                                    <select id="signalType2" class="control-input" style="flex: 1 1 auto; width: 0;">
+                                        <option value="sine">Sine Wave</option>
+                                        <option value="cosine">Cosine Wave</option>
+                                        <option value="square">Square Wave</option>
+                                        <option value="triangle">Triangle Wave</option>
+                                        <option value="sawtooth">Sawtooth Wave</option>
+                                    </select>
+                                </div>
+                                <div class="param-group">
+                                    <label for="frequency2">Freq (Hz):</label>
+                                    <input type="number" id="frequency2" class="control-input" value="1.0" min="0.1" max="10" step="0.1">
+                                </div>
+                                <div class="param-group">
+                                    <label for="amplitude2">Amplitude:</label>
+                                    <input type="number" id="amplitude2" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
+                                </div>
+                                <div class="param-group">
+                                    <label for="duration2">Duration (s):</label>
+                                    <input type="number" id="duration2" class="control-input" value="2.0" min="0.5" max="10" step="0.5">
+                                </div>
+                                <div class="param-group">
+                                    <button id="overlayBtn" class="primary-btn">Overlay</button>
+                                    <button id="hideCompareBtn" class="secondary-btn">Cancel</button>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </div>
                 <!-- Right Column: Visualization -->
                 <div class="right-column">
                     <div class="panel">
-                        <div class="resizable-plot-wrapper" id="signalPlotWrapper">
-                            <div id="signalPlot" class="plot-container"></div>
+                        <div class="resizable-plot-wrapper" id="signalPlotWrapper" style="min-width:900px; min-height:520px; width:100%; height:600px; max-width:1400px; max-height:900px;">
+                            <div id="signalPlot" class="plot-container" style="width:100%;height:100%;min-width:900px;min-height:520px;max-width:1400px;max-height:900px;"></div>
+                        </div>
+                        <!-- Sum plot: hidden by default, shown only after overlay -->
+                        <div id="sumPlotPanel" style="width:900px; max-width:100%; margin: 24px auto 0 auto; background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.10); padding:16px 0; display:none;">
+                            <div style="text-align:center; font-weight:bold; color:#333; margin-bottom:8px;">Sum of Signals</div>
+                            <div id="sumPlot" style="width:100%; height:320px; min-width:400px;"></div>
                         </div>
                     </div>
-                    <!-- Removed comparisonPanel and comparisonPlotWrapper as requested -->
-                    <!-- Removed testPlotPanel as previously done -->
-                    <!-- Remove or comment out the old comparison section -->
-                    <!-- <section id="comparisonSection" class="comparison-section" style="display: none;"> ... </section> -->
                 </div>
             </div>
         </div>
-        <!-- Remove duplicate comparison section from below -->
     </div>
     <!-- Loading indicator -->
     <div id="loadingIndicator" class="loading-indicator" style="display: none;">
@@ -148,44 +177,12 @@
     <!-- Include JavaScript -->
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals.js') }}"></script>
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals_ui.js') }}"></script>
-    <!-- Include interact.js for advanced resizable support -->
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <script>
-    // Plot a default signal on page load
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (window.generateSignal) {
-            // Fetch a single signal for the default plot
-            const params = {
-                signal_type: 'sine',
-                frequency: 1.0,
-                amplitude: 1.0,
-                phase: 0,
-                duration: 2.0,
-                sample_rate: 200
-            };
-            try {
-                const resp = await fetch('/basic_signals/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) });
-                const data = await resp.json();
-                if (data.success) {
-                    const t = data.signal.time;
-                    Plotly.newPlot('signalPlot', [
-                        { x: t, y: data.signal.amplitude, type: 'scatter', mode: 'lines', name: 'Sine (1 Hz)', line: { color: '#007bff' } }
-                    ], {
-                        xaxis: { title: 'Time (s)' },
-                        yaxis: { title: 'Amplitude' },
-                        plot_bgcolor: '#fafafa',
-                        paper_bgcolor: '#fff',
-                        margin: { l: 60, r: 30, t: 50, b: 50 },
-                        height: 400,
-                        width: document.getElementById('signalPlotWrapper').offsetWidth || 600,
-                        title: 'Sine Wave (1 Hz)'
-                    }, { responsive: true });
-                }
-            } catch (err) {
-                document.getElementById('signalPlot').innerHTML = '<div style="color:red;padding:16px;">Error loading plot: ' + err.message + '</div>';
-            }
-        }
-        // Make the main signal plot responsive to resizing
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
+
         const wrapper = document.getElementById('signalPlotWrapper');
         const plotDiv = document.getElementById('signalPlot');
         if (wrapper && plotDiv && window.Plotly) {
@@ -193,11 +190,13 @@
                 window.signalPlotResizeObserver.disconnect();
             }
             window.signalPlotResizeObserver = new ResizeObserver(() => {
-                Plotly.relayout(plotDiv, {
-                    width: wrapper.offsetWidth,
-                    height: wrapper.offsetHeight
-                });
-                Plotly.Plots.resize(plotDiv);
+                if (plotDiv.data && plotDiv.data.length > 0) {
+                    Plotly.relayout(plotDiv, {
+                        width: wrapper.offsetWidth,
+                        height: wrapper.offsetHeight
+                    });
+                    Plotly.Plots.resize(plotDiv);
+                }
             });
             window.signalPlotResizeObserver.observe(wrapper);
         }
