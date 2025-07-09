@@ -4,124 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Basic Signals - Signal Processing Lab</title>
+    
     <!-- Include Plotly for plotting -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
     <!-- Include main CSS and feature-specific CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('basic_signals.static', filename='css/basic_signals.css') }}">
+    
     <!-- Include MathJax for mathematical expressions -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-    <div class="lab-canvas">
-        <header class="main-header main-header-canvas">
+    <div class="container">
+        <!-- Header Section -->
+        <header class="main-header">
             <h1>🔬 Basic Signals Laboratory</h1>
             <p class="subtitle">Learn fundamental signal types and their properties</p>
+            
+            <!-- Navigation -->
             <nav class="feature-nav">
                 <a href="/" class="nav-btn">← Main Lab</a>
+                <a href="/circuits" class="nav-btn">Circuit Analysis</a>
             </nav>
         </header>
-        <div class="main-container">
-            <div class="lab-layout">
-                <div class="controls-column">
-                    <!-- Signal Generator Section -->
-                    <section class="signal-generator">
-                        <h2 style="color: #111; background: transparent;">📡 Signal Generator</h2>
-                        <div class="parameters-column">
-                            <div class="param-group" style="display: flex; justify-content: flex-end;">
-                                <button id="infoBtn" class="info-btn" title="Learn about this signal">ℹ️</button>
-                            </div>
-                            <div class="param-group" style="display: flex; align-items: center; gap: 4px;">
-                                <label for="signalType" style="flex: 0 0 auto;">Signal Type:</label>
-                                <select id="signalType" class="control-input" style="flex: 1 1 auto; width: 0;">
-                                    <option value="sine">Sine Wave</option>
-                                    <option value="cosine">Cosine Wave</option>
-                                    <option value="square">Square Wave</option>
-                                    <option value="triangle">Triangle Wave</option>
-                                    <option value="sawtooth">Sawtooth Wave</option>
-                                </select>
-                            </div>
-                            <div class="param-group">
-                                <label for="frequency">Freq (Hz):</label>
-                                <input type="number" id="frequency" class="control-input" value="1.0" min="0.1" max="10" step="0.1">
-                            </div>
-                            <div class="param-group">
-                                <label for="amplitude">Amplitude:</label>
-                                <input type="number" id="amplitude" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
-                            </div>
-                            <div class="param-group">
-                                <label for="phase">Phase (rad):</label>
-                                <input type="number" id="phase" class="control-input" value="0" min="-6.28" max="6.28" step="0.087">
-                            </div>
-                            <div class="param-group">
-                                <label for="duration">Duration (s):</label>
-                                <input type="number" id="duration" class="control-input" value="2.0" min="0.5" max="10" step="0.5">
-                            </div>
-                            <div class="param-group">
-                                <button id="generateBtn" class="primary-btn">Generate</button>
-                            </div>
-                            <div class="param-group">
-                                <button id="resetBtn" class="secondary-btn">Reset</button>
-                            </div>
-                            <div class="param-group analyze-group">
-                                <div class="dropdown">
-                                    <button id="analyzeBtn" class="analyze-btn dropdown-toggle">Analyze</button>
-                                    <div class="dropdown-menu" id="analyzeDropdown">
-                                        <button class="dropdown-item" id="compareBtn">Compare</button>
-                                        <button class="dropdown-item" id="fftBtn">FFT</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Second signal controls for comparison (hidden by default) -->
-                            <div id="compareControls" style="display:none; margin-top: 18px; border-top: 1px solid #eee; padding-top: 12px;">
-                                <div class="param-group" style="font-weight:bold;">Compare Signal</div>
-                                <div class="param-group" style="display: flex; align-items: center; gap: 4px;">
-                                    <label for="signalType2" style="flex: 0 0 auto;">Signal Type:</label>
-                                    <select id="signalType2" class="control-input" style="flex: 1 1 auto; width: 0;">
-                                        <option value="sine">Sine Wave</option>
-                                        <option value="cosine">Cosine Wave</option>
-                                        <option value="square">Square Wave</option>
-                                        <option value="triangle">Triangle Wave</option>
-                                        <option value="sawtooth">Sawtooth Wave</option>
-                                    </select>
-                                </div>
-                                <div class="param-group">
-                                    <label for="frequency2">Freq (Hz):</label>
-                                    <input type="number" id="frequency2" class="control-input" value="1.0" min="0.1" max="10" step="0.1">
-                                </div>
-                                <div class="param-group">
-                                    <label for="amplitude2">Amplitude:</label>
-                                    <input type="number" id="amplitude2" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
-                                </div>
-                                <div class="param-group">
-                                    <label for="duration2">Duration (s):</label>
-                                    <input type="number" id="duration2" class="control-input" value="2.0" min="0.5" max="10" step="0.5">
-                                </div>
-                                <div class="param-group">
-                                    <button id="overlayBtn" class="primary-btn">Overlay</button>
-                                    <button id="hideCompareBtn" class="secondary-btn">Cancel</button>
-                                </div>
-                            </div>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Left Column - Controls -->
+            <div class="left-column">
+                <!-- Quick Action Buttons Section -->
+                
+                <!-- Signal Generator Section -->
+                <section class="signal-generator">
+                    <h2>📡 Signal Generator</h2>
+                    
+                    <!-- Signal Type Selection -->
+                    <div class="control-group">
+                        <label for="signalType">Signal Type:</label>
+                        <select id="signalType" class="control-input">
+                            <option value="sine">Sine Wave</option>
+                            <option value="cosine">Cosine Wave</option>
+                            <option value="square">Square Wave</option>
+                            <option value="triangle">Triangle Wave</option>
+                            <option value="sawtooth">Sawtooth Wave</option>
+                        </select>
+                        <button id="infoBtn" class="info-btn" title="Learn about this signal">ℹ️</button>
+                    </div>
+
+                    <!-- Signal Parameters -->
+                    <div class="parameters-grid">
+                        <div class="param-group">
+                            <label for="frequency">Frequency (Hz):</label>
+                            <input type="number" id="frequency" class="control-input" value="1.0" min="0.1" max="10" step="0.1">
+                            <span class="param-unit">Hz</span>
                         </div>
-                    </section>
-                </div>
-                <!-- Right Column: Visualization -->
-                <div class="right-column">
-                    <div class="panel">
-                        <div class="resizable-plot-wrapper" id="signalPlotWrapper" style="min-width:900px; min-height:520px; width:100%; height:600px; max-width:1400px; max-height:900px;">
-                            <div id="signalPlot" class="plot-container" style="width:100%;height:100%;min-width:900px;min-height:520px;max-width:1400px;max-height:900px;"></div>
+                        
+                        <div class="param-group">
+                            <label for="amplitude">Amplitude:</label>
+                            <input type="number" id="amplitude" class="control-input" value="1.0" min="0.1" max="5" step="0.1">
+                            <span class="param-unit">V</span>
                         </div>
-                        <!-- Sum plot: hidden by default, shown only after overlay -->
-                        <div id="sumPlotPanel" style="width:900px; max-width:100%; margin: 24px auto 0 auto; background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.10); padding:16px 0; display:none;">
-                            <div style="text-align:center; font-weight:bold; color:#333; margin-bottom:8px;">Sum of Signals</div>
-                            <div id="sumPlot" style="width:100%; height:320px; min-width:400px;"></div>
+                        
+                        <div class="param-group">
+                            <label for="phase">Phase (degrees):</label>
+                            <input type="number" id="phase" class="control-input" value="0" min="-180" max="180" step="15">
+                            <span class="param-unit">°</span>
+                        </div>
+                        
+                        <div class="param-group">
+                            <label for="duration">Duration:</label>
+                            <input type="number" id="duration" class="control-input" value="2.0" min="0.5" max="10" step="0.5">
+                            <span class="param-unit">s</span>
                         </div>
                     </div>
-                </div>
+
+                    <!-- Control Buttons -->
+                    <div class="control-buttons">
+                        <button id="generateBtn" class="primary-btn">Generate Signal</button>
+                        <button id="compareBtn" class="secondary-btn">Compare Signals</button>
+                        <button id="resetBtn" class="secondary-btn">Reset</button>
+                    </div>
+                </section>
             </div>
-        </div>
+
+            <!-- Right Column - Visualization -->
+            <div class="right-column">
+                <!-- Visualization Section -->
+                
+                    
+                    <!-- Plot and Properties Container -->
+                    <div class="plot-properties-container">
+                        <!-- Plot Container -->
+                        <div id="signalPlot" class="plot-container"></div>
+                        
+                        <!-- Properties Button -->
+                        <button id="showPropertiesBtn" class="properties-btn" style="display: none;">📊 Show Properties</button>
+                    </div>
+                
+
+                <!-- Educational Content Section -->
+               
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>Basic Signals Laboratory | Signal Processing Educational Tool</p>
+        </footer>
     </div>
+
     <!-- Loading indicator -->
     <div id="loadingIndicator" class="loading-indicator" style="display: none;">
         <div class="spinner"></div>
@@ -174,33 +167,65 @@
         </div>
     </div>
 
+    <!-- Signal Comparison Section (Hidden by default) -->
+    <section id="comparisonSection" class="comparison-section" style="display: none;">
+        <div class="comparison-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>📊 Signal Comparison</h2>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <!-- Phase controls for Signal 2 -->
+                <div id="phaseControl" class="phase-control" style="display: flex; align-items: center; gap: 6px;">
+                    <label for="phaseSpin" id="phaseLabel" style="font-weight: bold; margin-right: 4px; min-width: 44px; text-align: right; color: #222;">Phase</label>
+                    <input
+                        id="phaseSpin"
+                        type="number"
+                        min="-180"
+                        max="180"
+                        step="5"
+                        value="0"
+                        style="width: 56px; text-align: center;"
+                        class="phase-spin"
+                    />
+                    <span style="margin-left: 2px;">°</span>
+                </div>
+                <button id="closeComparisonBtn" class="close-btn">&times;</button>
+            </div>
+        </div>
+        
+        <div class="comparison-controls">
+            <div class="signal-configs">
+                <div class="signal-config">
+                    <label>Signal 1:</label>
+                    <select class="comp-signal-type">
+                        <option value="sine">Sine</option>
+                        <option value="cosine">Cosine</option>
+                        <option value="square">Square</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="sawtooth">Sawtooth</option>
+                    </select>
+                    <input type="number" class="comp-frequency" value="1.0" min="0.1" max="10" step="0.1" placeholder="Frequency">
+                </div>
+                
+                <div class="signal-config">
+                    <label>Signal 2:</label>
+                    <select class="comp-signal-type">
+                        <option value="sine">Sine</option>
+                        <option value="cosine">Cosine</option>
+                        <option value="square">Square</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="sawtooth">Sawtooth</option>
+                    </select>
+                    <input type="number" class="comp-frequency" value="1.0" min="0.1" max="10" step="0.1" placeholder="Frequency">
+                </div>
+            </div>
+            
+            <button id="generateComparisonBtn" class="primary-btn">Generate Comparison</button>
+        </div>
+        
+        <div id="comparisonPlot" class="plot-container"></div>
+    </section>
+
     <!-- Include JavaScript -->
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals.js') }}"></script>
     <script src="{{ url_for('basic_signals.static', filename='js/basic_signals_ui.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        if (loadingIndicator) loadingIndicator.style.display = 'none';
-
-        const wrapper = document.getElementById('signalPlotWrapper');
-        const plotDiv = document.getElementById('signalPlot');
-        if (wrapper && plotDiv && window.Plotly) {
-            if (window.signalPlotResizeObserver) {
-                window.signalPlotResizeObserver.disconnect();
-            }
-            window.signalPlotResizeObserver = new ResizeObserver(() => {
-                if (plotDiv.data && plotDiv.data.length > 0) {
-                    Plotly.relayout(plotDiv, {
-                        width: wrapper.offsetWidth,
-                        height: wrapper.offsetHeight
-                    });
-                    Plotly.Plots.resize(plotDiv);
-                }
-            });
-            window.signalPlotResizeObserver.observe(wrapper);
-        }
-    });
-    </script>
 </body>
 </html>

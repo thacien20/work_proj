@@ -383,16 +383,20 @@
                 <!-- Quadrature Signals Fields -->
                 <div id="quadrature-fields" class="compact-form" style="display: none;">
                     <div class="form-group">
-                        <label for="quad-frequency">Frequency (Hz):</label>
-                        <input type="number" id="quad-frequency" class="control-input" value="5.0" min="0.1" step="0.1">
+                        <label for="quad-carrier-freq">Carrier Frequency (Hz):</label>
+                        <input type="number" id="quad-carrier-freq" class="control-input" value="10.0" min="1" step="0.5">
                     </div>
                     <div class="form-group">
-                        <label for="quad-amplitude">Amplitude (V):</label>
-                        <input type="number" id="quad-amplitude" class="control-input" value="1.0" min="0.1" step="0.1">
+                        <label for="quad-i">I Frequency (Hz):</label>
+                        <input type="number" id="quad-i" class="control-input" value="10" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="quad-q">Q Frequency (Hz):</label>
+                        <input type="number" id="quad-q" class="control-input" value="20" min="0" step="0.01">
                     </div>
                     <div class="form-group">
                         <label for="quad-phase">Phase (deg):</label>
-                        <input type="number" id="quad-phase" class="control-input" value="90" min="0" max="360" step="15">
+                        <input type="number" id="quad-phase" class="control-input" value="90" min="0" max="360" step="1">
                     </div>
                 </div>
 
@@ -440,7 +444,7 @@
                     </div>
                     <div class="form-group">
                         <label for="signal-points">Samples:</label>
-                        <input type="number" id="signal-points" class="control-input" value="1000" min="100" step="100">
+                        <input type="number" id="signal-points" class="control-input" value="5000" min="100" step="100">
                     </div>
                 </div>
                 <button type="button" id="signal-simulate-btn" class="primary-btn simulate-btn" style="width: 100%; margin-top: 0.8rem;">
@@ -466,6 +470,13 @@
             <div class="panel">
                 <div class="resizable-plot-wrapper" id="circuit-plot-wrapper">
                     <div id="circuit-plot" class="plot-container"></div>
+                </div>
+            </div>
+            
+            <!-- Quadrature I/Q Plot Panel (only shown for quadrature) -->
+            <div class="panel" id="quadrature-iq-panel" style="display: none;">
+                <div class="resizable-plot-wrapper" id="quadrature-iq-plot-wrapper">
+                    <div id="quadrature-iq-plot" class="plot-container"></div>
                 </div>
             </div>
             

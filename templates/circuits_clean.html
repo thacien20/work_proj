@@ -352,13 +352,14 @@
             </section>
 
             <!-- Communications Section -->
-            <section class="control-section" id="communications-section" style="display: none;">
+            <section class="control-section" id="communications-section">
                 <h2>📡 Communications</h2>
                 
                 <div class="form-group">
                     <label for="commType">Topic:</label>
                     <select id="commType" class="control-input">
                         <option value="modulation">Modulation</option>
+                        <option value="quadrature">Quadrature Modulation</option>
                     </select>
                 </div>
 
@@ -388,36 +389,44 @@
                         <input type="number" id="modulationIndex" class="control-input" value="0.5" min="0.1" step="0.1">
                     </div>
                 </div>
-            </section>
 
-            <!-- Simulation Settings -->
-            <section class="control-section">
-                <h2>⚙️ Simulation Settings</h2>
-                
-                <div class="form-group">
-                    <label for="circuitVin">Input Voltage (V):</label>
-                    <input type="number" id="circuitVin" class="control-input" value="1.0" min="0.01" step="0.01">
+                <!-- Quadrature Modulation Fields (shown only when Quadrature is selected) -->
+                <div id="quadrature-fields" class="circuit-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="quad-carrier-freq">Carrier Frequency (Hz):</label>
+                        <input type="number" id="quad-carrier-freq" class="control-input" value="10.0" min="1" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="quad-i">I (In-phase Amplitude):</label>
+                        <input type="number" id="quad-i" class="control-input" value="1.0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="quad-q">Q (Quadrature Amplitude):</label>
+                        <input type="number" id="quad-q" class="control-input" value="1.0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="quad-phase">Phase (degrees):</label>
+                        <input type="number" id="quad-phase" class="control-input" value="90" min="0" max="360" step="1">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="circuitDuration">Duration (s):</label>
-                    <input type="number" id="circuitDuration" class="control-input" value="0.01" min="0.001" step="0.001">
-                </div>
-                <div class="form-group">
-                    <label for="circuitPoints">Sample Points:</label>
-                    <input type="number" id="circuitPoints" class="control-input" value="1000" min="100" step="100">
-                </div>
-                
-                <!-- Show Current Option -->
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="showCurrentCheckbox">
-                        Show Current Plot
-                    </label>
-                </div>
-                
-                <!-- Simulate Button -->
-                <div style="margin-top: 20px;">
-                    <button type="button" id="circuitSimBtn" class="primary-btn">🚀 Simulate Circuit</button>
+
+                <!-- Simulation Settings (shared for all signals) -->
+                <div class="control-section">
+                    <h2>⚙️ Simulation Settings</h2>
+                    
+                    <div class="form-group">
+                        <label for="signal-duration">Duration (s):</label>
+                        <input type="number" id="signal-duration" class="control-input" value="1" min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="signal-points">Samples:</label>
+                        <input type="number" id="signal-points" class="control-input" value="1000" min="100" step="100">
+                    </div>
+                    
+                    <!-- Simulate Button -->
+                    <div style="margin-top: 20px;">
+                        <button type="button" id="circuitSimBtn" class="primary-btn">🚀 Simulate Circuit</button>
+                    </div>
                 </div>
             </section>
         </div>
@@ -465,5 +474,51 @@
     <script src="/static/js/modulation_info.js"></script>
     <script src="/static/js/circuit_frontEnd.js"></script>
     <script src="/static/js/circuit_ui.js"></script>
+    <script>
+        // Add event listener for commType to switch between modulation and quadrature fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const commType = document.getElementById('commType');
+            const modulationFields = document.getElementById('modulation-fields');
+            const quadratureFields = document.getElementById('quadrature-fields');
+            if (commType) {
+                commType.addEventListener('change', function() {
+                    if (commType.value === 'modulation') {
+                        modulationFields.style.display = 'block';
+                        quadratureFields.style.display = 'none';
+                    } else if (commType.value === 'quadrature') {
+                        modulationFields.style.display = 'none';
+                        quadratureFields.style.display = 'block';
+                    }
+                });
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const analysisType = document.getElementById('analysisType');
+            const circuitSection = document.getElementById('circuit-analysis-section');
+            const commSection = document.getElementById('communications-section');
+            function updateSections() {
+                if (analysisType.value === 'circuit') {
+                    circuitSection.style.display = 'block';
+                    commSection.style.display = 'none';
+                } else if (analysisType.value === 'communications') {
+                    circuitSection.style.display = 'none';
+                    commSection.style.display = 'block';
+                }
+            }
+            if (analysisType && circuitSection && commSection) {
+                analysisType.addEventListener('change', updateSections);
+                updateSections(); // Initialize on load
+            }
+        });
+    </script>
+</body>
+</html>
+            if (analysisType && circuitSection && commSection) {
+                analysisType.addEventListener('change', updateSections);
+                updateSections(); // Initialize on load
+            }
+        });
+    </script>
 </body>
 </html>

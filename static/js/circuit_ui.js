@@ -165,26 +165,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateSignalFields() {
         const selectedSignal = dom.signalType.value;
-        
+
         // Hide all signal fields first
-        dom.modulationFields.style.display = 'none';
-        dom.quadratureFields.style.display = 'none';
-        dom.pllFields.style.display = 'none';
-        dom.demodulationFields.style.display = 'none';
-        
+        if (dom.modulationFields) dom.modulationFields.style.display = 'none';
+        if (dom.quadratureFields) dom.quadratureFields.style.display = 'none';
+        if (dom.pllFields) dom.pllFields.style.display = 'none';
+        if (dom.demodulationFields) dom.demodulationFields.style.display = 'none';
+
         // Show appropriate fields
         switch(selectedSignal) {
             case 'modulation':
-                dom.modulationFields.style.display = 'block';
+                if (dom.modulationFields) dom.modulationFields.style.display = 'block';
                 break;
             case 'quadrature':
-                dom.quadratureFields.style.display = 'block';
+                if (dom.quadratureFields) dom.quadratureFields.style.display = 'block';
                 break;
             case 'pll':
-                dom.pllFields.style.display = 'block';
+                if (dom.pllFields) dom.pllFields.style.display = 'block';
                 break;
             case 'demodulation':
-                dom.demodulationFields.style.display = 'block';
+                if (dom.demodulationFields) dom.demodulationFields.style.display = 'block';
                 break;
         }
         
@@ -307,17 +307,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 break;
             case 'quadrature':
-                // For quadrature, we'll create a special modulation that shows I/Q signals
                 endpoint = '/circuits/modulation';
                 body = {
-                    modulation_type: 'AM', // Use AM but with special parameters
-                    carrier_frequency: params.quadFrequency,
-                    modulating_frequency: params.quadFrequency / 10, // Lower frequency for demo
-                    modulation_index: params.quadAmplitude,
+                    modulation_type: 'QM',
+                    carrier_frequency: params.quadCarrierFreq,
+                    i_frequency: params.quadIFreq,
+                    q_frequency: params.quadQFreq,
+                    phase_shift: params.quadPhase,
                     duration: params.duration,
                     sample_rate: Math.floor(params.points / params.duration),
-                    signal_type: 'quadrature', // Special flag
-                    phase_shift: params.quadPhase
+                    signal_type: 'quadrature'
                 };
                 break;
             case 'pll':
@@ -367,7 +366,9 @@ document.addEventListener('DOMContentLoaded', () => {
             t: data.time || data.t,
             carrier: data.carrier_signal || data.carrier,
             modulating: data.modulating_signal || data.modulating,
-            modulated: data.modulated_signal || data.modulated
+            modulated: data.modulated_signal || data.modulated,
+            I: data.I, // for quadrature
+            Q: data.Q  // for quadrature
         };
 
         plotSignalResponse(params, transformedData);
@@ -445,8 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 break;
             case 'quadrature':
-                params.quadFrequency = parseFloat(document.getElementById('quad-frequency')?.value) || 5.0;
-                params.quadAmplitude = parseFloat(document.getElementById('quad-amplitude')?.value) || 1.0;
+                params.quadCarrierFreq = parseFloat(document.getElementById('quad-carrier-freq')?.value) || 10.0;
+                params.quadIFreq = parseFloat(document.getElementById('quad-i')?.value) || 50;
+                params.quadQFreq = parseFloat(document.getElementById('quad-q')?.value) || 80;
                 params.quadPhase = parseFloat(document.getElementById('quad-phase')?.value) || 90;
                 console.log('Quadrature params:', params);
                 break;
@@ -495,12 +497,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function plotSignalResponse(params, data) {
         console.log('Plotting signal response:', { params, data });
-        
+
         // Clear the existing plot first
         Plotly.purge(dom.plotContainer);
-        
-        // For now, all electronic signals plot as modulation
-        plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.modulationType || params.signalType);
+
+        // Quadrature I/Q plot DOM
+        const iqPanel = document.getElementById('quadrature-iq-panel');
+        const iqPlot = document.getElementById('quadrature-iq-plot');
+
+        if (params.signalType === 'quadrature') {
+            // Show I/Q panel
+            if (iqPanel) iqPanel.style.display = 'block';
+
+            // Plot modulated signal
+            Plotly.newPlot(dom.plotContainer, [{
+                x: data.t,
+                y: data.modulated,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Quadrature Modulated Signal',
+                line: { color: '#3182ce' }
+            }], {
+                title: 'Quadrature Modulated Signal',
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Amplitude' },
+                plot_bgcolor: '#fff',
+                paper_bgcolor: '#fff'
+            });
+
+            // Plot I and Q below
+            if (iqPlot) {
+                Plotly.newPlot(iqPlot, [
+                    {
+                        x: data.t,
+                        y: data.I || [],
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'I (In-phase)',
+                        line: { color: '#2ca02c' }
+                    },
+                    {
+                        x: data.t,
+                        y: data.Q || [],
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Q (Quadrature)',
+                        line: { color: '#d62728' }
+                    }
+                ], {
+                    title: 'I and Q Signals',
+                    xaxis: { title: 'Time (s)' },
+                    yaxis: { title: 'Amplitude' },
+                    plot_bgcolor: '#fff',
+                    paper_bgcolor: '#fff'
+                });
+            }
+        } else {
+            // Hide I/Q panel if not quadrature
+            if (iqPanel) iqPanel.style.display = 'none';
+            // For other signals, plot as before
+            plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.modulationType || params.signalType);
+        }
     }
 
     // Diagram functionality

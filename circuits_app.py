@@ -83,6 +83,34 @@ def simulate_modulation():
             # Phase Modulation: y(t) = cos(2πfc*t + β*cos(2πfm*t))
             modulated_signal = np.cos(2 * np.pi * carrier_freq * t + 
                                     modulation_index * modulating_signal)
+        elif modulation_type == 'QM':
+            # Quadrature Modulation: y(t) = I(t) * cos(2πfc*t) + Q(t) * sin(2πfc*t)
+            i_freq = float(data.get('i_frequency', 50))
+            q_freq = float(data.get('q_frequency', 80))
+            phase_shift = float(data.get('phase_shift', 0))
+            # carrier_freq is already set from frontend
+            # Validation: carrier must be at least double both I and Q frequencies
+            if carrier_freq < 1.5 * max(i_freq, q_freq):
+                return jsonify({'error': 'Carrier frequency must be high enough for both I and Q frequencies for Quadrature Modulation.'}), 400
+            I = np.sin(2 * np.pi * i_freq * t)
+            Q = np.sin(2 * np.pi * q_freq * t + np.deg2rad(phase_shift))
+            modulated_signal = I * np.cos(2 * np.pi * carrier_freq * t) + Q * np.sin(2 * np.pi * carrier_freq * t)
+            return jsonify({
+                'success': True,
+                'modulation_type': modulation_type,
+                'time': t.tolist(),
+                'modulated_signal': modulated_signal.tolist(),
+                'carrier_signal': carrier_signal.tolist(),
+                'modulating_signal': modulating_signal.tolist(),
+                'I': I.tolist(),
+                'Q': Q.tolist(),
+                'parameters': {
+                    'carrier_frequency': carrier_freq,
+                    'i_frequency': i_freq,
+                    'q_frequency': q_freq,
+                    'phase_shift': phase_shift
+                }
+            })
         else:
             return jsonify({'error': f'Unknown modulation type: {modulation_type}'}), 400
         
