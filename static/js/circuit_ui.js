@@ -166,6 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSignalFields() {
         const selectedSignal = dom.signalType.value;
 
+        // Show/hide quadrature info button
+        const quadInfoBtn = document.getElementById('quadrature-info-btn');
+        if (quadInfoBtn) {
+            quadInfoBtn.style.display = (selectedSignal === 'quadrature') ? 'inline-block' : 'none';
+        }
+
         // Hide all signal fields first
         if (dom.modulationFields) dom.modulationFields.style.display = 'none';
         if (dom.quadratureFields) dom.quadratureFields.style.display = 'none';
@@ -656,4 +662,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Activate Circuit Analysis mode by default on page load (move to very end)
     activateCircuitAnalysis();
     console.log('Circuit Lab UI initialized');
+
+    const quadInfoBtn = document.getElementById('quadrature-info-btn');
+    if (quadInfoBtn) {
+        quadInfoBtn.addEventListener('click', () => {
+            alert(
+`Quadrature Modulation and Demodulation
+
+Quadrature modulation transmits two independent signals using a single carrier frequency, doubling data capacity. It uses two orthogonal carriers: cosine for the in-phase signal (I(t)) and sine for the quadrature signal (Q(t)).
+
+Example:
+• Signals: I(t) = 50 Hz (e.g., sin(2 * pi * 50 * t)), Q(t) = 20 Hz (e.g., sin(2 * pi * 20 * t)).
+• Carrier: 1500 Hz.
+• Modulated signal: y(t) = I(t) * cos(2 * pi * 1500 * t) + Q(t) * sin(2 * pi * 1500 * t).
+• Spectrum: Contains high frequencies at 1450 Hz (1500 - 50), 1550 Hz (1500 + 50), 1480 Hz (1500 - 20), and 1520 Hz (1500 + 20).
+
+Demodulation:
+• Multiply y(t) by cos(2 * pi * 1500 * t) to recover I(t) (50 Hz).
+• Multiply y(t) by sin(2 * pi * 1500 * t) to recover Q(t) (20 Hz).
+• Apply a low-pass filter (cutoff ~100 Hz) to remove high frequencies (e.g., ~3000 Hz).
+• This down-converts the signals to their original low frequencies, which are easier for digital circuits to process.
+
+Why Quadrature?
+• Efficiently transmits two signals over one carrier.
+• Avoids complex frequency mixing (e.g., multiplying all signals creates hard-to-separate sums/differences).
+• Sampling rate: >= 2 * (1500 + 50) = 3100 Hz (e.g., 10 kHz recommended).
+`
+            );
+            // Show a separate link after the alert
+            setTimeout(() => {
+                if (window.confirm("For further information, click OK to visit the Wikipedia page.")) {
+                    window.open('https://en.wikipedia.org/wiki/Quadrature_amplitude_modulation', '_blank');
+                }
+            }, 100);
+        });
+    }
 });

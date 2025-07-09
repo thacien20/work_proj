@@ -345,12 +345,15 @@
                 <h2>⚙️ Simulation Parameters</h2>
                 <div class="form-group">
                     <label for="signal-type">Signal Type:</label>
-                    <select id="signal-type" class="control-input">
-                        <option value="modulation">Modulation</option>
-                        <option value="quadrature">Quadrature Signals</option>
-                        <option value="pll">PLL</option>
-                        <option value="demodulation">Signal Demodulation</option>
-                    </select>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="signal-type" class="control-input">
+                            <option value="modulation">Modulation</option>
+                            <option value="quadrature">Quadrature Signals</option>
+                            <option value="pll">PLL</option>
+                            <option value="demodulation">Signal Demodulation</option>
+                        </select>
+                        <button type="button" id="quadrature-info-btn" class="info-btn" style="display: none;">ℹ️</button>
+                    </div>
                 </div>
                 
                 <!-- Signal Modulation Fields -->
@@ -368,7 +371,7 @@
                     </div>
                     <div class="form-group">
                         <label for="carrier-freq">Carrier (Hz):</label>
-                        <input type="number" id="carrier-freq" class="control-input" value="10.0" min="1" step="0.5">
+                        <input type="number" id="carrier-freq" class="control-input" value="60" min="1" step="0.5">
                     </div>
                     <div class="form-group">
                         <label for="modulating-freq">Signal (Hz):</label>
