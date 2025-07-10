@@ -473,13 +473,14 @@
             
             <!-- Information Panel -->
             <div class="panel" id="circuit-info-panel">
-                <h2>📖 Circuit Information</h2>
+                <h2 id="info-panel-title">📖 Circuit Information</h2>
                 <div>
                     <label>Equation:</label>
                     <div class="equation-display">
                         <span id="equation-text">Select a circuit or signal type to see its equation.</span>
                     </div>
-                    <div class="action-buttons">
+                    <!-- Only show diagram button during circuit analysis mode -->
+                    <div class="action-buttons" id="diagram-container">
                         <button id="show-diagram-btn" type="button" class="secondary-btn">🔍 View Circuit Diagram</button>
                     </div>
                     <img id="circuit-diagram-img" src="" alt="Circuit Diagram" style="display:none;" />
@@ -496,7 +497,6 @@
 </html>
 </html>
 </body>
-</html>
 </html>
 </html>
 </html>

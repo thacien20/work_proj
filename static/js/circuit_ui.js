@@ -103,6 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show circuit info panel
         document.getElementById('circuit-info-panel').style.display = 'block';
         
+        // Update panel title for circuit mode
+        document.getElementById('info-panel-title').textContent = '📖 Circuit Information';
+        
+        // Show diagram container for circuit mode only
+        const diagramContainer = document.getElementById('diagram-container');
+        if (diagramContainer) {
+            diagramContainer.style.display = 'flex';
+        }
+        
         // Show voltage input and show current button as they're needed for Circuit Analysis
         if (document.getElementById('vin-container')) {
             document.getElementById('vin-container').style.display = 'block';
@@ -127,8 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show electronic signals controls
         dom.electronicSignalsControls.style.display = 'block';
         
-        // Also show the circuit info panel
+        // Also show the circuit info panel but with modified title
         document.getElementById('circuit-info-panel').style.display = 'block';
+        document.getElementById('info-panel-title').textContent = '📖 Signal Information';
+        
+        // Hide diagram container for electronic signals mode
+        const diagramContainer = document.getElementById('diagram-container');
+        if (diagramContainer) {
+            diagramContainer.style.display = 'none';
+        }
         
         // Clear any existing circuit diagrams
         const circuitDiagram = document.getElementById('circuit-diagram-img');
