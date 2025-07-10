@@ -14,8 +14,7 @@ from waveforms import get_waveforms
 from Filters import apply_filter
 from filters_view import filter_visualization
 from deconvolution import deconvolve_signal
-from circuits import rc_circuit_step_response, rl_circuit_step_response
-from circuits import rlc_circuit_step_response  # Add RLC import
+from circuits import rc_circuit_response, rl_circuit_response, rlc_circuit_response
 from circuit_diagrams import draw_rc_circuit, draw_rl_circuit, draw_rlc_circuit
 from circuits_app import circuits_blueprint
 
@@ -269,7 +268,7 @@ def rc_circuit_simulation():
         V_in = float(data.get('V_in', 1.0))  # Input step voltage
         duration = float(data.get('duration', 0.05))  # seconds
         points = int(data.get('points', 500))
-        t, V_out, I_out = rc_circuit_step_response(R, C, V_in, duration, points)
+        t, V_out, I_out = rc_circuit_response(R, C, V_in, duration, points)
     except Exception:
         return jsonify({'error': 'Invalid or missing parameters'}), 400
     return jsonify({'t': t.tolist(), 'V_out': V_out.tolist(), 'I_out': I_out.tolist()})
@@ -290,7 +289,7 @@ def rl_circuit_simulation():
         V_in = float(data.get('V_in', 1.0))  # Input step voltage
         duration = float(data.get('duration', 0.05))  # seconds
         points = int(data.get('points', 500))
-        t, I_out, V_out = rl_circuit_step_response(R, L, V_in, duration, points)
+        t, I_out, V_out = rl_circuit_response(R, L, V_in, duration, points)
     except Exception:
         return jsonify({'error': 'Invalid or missing parameters'}), 400
     return jsonify({'t': t.tolist(), 'I_out': I_out.tolist(), 'V_out': V_out.tolist()})
@@ -312,7 +311,7 @@ def rlc_circuit_simulation():
         V_in = float(data.get('V_in', 1.0))
         duration = float(data.get('duration', 0.05))
         points = int(data.get('points', 500))
-        t, V_out, I_out = rlc_circuit_step_response(R, L, C, V_in, duration, points)
+        t, V_out, I_out = rlc_circuit_response(R, L, C, V_in, duration, points)
     except Exception:
         return jsonify({'error': 'Invalid or missing parameters'}), 400
     return jsonify({'t': t.tolist(), 'V_out': V_out.tolist(), 'I_out': I_out.tolist()})
