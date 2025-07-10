@@ -7,6 +7,7 @@ from circuits.circuits import (  # Updated import path to reflect file location
     differentiator_circuit_response,
     integrator_circuit_response
 )
+from shared_utils.shared_funcs import compute_fft, FS
 
 circuits_blueprint = Blueprint('circuits', __name__)
 
@@ -192,5 +193,30 @@ def simulate_modulation():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-        
-    
+
+@circuits_blueprint.route('/fft_qm', methods=['POST'])
+def fft_quadrature_modulation():
+    """Compute FFT of the quadrature modulated signal (QM)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        # Expect the quadrature modulated signal and sample rate
+        qm_signal = data.get('quadrature_modulated_signal')
+        sample_rate = data.get('sample_rate', None)
+        if qm_signal is None:
+            return jsonify({'error': 'quadrature_modulated_signal is required'}), 400
+        if sample_rate is None:
+            sample_rate = FS  # Use FS from shared_funcs.py if not provided
+        qm_signal = np.array(qm_signal)
+        # Compute FFT
+        freqs, fft_magnitude = compute_fft(qm_signal, sample_rate)
+        return jsonify({
+            'success': True,
+            'frequencies': freqs.tolist(),
+            'magnitude': fft_magnitude.tolist()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+

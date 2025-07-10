@@ -277,7 +277,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 break;
             case 'QM':
-                if (dom.quadratureFields) dom.quadratureFields.style.display = 'grid';
+                if (dom.quadratureFields) {
+                    dom.quadratureFields.style.display = 'grid';
+                    
+                    // Add event listeners to QM input fields to update recommendations
+                    const qmInputIds = ['quad-carrier-freq', 'quad-i', 'quad-q', 'signal-duration', 'signal-points'];
+                    qmInputIds.forEach(id => {
+                        const input = document.getElementById(id);
+                        if (input) {
+                            // Remove existing listeners to prevent duplicates
+                            const newInput = input.cloneNode(true);
+                            if (input.parentNode) {
+                                input.parentNode.replaceChild(newInput, input);
+                            }
+                            
+                            // Add input and change event listeners
+                            newInput.addEventListener('input', updateRecommendedPoints);
+                            newInput.addEventListener('change', updateRecommendedPoints);
+                        }
+                    });
+                    
+                    // Update recommended points immediately
+                    setTimeout(updateRecommendedPoints, 100);
+                }
                 break;
             default:
                 console.log('Unknown signal type:', selectedSignal);
@@ -309,6 +331,16 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.equationText.innerHTML = 'QM: s(t) = I(t)·cos(ω<sub>c</sub>t) + Q(t)·sin(ω<sub>c</sub>t)';
         } else if (selectedSignal === 'PLL') {
             dom.equationText.innerHTML = 'PLL: φ<sub>e</sub>(t) = φ<sub>i</sub>(t) - φ<sub>o</sub>(t)';
+        }
+        
+        // Update recommended points if we switched to QM mode
+        if (selectedSignal === 'QM') {
+            // Show recommendation div if it exists
+            const recommendationDiv = document.getElementById('recommended-points');
+            if (recommendationDiv) {
+                recommendationDiv.style.display = 'block';
+            }
+            setTimeout(updateRecommendedPoints, 100); // Short delay to ensure DOM is updated
         }
     }
 
@@ -409,15 +441,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function plotSignalResponse(params, data) {
         console.log('Plotting signal response:', { params, data });
 
+        // Robust mapping for QM: always set qm_signal from all possible keys
         if (params.signalType === 'QM') {
-            // Use dedicated quadrature plotting function
+            // Try all possible keys for the modulated signal
+            data.qm_signal = data.qm_signal || data.modulated || data.quadrature_modulated_signal || data.modulated_signal;
+            if (!data.qm_signal || !Array.isArray(data.qm_signal) || data.qm_signal.length === 0) {
+                alert('Error: No quadrature modulated signal data received from backend.');
+                console.error('plotSignalResponse: Missing quadrature modulated signal in data:', data);
+            }
             plotQuadratureSignals(data);
         } else {
             // Hide quadrature panel for AM/FM signals
             const iqPanel = document.getElementById('quadrature-iq-panel');
             if (iqPanel) iqPanel.style.display = 'none';
-            
-            // Use existing AM/FM plotting function
             plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.signalType);
         }
     }
@@ -425,6 +461,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fix for the simulateElectronicSignals function to match the HTML changes
     async function simulateElectronicSignals() {
         const params = getSignalParameters();
+        
+        // Validate sampling rate before proceeding
+        if (!validateSamplingRate(params)) {
+            console.log("Simulation aborted due to inadequate sampling rate");
+            return; // Exit if validation fails
+        }
+        
         let endpoint = '';
         let body = {};
 
@@ -762,130 +805,402 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Dedicated function for plotting quadrature signals
+    // Dedicated function for plotting quadrature signals with FFT
     function plotQuadratureSignals(data) {
-        // Clear both plots first
+        console.log("plotQuadratureSignals called with data:", data);
+        
+        // Always clear and plot in the main plot container
         Plotly.purge(dom.plotContainer);
-        const iqPanel = document.getElementById('quadrature-iq-panel');
-        const iqPlot = document.getElementById('quadrature-iq-plot');
-        if (iqPlot) Plotly.purge(iqPlot);
-
-        console.log("QM data structure:", data);
-
-        // Check data structure
-        const i_signal = data.I;
-        const q_signal = data.Q;
-        const qm_signal = data.modulated;
-
-        if (!i_signal || !q_signal || !qm_signal) {
-            console.error('Missing required signals for quadrature plotting');
-            alert('Error: Missing data for quadrature modulation plot');
+        
+        // Map the quadrature modulated signal from various possible keys
+        console.log("Looking for quadrature signal in data keys:", Object.keys(data));
+        data.qm_signal = data.qm_signal || data.modulated || data.quadrature_modulated_signal || data.modulated_signal;
+        console.log("qm_signal mapped to:", data.qm_signal ? `Array of length ${data.qm_signal.length}` : "undefined");
+        
+        if (!Array.isArray(data.t) || data.t.length === 0) {
+            console.error('plotQuadratureSignals: Missing or invalid time array (data.t)');
+            alert('Error: No time data for quadrature plot.');
             return;
         }
-
-        // Plot 1: I and Q signals
-        const basebandTraces = [
-            {
-                x: data.t,
-                y: i_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'I-Signal',
-                line: { color: '#2ecc71', width: 2 }  // Green
-            },
-            {
-                x: data.t,
-                y: q_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Q-Signal',
-                line: { color: '#e74c3c', width: 2 }  // Red
-            }
-        ];
-
-        const basebandLayout = {
-            title: {
-                text: 'I and Q Signals',
-                font: { size: 20 }
-            },
-            xaxis: { 
-                title: 'Time (s)',
-                titlefont: { size: 14 }
-            },
-            yaxis: { 
-                title: 'Amplitude',
-                titlefont: { size: 14 }
-            },
-            plot_bgcolor: '#ffffff',
-            paper_bgcolor: '#ffffff',
-            showlegend: true,
-            legend: {
-                x: 0.02,
-                y: 0.98,
-                xanchor: 'left',
-                yanchor: 'top',
-                bgcolor: 'rgba(255, 255, 255, 0.9)',
-                bordercolor: 'rgba(0, 0, 0, 0.1)',
-                borderwidth: 1,
-                font: { size: 12 }
-            },
-            margin: { l: 60, r: 30, t: 50, b: 50 }
-        };
-
-        Plotly.newPlot(dom.plotContainer, basebandTraces, basebandLayout);
-
-        // Plot 2: Quadrature Modulated Signal
-        if (iqPanel && iqPlot) {
-            iqPanel.style.display = 'block';
-            
-            const modulatedTrace = [{
-                x: data.t,
-                y: qm_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Quad-Modulated',
-                line: { color: '#3498db', width: 2 }  // Blue
-            }];
-
-            const modulatedLayout = {
-                title: {
-                    text: 'Quadrature Modulated Signal',
-                    font: { size: 20 }
-                },
-                xaxis: { 
-                    title: 'Time (s)',
-                    titlefont: { size: 14 }
-                },
-                yaxis: { 
-                    title: 'Amplitude',
-                    titlefont: { size: 14 }
-                },
-                plot_bgcolor: '#ffffff',
-                paper_bgcolor: '#ffffff',
-                showlegend: true,
-                legend: {
-                    x: 0.02,
-                    y: 0.98,
-                    xanchor: 'left',
-                    yanchor: 'top',
-                    bgcolor: 'rgba(255, 255, 255, 0.9)',
-                    bordercolor: 'rgba(0, 0, 0, 0.1)',
-                    borderwidth: 1,
-                    font: { size: 12 }
-                },
-                margin: { l: 60, r: 30, t: 50, b: 50 }
-            };
-
-            Plotly.newPlot(iqPlot, modulatedTrace, modulatedLayout);
+        
+        // Validate data integrity before proceeding
+        if (!data.qm_signal || !Array.isArray(data.qm_signal) || data.qm_signal.length === 0) {
+            console.error('plotQuadratureSignals: Missing or invalid quadrature modulated signal');
+            alert('Error: No quadrature modulated signal data for plotting.');
+            return;
         }
         
-        // Store data for potential demodulation
+        // Store data for other operations
         window.currentQuadratureData = {
             t: data.t,
-            I: i_signal,
-            Q: q_signal,
-            qm_signal: qm_signal
+            I: data.I,
+            Q: data.Q,
+            qm_signal: data.qm_signal
         };
+        
+        console.log("[plotQuadratureSignals] Stored data for FFT:", window.currentQuadratureData);
+        console.log("[plotQuadratureSignals] qm_signal length:", 
+                   window.currentQuadratureData.qm_signal ? window.currentQuadratureData.qm_signal.length : 0);
+        
+        // Instead of creating a separate time-domain only plot, we directly calculate 
+        // and display both time domain and FFT in a single subplot layout
+        calculateAndPlotFFT(data);
+    }
+    
+    // Function to calculate FFT and create a complete subplot with time and frequency domain
+    async function calculateAndPlotFFT(data) {
+        try {
+            // Clear any existing plot first
+            Plotly.purge(dom.plotContainer);
+            
+            // Validate data
+            if (!data.qm_signal || !Array.isArray(data.qm_signal) || data.qm_signal.length === 0) {
+                console.error("Missing or invalid QM signal for FFT calculation");
+                throw new Error("Missing or invalid quadrature modulated signal data");
+            }
+            
+            // Calculate sample rate from UI inputs
+            const duration = parseFloat(document.getElementById('signal-duration')?.value) || 1.0;
+            const points = parseInt(document.getElementById('signal-points')?.value) || 1000;
+            const sampleRate = Math.floor(points / duration);
+            
+            console.log(`Calculating FFT using ${points} points over ${duration}s = ${sampleRate}Hz sample rate`);
+            
+            // Show loading state
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'fft-loading';
+            loadingDiv.style.position = 'absolute';
+            loadingDiv.style.top = '50%';
+            loadingDiv.style.left = '50%';
+            loadingDiv.style.transform = 'translate(-50%, -50%)';
+            loadingDiv.style.padding = '10px';
+            loadingDiv.style.background = 'rgba(255,255,255,0.8)';
+            loadingDiv.style.borderRadius = '5px';
+            loadingDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
+            loadingDiv.style.zIndex = '1000';
+            loadingDiv.innerHTML = 'Calculating FFT...';
+            
+            dom.plotContainer.style.position = 'relative';
+            dom.plotContainer.appendChild(loadingDiv);
+            
+            // Prepare request payload
+            const payload = {
+                quadrature_modulated_signal: data.qm_signal,
+                sample_rate: sampleRate
+            };
+            
+            // Make FFT request
+            console.log("Sending FFT calculation request with payload:", {
+                signal_length: data.qm_signal.length,
+                sample_rate: sampleRate
+            });
+            
+            const response = await fetch('/circuits/fft_qm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            console.log("FFT response status:", response.status);
+            
+            // Remove loading indicator
+            const loadingElement = document.getElementById('fft-loading');
+            if (loadingElement) loadingElement.remove();
+            
+            if (!response.ok) {
+                throw new Error(`FFT calculation failed: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            // Validate FFT result
+            if (!result.frequencies || !Array.isArray(result.frequencies) || 
+                !result.magnitude || !Array.isArray(result.magnitude)) {
+                throw new Error("Invalid FFT data returned from server");
+            }
+            
+            console.log("FFT calculation successful, creating subplot");
+            
+            // Create combined subplot with time domain and frequency domain
+            const timeDomainTraces = [];
+            
+            // Time domain traces
+            if (data.I && Array.isArray(data.I) && data.I.length > 0) {
+                timeDomainTraces.push({
+                    x: data.t,
+                    y: data.I,
+                    name: 'I (In-Phase)',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#2ecc71', width: 2 }
+                });
+            }
+            
+            if (data.Q && Array.isArray(data.Q) && data.Q.length > 0) {
+                timeDomainTraces.push({
+                    x: data.t,
+                    y: data.Q,
+                    name: 'Q (Quadrature)',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#e74c3c', width: 2 }
+                });
+            }
+            
+            if (data.qm_signal && Array.isArray(data.qm_signal)) {
+                timeDomainTraces.push({
+                    x: data.t,
+                    y: data.qm_signal,
+                    name: 'Quadrature Modulated',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#8e44ad', width: 2 }
+                });
+            }
+            
+            // Log FFT data to help diagnose the issue
+            console.log("FFT data received:", {
+                frequencies_length: result.frequencies.length,
+                frequencies_sample: result.frequencies.slice(0, 5),
+                magnitude_length: result.magnitude.length,
+                magnitude_sample: result.magnitude.slice(0, 5),
+                max_frequency: Math.max(...result.frequencies),
+                max_magnitude: Math.max(...result.magnitude)
+            });
+            
+            // Examine the arrays to determine if they're swapped
+            // Frequencies should typically start near 0 and increase
+            // Magnitudes are typically highest at specific frequencies
+            let freqArr = result.frequencies;
+            let magArr = result.magnitude;
+            
+            // Auto-detect if the arrays might be swapped based on characteristic patterns
+            const isFreqArrValid = freqArr[0] <= 1 && // First frequency is typically close to 0
+                                  freqArr[freqArr.length-1] > freqArr[0] && // Frequencies increase
+                                  freqArr.every((val, i) => i === 0 || val >= freqArr[i-1]); // Strictly non-decreasing
+            
+            // If frequency array doesn't look like frequencies, they might be swapped
+            if (!isFreqArrValid) {
+                console.warn("FFT arrays appear to be swapped, correcting...");
+                // Swap the arrays
+                let temp = freqArr;
+                freqArr = magArr;
+                magArr = temp;
+            }
+            
+            // Create the FFT trace with the correct axes
+            const fftTrace = {
+                x: freqArr,       // Frequency values on x-axis
+                y: magArr,        // Magnitude values on y-axis
+                name: 'FFT Magnitude',
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#3498db', width: 2 },
+                xaxis: 'x2',
+                yaxis: 'y2'
+            };
+            
+            // Combine all traces
+            const allTraces = [...timeDomainTraces, fftTrace];
+            
+            // Create subplot layout with explicit configuration for FFT plot
+            const layout = {
+                grid: {
+                    rows: 2,
+                    columns: 1,
+                    pattern: 'independent',
+                    roworder: 'top to bottom',
+                    rowheight: [0.6, 0.4]  // Time domain gets 60% height, FFT gets 40%
+                },
+                title: {
+                    text: 'Quadrature Modulation Analysis',
+                    font: { size: 20, color: '#333' }
+                },
+                showlegend: true,
+                legend: {
+                    x: 0.02, 
+                    y: 0.98,
+                    xanchor: 'left', 
+                    yanchor: 'top',
+                    bgcolor: 'rgba(255,255,255,0.8)',
+                    bordercolor: 'rgba(0,0,0,0.1)',
+                    borderwidth: 1
+                },
+                height: 700,  // Increase overall height for two plots
+                xaxis: {
+                    title: {
+                        text: 'Time (s)',
+                        font: { size: 14 }
+                    },
+                    domain: [0, 0.98],
+                    showgrid: true,
+                    gridcolor: '#e6e6e6',
+                    zeroline: true,
+                    zerolinecolor: '#cccccc'
+                },
+                yaxis: {
+                    title: {
+                        text: 'Amplitude',
+                        font: { size: 14 }
+                    },
+                    showgrid: true,
+                    gridcolor: '#e6e6e6',
+                    zeroline: true,
+                    zerolinecolor: '#cccccc'
+                },
+                xaxis2: {
+                    title: {
+                        text: 'Frequency (Hz)',  // This is correct based on our fix above
+                        font: { size: 14 }
+                    },
+                    domain: [0, 0.98],
+                    showgrid: true,
+                    gridcolor: '#e6e6e6',
+                    zeroline: true,
+                    zerolinecolor: '#cccccc',
+                    autorange: true
+                },
+                yaxis2: {
+                    title: {
+                        text: 'Magnitude',  // This is correct based on our fix above
+                        font: { size: 14 }
+                    },
+                    showgrid: true,
+                    gridcolor: '#e6e6e6',
+                    zeroline: true,
+                    zerolinecolor: '#cccccc',
+                    autorange: true,
+                    fixedrange: false  // Allow y-axis scaling
+                },
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#f8f9fa',
+                margin: { l: 60, r: 30, t: 80, b: 60 }
+            };
+            
+            // Create the plot
+            console.log("Creating combined time/frequency domain plot");
+            await Plotly.newPlot(dom.plotContainer, allTraces, layout);
+            console.log("Quadrature subplot with FFT created successfully");
+            
+            // Add a "QM Analysis Complete" status for 2 seconds
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'plot-status';
+            statusDiv.style.position = 'absolute';
+            statusDiv.style.bottom = '10px';
+            statusDiv.style.right = '10px';
+            statusDiv.style.padding = '5px 10px';
+            statusDiv.style.background = 'rgba(46, 204, 113, 0.8)';
+            statusDiv.style.color = 'white';
+            statusDiv.style.borderRadius = '3px';
+            statusDiv.style.zIndex = '1000';
+            statusDiv.innerHTML = 'Time and Frequency Analysis Complete';
+            
+            dom.plotContainer.appendChild(statusDiv);
+            
+            // Remove status message after 2 seconds
+            setTimeout(() => {
+                const statusElement = document.getElementById('plot-status');
+                if (statusElement) {
+                    statusElement.style.opacity = '0';
+                    statusElement.style.transition = 'opacity 0.5s';
+                    setTimeout(() => statusElement.remove(), 500);
+                }
+            }, 2000);
+            
+        } catch (error) {
+            console.error("Error calculating or plotting FFT:", error);
+            
+            // Remove any loading indicator
+            const loadingElement = document.getElementById('fft-loading');
+            if (loadingElement) loadingElement.remove();
+            
+            // Create a simple time domain plot as fallback
+            console.log("Creating fallback time domain plot due to FFT calculation error");
+            const traces = [];
+            
+            if (data.I && Array.isArray(data.I)) {
+                traces.push({
+                    x: data.t,
+                    y: data.I,
+                    name: 'I (In-Phase)',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#2ecc71', width: 2 }
+                });
+            }
+            
+            if (data.Q && Array.isArray(data.Q)) {
+                traces.push({
+                    x: data.t,
+                    y: data.Q,
+                    name: 'Q (Quadrature)',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#e74c3c', width: 2 }
+                });
+            }
+            
+            if (data.qm_signal && Array.isArray(data.qm_signal)) {
+                traces.push({
+                    x: data.t,
+                    y: data.qm_signal,
+                    name: 'Quadrature Modulated',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#8e44ad', width: 2 }
+                });
+            }
+            
+            const layout = {
+                title: 'Quadrature Modulation Signals (FFT calculation failed)',
+                subtitle: 'Error: ' + error.message,
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Amplitude' },
+                legend: { x: 0.02, y: 0.98, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.8)', bordercolor: 'rgba(0,0,0,0.1)', borderwidth: 1 },
+                showlegend: true,
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#f8f9fa',
+                annotations: [{
+                    text: 'FFT calculation failed: ' + error.message,
+                    xref: 'paper',
+                    yref: 'paper',
+                    x: 0.5,
+                    y: 0.5,
+                    showarrow: false,
+                    font: {
+                        size: 16,
+                        color: '#e74c3c'
+                    }
+                }]
+            };
+            
+            Plotly.newPlot(dom.plotContainer, traces, layout);
+            
+            // Show a small warning toast instead of a blocking alert
+            const warningDiv = document.createElement('div');
+            warningDiv.id = 'fft-warning';
+            warningDiv.style.position = 'absolute';
+            warningDiv.style.bottom = '10px';
+            warningDiv.style.right = '10px';
+            warningDiv.style.padding = '10px';
+            warningDiv.style.background = 'rgba(231, 76, 60, 0.9)';
+            warningDiv.style.color = 'white';
+            warningDiv.style.borderRadius = '5px';
+            warningDiv.style.zIndex = '1000';
+            warningDiv.innerHTML = 'FFT calculation failed: ' + error.message;
+            
+            dom.plotContainer.appendChild(warningDiv);
+            
+            // Remove warning after 5 seconds
+            setTimeout(() => {
+                const warningElement = document.getElementById('fft-warning');
+                if (warningElement) {
+                    warningElement.style.opacity = '0';
+                    warningElement.style.transition = 'opacity 0.5s';
+                    setTimeout(() => warningElement.remove(), 500);
+                }
+            }, 5000);
+        }
     }
 
     // Diagram functionality
@@ -1221,130 +1536,179 @@ Why Quadrature?
             alert('Demodulation failed: ' + err.message);
         }
     }
-
-    // Modify plotQuadratureSignals to store the data for demodulation
-    function plotQuadratureSignals(data) {
-        // Clear both plots first
-        Plotly.purge(dom.plotContainer);
-        const iqPanel = document.getElementById('quadrature-iq-panel');
-        const iqPlot = document.getElementById('quadrature-iq-plot');
-        if (iqPlot) Plotly.purge(iqPlot);
-
-        console.log("QM data structure:", data);
-
-        // Check data structure
-        const i_signal = data.I;
-        const q_signal = data.Q;
-        const qm_signal = data.modulated;
-
-        if (!i_signal || !q_signal || !qm_signal) {
-            console.error('Missing required signals for quadrature plotting');
-            alert('Error: Missing data for quadrature modulation plot');
-            return;
-        }
-
-        // Plot 1: I and Q signals
-        const basebandTraces = [
-            {
-                x: data.t,
-                y: i_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'I-Signal',
-                line: { color: '#2ecc71', width: 2 }  // Green
-            },
-            {
-                x: data.t,
-                y: q_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Q-Signal',
-                line: { color: '#e74c3c', width: 2 }  // Red
+    
+    // Set up event listeners for the QM tools
+    function setupQmEventListeners() {
+        // Add event listener for FFT-QM button (Quadrature Modulation FFT)
+        console.log("Setting up QM event listeners");
+        
+        if (dom.fftQmBtn) {
+            console.log("FFT-QM button found:", dom.fftQmBtn);
+            // Remove any existing listeners to prevent duplicates
+            const newFftQmBtn = dom.fftQmBtn.cloneNode(true);
+            if (dom.fftQmBtn.parentNode) {
+                dom.fftQmBtn.parentNode.replaceChild(newFftQmBtn, dom.fftQmBtn);
             }
-        ];
-
-        const basebandLayout = {
-            title: {
-                text: 'I and Q Signals',
-                font: { size: 20 }
-            },
-            xaxis: { 
-                title: 'Time (s)',
-                titlefont: { size: 14 }
-            },
-            yaxis: { 
-                title: 'Amplitude',
-                titlefont: { size: 14 }
-            },
-            plot_bgcolor: '#ffffff',
-            paper_bgcolor: '#ffffff',
-            showlegend: true,
-            legend: {
-                x: 0.02,
-                y: 0.98,
-                xanchor: 'left',
-                yanchor: 'top',
-                bgcolor: 'rgba(255, 255, 255, 0.9)',
-                bordercolor: 'rgba(0, 0, 0, 0.1)',
-                borderwidth: 1,
-                font: { size: 12 }
-            },
-            margin: { l: 60, r: 30, t: 50, b: 50 }
-        };
-
-        Plotly.newPlot(dom.plotContainer, basebandTraces, basebandLayout);
-
-        // Plot 2: Quadrature Modulated Signal
-        if (iqPanel && iqPlot) {
-            iqPanel.style.display = 'block';
+            dom.fftQmBtn = newFftQmBtn;
             
-            const modulatedTrace = [{
-                x: data.t,
-                y: qm_signal,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Quad-Modulated',
-                line: { color: '#3498db', width: 2 }  // Blue
-            }];
+            // Update button tooltip to reflect that it refreshes the combined plot
+            dom.fftQmBtn.title = "Refresh combined time domain and FFT plot";
+            
+            // Add the click event listener - now just recalculates and re-plots with current data
+            dom.fftQmBtn.addEventListener('click', async () => {
+                console.log("FFT-QM button clicked - refreshing plot with time and frequency domain");
+                try {
+                    if (!window.currentQuadratureData) {
+                        console.error("No quadrature data found");
+                        alert('Please run a Quadrature Modulation simulation first.');
+                        return;
+                    }
+                    
+                    // Call our combined plotting function with the current data
+                    calculateAndPlotFFT(window.currentQuadratureData);
+                    
+                } catch (err) {
+                    console.error('Error refreshing FFT plot:', err);
+                    alert(`Error refreshing plot: ${err.message}`);
+                }
+            });
+        }
+    }
+    
+    // Call the setup function to register the handlers
+    setupQmEventListeners();
 
-            const modulatedLayout = {
-                title: {
-                    text: 'Quadrature Modulated Signal',
-                    font: { size: 20 }
-                },
-                xaxis: { 
-                    title: 'Time (s)',
-                    titlefont: { size: 14 }
-                },
-                yaxis: { 
-                    title: 'Amplitude',
-                    titlefont: { size: 14 }
-                },
-                plot_bgcolor: '#ffffff',
-                paper_bgcolor: '#ffffff',
-                showlegend: true,
-                legend: {
-                    x: 0.02,
-                    y: 0.98,
-                    xanchor: 'left',
-                    yanchor: 'top',
-                    bgcolor: 'rgba(255, 255, 255, 0.9)',
-                    bordercolor: 'rgba(0, 0, 0, 0.1)',
-                    borderwidth: 1,
-                    font: { size: 12 }
-                },
-                margin: { l: 60, r: 30, t: 50, b: 50 }
-            };
-
-            Plotly.newPlot(iqPlot, modulatedTrace, modulatedLayout);
+    // Function to validate sampling rate and warn about potential aliasing
+    function validateSamplingRate(params) {
+        // For quadrature modulation, calculate highest frequency component
+        if (params.signalType === 'QM') {
+            // Highest frequency component is carrier freq plus max of I/Q freqs
+            const carrierFreq = params.quadCarrierFreq;
+            const maxModFreq = Math.max(params.quadIFreq, params.quadQFreq);
+            const highestFreq = carrierFreq + maxModFreq;
+            
+            // Calculate current sample rate
+            const sampleRate = params.points / params.duration;
+            
+            // Nyquist rate is 2x highest frequency
+            const nyquistRate = 2 * highestFreq;
+            
+            // For good FFT resolution, use at least 5x Nyquist
+            const recommendedRate = 5 * nyquistRate;
+            const recommendedPoints = Math.ceil(recommendedRate * params.duration);
+            
+            console.log(`Signal parameters - Carrier: ${carrierFreq}Hz, Max modulating: ${maxModFreq}Hz`);
+            console.log(`Highest frequency component: ${highestFreq}Hz`);
+            console.log(`Current sample rate: ${sampleRate}Hz, Nyquist minimum: ${nyquistRate}Hz`);
+            console.log(`Recommended sample rate: ${recommendedRate}Hz (${recommendedPoints} points)`);
+            
+            if (sampleRate < nyquistRate) {
+                // Critical error: Below Nyquist rate will cause severe aliasing
+                alert(`WARNING: Severe undersampling detected!\n\n` +
+                      `Your current sampling rate (${Math.round(sampleRate)}Hz) is below the Nyquist rate (${Math.round(nyquistRate)}Hz) ` +
+                      `required for your signal with highest frequency component of ${Math.round(highestFreq)}Hz.\n\n` +
+                      `This will cause aliasing and incorrect FFT results.\n\n` +
+                      `Please increase the number of points to at least ${Math.ceil(nyquistRate * params.duration)}.`);
+                return false;
+            } 
+            else if (sampleRate < recommendedRate) {
+                // Warning: Below recommended rate may cause poor resolution
+                if (confirm(`Low sampling rate warning:\n\n` +
+                          `Your sampling rate (${Math.round(sampleRate)}Hz) is above the minimum Nyquist rate but below ` +
+                          `the recommended rate (${Math.round(recommendedRate)}Hz) for good FFT resolution.\n\n` +
+                          `For best results with carrier frequency ${carrierFreq}Hz and modulating frequencies up to ${maxModFreq}Hz, ` +
+                          `use at least ${recommendedPoints} points.\n\n` +
+                          `Continue anyway?`)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
         }
         
-        // Store data for potential demodulation
-        window.currentQuadratureData = {
-            t: data.t,
-            I: i_signal,
-            Q: q_signal,
-            qm_signal: qm_signal
-        };
+        // For AM/FM or if all checks pass
+        return true;
     }
+
+    // Function to calculate and display recommended number of points
+    function updateRecommendedPoints() {
+        // Remove the recommendation div if not in QM mode
+        if (dom.signalType.value !== 'QM') {
+            const recommendationDiv = document.getElementById('recommended-points');
+            if (recommendationDiv && recommendationDiv.parentNode) {
+                recommendationDiv.parentNode.removeChild(recommendationDiv);
+            }
+            return;
+        }
+        // Only apply for QM mode
+        const carrierFreqInput = document.getElementById('quad-carrier-freq');
+        const iFreqInput = document.getElementById('quad-i');
+        const qFreqInput = document.getElementById('quad-q');
+        const durationInput = document.getElementById('signal-duration');
+        const pointsInput = document.getElementById('signal-points');
+        if (!carrierFreqInput || !iFreqInput || !qFreqInput || !durationInput || !pointsInput) {
+            console.error("Could not find one or more required input fields");
+            return;
+        }
+        // Get current values
+        const carrierFreq = parseFloat(carrierFreqInput.value) || 100;
+        const iFreq = parseFloat(iFreqInput.value) || 10;
+        const qFreq = parseFloat(qFreqInput.value) || 20;
+        const duration = parseFloat(durationInput.value) || 1.0;
+        // Calculate highest frequency component
+        const maxModFreq = Math.max(iFreq, qFreq);
+        const highestFreq = carrierFreq + maxModFreq;
+        // Calculate recommended points (5x Nyquist)
+        const nyquistRate = 2 * highestFreq;
+        const recommendedRate = 5 * nyquistRate;
+        const recommendedPoints = Math.ceil(recommendedRate * duration);
+        // Get or create the recommendation div
+        let recommendationDiv = document.getElementById('recommended-points');
+        if (!recommendationDiv) {
+            recommendationDiv = document.createElement('div');
+            recommendationDiv.id = 'recommended-points';
+            recommendationDiv.style.fontSize = '0.85em';
+            recommendationDiv.style.marginTop = '5px';
+            recommendationDiv.style.color = '#3498db';
+            // Insert after points input
+            const pointsFormGroup = pointsInput.closest('.form-group');
+            if (pointsFormGroup && pointsFormGroup.parentNode) {
+                pointsFormGroup.parentNode.insertBefore(recommendationDiv, pointsFormGroup.nextSibling);
+            }
+        } else {
+            recommendationDiv.style.display = 'block';
+        }
+        // Update recommendation display
+        const currentPoints = parseInt(pointsInput.value) || 1000;
+        const currentRate = currentPoints / duration;
+        if (currentRate < nyquistRate) {
+            recommendationDiv.style.color = '#e74c3c'; // Red for severe warning
+            recommendationDiv.innerHTML = `<strong>Warning:</strong> Current sampling rate (${Math.round(currentRate)}Hz) is below Nyquist rate (${Math.round(nyquistRate)}Hz).<br>` +
+                                    `<strong>Recommended:</strong> At least ${recommendedPoints} points for clean FFT.`;
+        } else if (currentRate < recommendedRate) {
+            recommendationDiv.style.color = '#f39c12'; // Orange for mild warning
+            recommendationDiv.innerHTML = `<strong>Recommended:</strong> At least ${recommendedPoints} points for best FFT resolution.<br>` +
+                                    `Current rate (${Math.round(currentRate)}Hz) meets Nyquist minimum but FFT may have poor resolution.`;
+        } else {
+            recommendationDiv.style.color = '#2ecc71'; // Green for good
+            recommendationDiv.innerHTML = `<strong>Good:</strong> Current sampling rate (${Math.round(currentRate)}Hz) is sufficient for accurate FFT.`;
+        }
+    }
+
+    // Update recommended points when QM parameters change
+    const quadCarrierFreqInput = document.getElementById('quad-carrier-freq');
+    const iFreqInput = document.getElementById('quad-i');
+    const qFreqInput = document.getElementById('quad-q');
+    const durationInput = document.getElementById('signal-duration');
+    const pointsInput = document.getElementById('signal-points');
+
+    // Add change event listeners to update recommendation on parameter change
+    quadCarrierFreqInput.addEventListener('change', updateRecommendedPoints);
+    iFreqInput.addEventListener('change', updateRecommendedPoints);
+    qFreqInput.addEventListener('change', updateRecommendedPoints);
+    durationInput.addEventListener('change', updateRecommendedPoints);
+    pointsInput.addEventListener('change', updateRecommendedPoints);
+    
+    // Initial call to set up recommendation display
+    updateRecommendedPoints();
 });

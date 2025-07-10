@@ -9,15 +9,30 @@ from scipy.signal import butter, filtfilt
 FS = 10000  # Sampling frequency (Hz), constant for all signals
 
 def compute_fft(signal, FS):
-    """Compute FFT with windowing and zero-padding using constant FS."""
+    """
+    Compute FFT with windowing and zero-padding.
+    Args:
+        signal: 1D array-like, real-valued signal
+        FS: Sampling frequency (Hz), positive float/int
+    Returns:
+        fft_magnitude: Magnitude spectrum (array)
+        freq_axis: Frequency axis (array, Hz)
+    """
+    signal = np.asarray(signal, dtype=float).flatten()
+    if signal.ndim != 1:
+        raise ValueError("Signal must be 1D")
+    if FS <= 0:
+        raise ValueError("Sampling frequency FS must be positive")
     points = len(signal)
+    if points < 2:
+        raise ValueError("Signal must have at least 2 points")
     sigma = points / (FS * 10)
     t = np.arange(points) / FS
     window = np.exp(-0.5 * ((t - t[-1]/2) / sigma)**2)
     windowed_signal = signal * window
 
-    next_pow2 = 2 ** np.ceil(np.log2(points))
-    zero_filled = np.zeros(int(next_pow2 * 2))
+    next_pow2 = int(2 ** np.ceil(np.log2(points)))
+    zero_filled = np.zeros(next_pow2)
     zero_filled[:points] = windowed_signal
 
     fft = np.fft.rfft(zero_filled)
