@@ -277,6 +277,45 @@
                 width: 100%;
             }
         }
+
+        /* Dropdown styling for demodulation buttons */
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: rgba(30, 41, 59, 0.95);
+            width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+        
+        .dropdown-container:hover .dropdown-content {
+            display: block;
+        }
+        
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            text-align: left;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -378,7 +417,7 @@
                 <div id="quadrature-fields" class="compact-form" style="display: none;">
                     <div class="form-group" style="grid-column: span 2;">
                         <label for="quad-carrier-freq">Carrier Frequency (Hz):</label>
-                        <input type="number" id="quad-carrier-freq" class="control-input" value="50" min="1" step="0.5"> <!-- Updated default to 200 Hz -->
+                        <input type="number" id="quad-carrier-freq" class="control-input" value="50" min="1" step="0.5">
                     </div>
                     <div class="form-group">
                         <label for="quad-i">I Frequency (Hz):</label>
@@ -452,6 +491,25 @@
                     <button id="clear-plot-btn" class="secondary-btn" title="Clear the plot">🗑️ Clear</button>
                     <button id="save-plot-btn" class="secondary-btn" title="Save as PNG image">💾 Save</button>
                 </div>
+                
+                <!-- QM-specific tools (only visible for QM) -->
+                <div id="qm-tools" class="action-buttons" style="display: none; margin-top: 0.8rem;">
+                    <!-- Demodulate dropdown -->
+                    <div class="dropdown-container" style="flex: 1;">
+                        <button type="button" id="quadrature-demod-btn" class="secondary-btn" style="width: 100%;">
+                            🔄 Demodulate
+                        </button>
+                        <div class="dropdown-content">
+                            <button type="button" id="demod-real-btn" class="dropdown-item">Real (I) Component</button>
+                            <button type="button" id="demod-imag-btn" class="dropdown-item">Imaginary (Q) Component</button>
+                        </div>
+                    </div>
+                    
+                    <!-- FFT-QM button next to Demodulate -->
+                    <button type="button" id="fft-qm-btn" class="secondary-btn" style="flex: 1;" title="Show frequency spectrum">
+                        📊 FFT-QM
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -494,28 +552,5 @@
     <script src="/static/js/circuit_ui.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
 </body>
-</html>
-</html>
-</body>
-</html>
-</html>
-</html>
-</html>
-        </div>
-    </div>
-
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="/static/js/modulation_info.js"></script>
-    <script src="/static/js/circuit_ui.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-</body>
-</html>
-</html>
-</html>
-    <script src="/static/js/modulation_info.js"></script>
-    <script src="/static/js/circuit_ui.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-</body>
-</html>
 </html>
 </html>

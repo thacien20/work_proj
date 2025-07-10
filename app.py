@@ -14,7 +14,11 @@ from waveforms import get_waveforms
 from Filters import apply_filter
 from filters_view import filter_visualization
 from deconvolution import deconvolve_signal
-from circuits import rc_circuit_response, rl_circuit_response, rlc_circuit_response
+from circuits.circuits import (
+    rc_circuit_response,
+    rl_circuit_response,
+    rlc_circuit_response
+)
 from circuit_diagrams import draw_rc_circuit, draw_rl_circuit, draw_rlc_circuit
 from circuits_app import circuits_blueprint
 

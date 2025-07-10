@@ -38,6 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Quadrature demodulation buttons (newly added)
         quadratureHoverButtons: document.getElementById('quadrature-hover-buttons'),
+
+        // QM-specific tools
+        qmTools: document.getElementById('qm-tools'),
+        quadratureDemodBtn: document.getElementById('quadrature-demod-btn'),
+        demodRealBtn: document.getElementById('demod-real-btn'),
+        demodImagBtn: document.getElementById('demod-imag-btn'),
+        fftQmBtn: document.getElementById('fft-qm-btn'),
     };
 
     const DEFAULT_SIGNAL_PARAMS = {
@@ -174,6 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showCurrentContainer) showCurrentContainer.style.display = 'none';
         if (vinContainer) vinContainer.style.display = 'none';
         if (circuitDiagram) circuitDiagram.style.display = 'none';
+        
+        // Hide QM tools
+        const qmTools = document.getElementById('qm-tools');
+        if (qmTools) {
+            qmTools.style.display = 'none';
+        }
     }
 
     function updateCircuitFields() {
@@ -274,6 +287,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update equation display
         updateEquationDisplay();
+
+        // Show/hide QM-specific tools based on signal type
+        const qmTools = document.getElementById('qm-tools');
+        if (qmTools) {
+            qmTools.style.display = selectedSignal === 'QM' ? 'flex' : 'none';
+            console.log('QM tools visibility:', qmTools.style.display);
+        }
     }
 
     // Update this function to use signal-type directly
@@ -383,6 +403,23 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         plotCircuitResponse(params, transformedData);
+    }
+
+    // Move the plotSignalResponse function to be defined before simulateElectronicSignals
+    function plotSignalResponse(params, data) {
+        console.log('Plotting signal response:', { params, data });
+
+        if (params.signalType === 'QM') {
+            // Use dedicated quadrature plotting function
+            plotQuadratureSignals(data);
+        } else {
+            // Hide quadrature panel for AM/FM signals
+            const iqPanel = document.getElementById('quadrature-iq-panel');
+            if (iqPanel) iqPanel.style.display = 'none';
+            
+            // Use existing AM/FM plotting function
+            plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.signalType);
+        }
     }
 
     // Fix for the simulateElectronicSignals function to match the HTML changes
@@ -841,22 +878,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             Plotly.newPlot(iqPlot, modulatedTrace, modulatedLayout);
         }
-    }
-
-    function plotSignalResponse(params, data) {
-        console.log('Plotting signal response:', { params, data });
-
-        if (params.signalType === 'QM') {
-            // Use dedicated quadrature plotting function
-            plotQuadratureSignals(data);
-        } else {
-            // Hide quadrature panel for AM/FM signals
-            const iqPanel = document.getElementById('quadrature-iq-panel');
-            if (iqPanel) iqPanel.style.display = 'none';
-            
-            // Use existing AM/FM plotting function
-            plotModulation(data.t, data.modulated, data.carrier, data.modulating, params.signalType);
-        }
+        
+        // Store data for potential demodulation
+        window.currentQuadratureData = {
+            t: data.t,
+            I: i_signal,
+            Q: q_signal,
+            qm_signal: qm_signal
+        };
     }
 
     // Diagram functionality
@@ -936,14 +965,19 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn(`Missing DOM element: ${key}`);
         }
     }
-    // Modulation info button handler
+    // Modulation info button handler - fixing the reference to the signal type element
     if (dom.modulationInfoBtn) {
         dom.modulationInfoBtn.addEventListener('click', () => {
-            const modulationType = document.getElementById('modulation-type').value;
+            // Changed from 'modulation-type' to 'signal-type' to match the actual element ID
+            const modulationType = document.getElementById('signal-type').value;
             if (typeof showModulationInfo === 'function' && ModulationInfo[modulationType]) {
                 showModulationInfo(modulationType);
             } else {
-                console.error('Modulation info function or data not available');
+                // Show a simple alert if the formal info isn't available
+                alert(`${modulationType} Modulation Information:\n\n` + 
+                      `${modulationType === 'AM' ? 'Amplitude Modulation varies the amplitude of a carrier wave.' : 
+                        modulationType === 'FM' ? 'Frequency Modulation varies the frequency of a carrier wave.' : 
+                        'This modulation type encodes data by varying carrier properties.'}`);
             }
         });
     }
@@ -1118,4 +1152,199 @@ Why Quadrature?
             updateSignalFields();
         }, 50);
     });
+
+    // Add event listeners for the new demodulation buttons
+    if (dom.demodRealBtn) {
+        dom.demodRealBtn.addEventListener('click', () => {
+            demodulateQuadrature('real');
+        });
+    }
+    
+    if (dom.demodImagBtn) {
+        dom.demodImagBtn.addEventListener('click', () => {
+            demodulateQuadrature('imaginary');
+        });
+    }
+
+    // Add this function to handle quadrature demodulation
+    function demodulateQuadrature(component) {
+        try {
+            // Check if we have the data to demodulate
+            if (!window.currentQuadratureData) {
+                alert('Please run a Quadrature Modulation simulation first.');
+                return;
+            }
+            
+            const data = window.currentQuadratureData;
+            
+            // Create demodulation result plot
+            const iqPanel = document.getElementById('quadrature-iq-panel');
+            if (!iqPanel) return;
+            
+            // Make sure the panel is visible
+            iqPanel.style.display = 'block';
+            
+            // Get the plot element
+            const iqPlot = document.getElementById('quadrature-iq-plot');
+            if (!iqPlot) return;
+            
+            // Create different plot based on component
+            const title = component === 'real' ? 'I (In-Phase) Component' : 'Q (Quadrature) Component';
+            const traceColor = component === 'real' ? '#2ecc71' : '#e74c3c';
+            
+            const componentData = component === 'real' ? data.I : data.Q;
+            
+            const trace = {
+                x: data.t,
+                y: componentData,
+                type: 'scatter',
+                mode: 'lines',
+                name: component === 'real' ? 'I-Component' : 'Q-Component',
+                line: { color: traceColor, width: 2 }
+            };
+            
+            const layout = {
+                title: `Demodulated ${title}`,
+                xaxis: { title: 'Time (s)' },
+                yaxis: { title: 'Amplitude' },
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#ffffff',
+            };
+            
+            Plotly.newPlot(iqPlot, [trace], layout);
+            
+            // Show message
+            alert(`Demodulation complete: ${title} extracted.`);
+            
+        } catch (err) {
+            console.error('Demodulation failed:', err);
+            alert('Demodulation failed: ' + err.message);
+        }
+    }
+
+    // Modify plotQuadratureSignals to store the data for demodulation
+    function plotQuadratureSignals(data) {
+        // Clear both plots first
+        Plotly.purge(dom.plotContainer);
+        const iqPanel = document.getElementById('quadrature-iq-panel');
+        const iqPlot = document.getElementById('quadrature-iq-plot');
+        if (iqPlot) Plotly.purge(iqPlot);
+
+        console.log("QM data structure:", data);
+
+        // Check data structure
+        const i_signal = data.I;
+        const q_signal = data.Q;
+        const qm_signal = data.modulated;
+
+        if (!i_signal || !q_signal || !qm_signal) {
+            console.error('Missing required signals for quadrature plotting');
+            alert('Error: Missing data for quadrature modulation plot');
+            return;
+        }
+
+        // Plot 1: I and Q signals
+        const basebandTraces = [
+            {
+                x: data.t,
+                y: i_signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'I-Signal',
+                line: { color: '#2ecc71', width: 2 }  // Green
+            },
+            {
+                x: data.t,
+                y: q_signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Q-Signal',
+                line: { color: '#e74c3c', width: 2 }  // Red
+            }
+        ];
+
+        const basebandLayout = {
+            title: {
+                text: 'I and Q Signals',
+                font: { size: 20 }
+            },
+            xaxis: { 
+                title: 'Time (s)',
+                titlefont: { size: 14 }
+            },
+            yaxis: { 
+                title: 'Amplitude',
+                titlefont: { size: 14 }
+            },
+            plot_bgcolor: '#ffffff',
+            paper_bgcolor: '#ffffff',
+            showlegend: true,
+            legend: {
+                x: 0.02,
+                y: 0.98,
+                xanchor: 'left',
+                yanchor: 'top',
+                bgcolor: 'rgba(255, 255, 255, 0.9)',
+                bordercolor: 'rgba(0, 0, 0, 0.1)',
+                borderwidth: 1,
+                font: { size: 12 }
+            },
+            margin: { l: 60, r: 30, t: 50, b: 50 }
+        };
+
+        Plotly.newPlot(dom.plotContainer, basebandTraces, basebandLayout);
+
+        // Plot 2: Quadrature Modulated Signal
+        if (iqPanel && iqPlot) {
+            iqPanel.style.display = 'block';
+            
+            const modulatedTrace = [{
+                x: data.t,
+                y: qm_signal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Quad-Modulated',
+                line: { color: '#3498db', width: 2 }  // Blue
+            }];
+
+            const modulatedLayout = {
+                title: {
+                    text: 'Quadrature Modulated Signal',
+                    font: { size: 20 }
+                },
+                xaxis: { 
+                    title: 'Time (s)',
+                    titlefont: { size: 14 }
+                },
+                yaxis: { 
+                    title: 'Amplitude',
+                    titlefont: { size: 14 }
+                },
+                plot_bgcolor: '#ffffff',
+                paper_bgcolor: '#ffffff',
+                showlegend: true,
+                legend: {
+                    x: 0.02,
+                    y: 0.98,
+                    xanchor: 'left',
+                    yanchor: 'top',
+                    bgcolor: 'rgba(255, 255, 255, 0.9)',
+                    bordercolor: 'rgba(0, 0, 0, 0.1)',
+                    borderwidth: 1,
+                    font: { size: 12 }
+                },
+                margin: { l: 60, r: 30, t: 50, b: 50 }
+            };
+
+            Plotly.newPlot(iqPlot, modulatedTrace, modulatedLayout);
+        }
+        
+        // Store data for potential demodulation
+        window.currentQuadratureData = {
+            t: data.t,
+            I: i_signal,
+            Q: q_signal,
+            qm_signal: qm_signal
+        };
+    }
 });
