@@ -23,7 +23,7 @@ from circuit_diagrams import draw_rc_circuit, draw_rl_circuit, draw_rlc_circuit
 from circuits_app import circuits_blueprint
 
 # Import new modular features
-from features.basic_signals import basic_signals_blueprint
+from simple_signals.basic_signals import basic_signals_blueprint
 from mathlab import mathlab_bp
 from mathlab.mathlab_app import calculate_integral
 

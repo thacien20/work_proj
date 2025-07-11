@@ -18,8 +18,9 @@ from shared_utils.shared_funcs import compute_fft
 basic_signals_blueprint = Blueprint(
     'basic_signals',
     __name__,
-    static_folder='features/basic_signals/static',
-    template_folder='features/basic_signals/templates'
+    template_folder='templates',
+    static_folder='static',
+    static_url_path='/static/basic_signals'
 )
 
 # Default signal parameters
@@ -298,5 +299,4 @@ def api_fft():
         freqs, mag = compute_fft(signal, sample_rate)
         return jsonify({'success': True, 'frequencies': freqs.tolist(), 'magnitude': mag.tolist()})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
         return jsonify({'error': str(e)}), 500
