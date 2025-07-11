@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
         quadratureDemodBtn: document.getElementById('quadrature-demod-btn'),
         demodRealBtn: document.getElementById('demod-real-btn'),
         demodImagBtn: document.getElementById('demod-imag-btn'),
-        fftQmBtn: document.getElementById('fft-qm-btn'),
     };
 
     const DEFAULT_SIGNAL_PARAMS = {
@@ -1470,114 +1469,87 @@ Why Quadrature?
 
     // Add event listeners for the new demodulation buttons
     if (dom.demodRealBtn) {
-        dom.demodRealBtn.addEventListener('click', () => {
-            demodulateQuadrature('real');
+        dom.demodRealBtn.addEventListener('click', async () => {
+            await demodulateQuadrature('real');
         });
     }
     
     if (dom.demodImagBtn) {
-        dom.demodImagBtn.addEventListener('click', () => {
-            demodulateQuadrature('imaginary');
+        dom.demodImagBtn.addEventListener('click', async () => {
+            await demodulateQuadrature('imaginary');
         });
     }
 
-    // Add this function to handle quadrature demodulation
-    function demodulateQuadrature(component) {
+    // Replace the demodulateQuadrature function with backend integration
+    async function demodulateQuadrature(component) {
         try {
-            // Check if we have the data to demodulate
             if (!window.currentQuadratureData) {
                 alert('Please run a Quadrature Modulation simulation first.');
                 return;
             }
-            
-            const data = window.currentQuadratureData;
-            
-            // Create demodulation result plot
-            const iqPanel = document.getElementById('quadrature-iq-panel');
-            if (!iqPanel) return;
-            
-            // Make sure the panel is visible
-            iqPanel.style.display = 'block';
-            
-            // Get the plot element
-            const iqPlot = document.getElementById('quadrature-iq-plot');
-            if (!iqPlot) return;
-            
-            // Create different plot based on component
+            const data = window.currentQuadratureData; // <--- THIS IS THE data OBJECT
+
+            // Get parameters from UI
+            const carrierFreq = parseFloat(document.getElementById('quad-carrier-freq')?.value) || 100;
+            const duration = parseFloat(document.getElementById('signal-duration')?.value) || 1.0;
+            const points = parseInt(document.getElementById('signal-points')?.value) || 1000;
+
+            // Prepare payload for backend
+            const payload = {
+                quadrature_modulated_signal: data.qm_signal,
+                carrier_frequency: carrierFreq,
+                duration: duration,
+                points: points,
+                component: component === 'real' ? 'I' : 'Q'
+            };
+
+            // Send request to backend
+            const response = await fetch('/circuits/demodulate_qm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const t = data.t;
+            // Only use the demodulated signal from backend, not the original I/Q
+            const y = component === 'real' ? result.I : result.Q;
             const title = component === 'real' ? 'I (In-Phase) Component' : 'Q (Quadrature) Component';
             const traceColor = component === 'real' ? '#2ecc71' : '#e74c3c';
-            
-            const componentData = component === 'real' ? data.I : data.Q;
-            
-            const trace = {
-                x: data.t,
-                y: componentData,
-                type: 'scatter',
-                mode: 'lines',
-                name: component === 'real' ? 'I-Component' : 'Q-Component',
-                line: { color: traceColor, width: 2 }
-            };
-            
-            const layout = {
-                title: `Demodulated ${title}`,
-                xaxis: { title: 'Time (s)' },
-                yaxis: { title: 'Amplitude' },
-                plot_bgcolor: '#ffffff',
-                paper_bgcolor: '#ffffff',
-            };
-            
-            Plotly.newPlot(iqPlot, [trace], layout);
-            
-            // Show message
+
+            // Plot in the quadrature-iq-plot panel
+            const iqPanel = document.getElementById('quadrature-iq-panel');
+            if (iqPanel) iqPanel.style.display = 'block';
+            const iqPlot = document.getElementById('quadrature-iq-plot');
+            if (iqPlot) {
+                Plotly.newPlot(iqPlot, [{
+                    x: t,
+                    y: y,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: title,
+                    line: { color: traceColor, width: 2 }
+                }], {
+                    title: `Demodulated ${title}`,
+                    xaxis: { title: 'Time (s)' },
+                    yaxis: { title: 'Amplitude' },
+                    plot_bgcolor: '#ffffff',
+                    paper_bgcolor: '#ffffff'
+                });
+            }
+
             alert(`Demodulation complete: ${title} extracted.`);
-            
         } catch (err) {
             console.error('Demodulation failed:', err);
             alert('Demodulation failed: ' + err.message);
         }
     }
     
-    // Set up event listeners for the QM tools
-    function setupQmEventListeners() {
-        // Add event listener for FFT-QM button (Quadrature Modulation FFT)
-        console.log("Setting up QM event listeners");
-        
-        if (dom.fftQmBtn) {
-            console.log("FFT-QM button found:", dom.fftQmBtn);
-            // Remove any existing listeners to prevent duplicates
-            const newFftQmBtn = dom.fftQmBtn.cloneNode(true);
-            if (dom.fftQmBtn.parentNode) {
-                dom.fftQmBtn.parentNode.replaceChild(newFftQmBtn, dom.fftQmBtn);
-            }
-            dom.fftQmBtn = newFftQmBtn;
-            
-            // Update button tooltip to reflect that it refreshes the combined plot
-            dom.fftQmBtn.title = "Refresh combined time domain and FFT plot";
-            
-            // Add the click event listener - now just recalculates and re-plots with current data
-            dom.fftQmBtn.addEventListener('click', async () => {
-                console.log("FFT-QM button clicked - refreshing plot with time and frequency domain");
-                try {
-                    if (!window.currentQuadratureData) {
-                        console.error("No quadrature data found");
-                        alert('Please run a Quadrature Modulation simulation first.');
-                        return;
-                    }
-                    
-                    // Call our combined plotting function with the current data
-                    calculateAndPlotFFT(window.currentQuadratureData);
-                    
-                } catch (err) {
-                    console.error('Error refreshing FFT plot:', err);
-                    alert(`Error refreshing plot: ${err.message}`);
-                }
-            });
-        }
-    }
-    
-    // Call the setup function to register the handlers
-    setupQmEventListeners();
-
     // Function to validate sampling rate and warn about potential aliasing
     function validateSamplingRate(params) {
         // For quadrature modulation, calculate highest frequency component

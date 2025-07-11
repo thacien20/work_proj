@@ -8,6 +8,7 @@ from circuits.circuits import (  # Updated import path to reflect file location
     integrator_circuit_response
 )
 from shared_utils.shared_funcs import compute_fft, FS
+from scipy.signal import butter, filtfilt
 
 circuits_blueprint = Blueprint('circuits', __name__)
 
@@ -215,6 +216,65 @@ def fft_quadrature_modulation():
             'success': True,
             'frequencies': freqs.tolist(),
             'magnitude': fft_magnitude.tolist()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@circuits_blueprint.route('/demodulate_qm', methods=['POST'])
+def demodulate_quadrature_modulation():
+    """
+    Demodulate the I (real) or Q (imaginary) component from a quadrature modulated signal.
+    Expects JSON with:
+        - quadrature_modulated_signal: list of floats
+        - carrier_frequency: float
+        - sample_rate: float (optional)
+        - duration: float (optional, seconds)
+        - points: int (optional, number of samples)
+        - component: 'I' or 'Q'
+    Returns only the requested demodulated signal as a list.
+    """
+    try:
+        data = request.get_json()
+        qm_signal = np.array(data.get('quadrature_modulated_signal', []))
+        carrier_freq = float(data.get('carrier_frequency', 100.0))
+        sample_rate = data.get('sample_rate', None)
+        duration = data.get('duration', None)
+        points = data.get('points', None)
+        if sample_rate is not None:
+            sample_rate = float(sample_rate)
+        elif duration is not None and points is not None:
+            sample_rate = float(points) / float(duration)
+        else:
+            sample_rate = 1000.0  # fallback default
+
+        component = data.get('component', 'I').upper()
+
+        if qm_signal.size == 0:
+            return jsonify({'error': 'No quadrature_modulated_signal provided'}), 400
+
+        t = np.arange(len(qm_signal)) / sample_rate
+
+        # Multiply by carrier (cos for I, sin for Q)
+        if component == 'I':
+            mixed = qm_signal * np.cos(2 * np.pi * carrier_freq * t)
+        elif component == 'Q':
+            mixed = qm_signal * np.sin(2 * np.pi * carrier_freq * t)
+        else:
+            return jsonify({'error': 'component must be "I" or "Q"'}), 400
+
+        # Low-pass filter
+        def lowpass_filter(signal, cutoff, fs, order=5):
+            nyq = 0.5 * fs
+            normal_cutoff = cutoff / nyq
+            b, a = butter(order, normal_cutoff, btype='low', analog=False)
+            return filtfilt(b, a, signal)
+
+        cutoff = min(0.5 * sample_rate - 1, carrier_freq / 2)
+        demodulated = lowpass_filter(mixed, cutoff=cutoff, fs=sample_rate, order=5)
+
+        return jsonify({
+            'success': True,
+            component: demodulated.tolist()
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
