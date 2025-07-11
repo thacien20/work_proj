@@ -12,6 +12,7 @@ This module provides:
 from flask import Blueprint, render_template, request, jsonify
 import numpy as np
 import json
+from shared_utils.shared_funcs import compute_fft
 
 # Create the blueprint for basic signals feature
 basic_signals_blueprint = Blueprint(
@@ -28,7 +29,7 @@ DEFAULT_PARAMS = {
     'amplitude': 1.0,
     'phase': 0.0,
     'duration': 2.0,
-    'sample_rate': 100
+    'sample_rate': 2000
 }
 
 @basic_signals_blueprint.route('/')
@@ -276,3 +277,26 @@ def compare_signals():
         
     except Exception as e:
         return jsonify({'error': f'Signal comparison failed: {str(e)}'}), 500
+
+@basic_signals_blueprint.route('/api/fft', methods=['POST'])
+def api_fft():
+    """
+    Compute FFT of a signal.
+    Expects JSON:
+        - signal: list of floats (the signal to transform)
+        - sample_rate: float (sampling rate in Hz, optional, default 200)
+    Returns:
+        - frequencies: list of floats
+        - magnitude: list of floats
+    """
+    try:
+        data = request.get_json()
+        signal = data.get('signal')
+        sample_rate = data.get('sample_rate', 2000)
+        if signal is None or not isinstance(signal, list) or len(signal) == 0:
+            return jsonify({'error': 'No signal provided'}), 400
+        signal = np.array(signal)
+        freqs, mag = compute_fft(signal, sample_rate)
+        return jsonify({'success': True, 'frequencies': freqs.tolist(), 'magnitude': mag.tolist()})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

@@ -405,4 +405,94 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 150);
         });
     }
+
+    // FFT for comparison sum signal
+    const fftBtn = document.getElementById('fftBtn');
+    if (fftBtn) {
+        fftBtn.addEventListener('click', async function () {
+            const comparisonPlot = document.getElementById('comparisonPlot');
+            if (!comparisonPlot || !window.Plotly) {
+                alert('Comparison plot not found.');
+                return;
+            }
+            // Find the sum trace (by name)
+            let sumTrace = null;
+            let t = null;
+            if (comparisonPlot.data && Array.isArray(comparisonPlot.data)) {
+                for (const trace of comparisonPlot.data) {
+                    if (trace.name && (trace.name === 'Sum of Signals' || trace.name === 'Sum')) {
+                        sumTrace = trace;
+                        t = trace.x;
+                        break;
+                    }
+                }
+            }
+            if (!sumTrace || !sumTrace.y) {
+                alert('Sum signal not found in comparison plot.');
+                return;
+            }
+            // Estimate sample rate from time axis
+            let sampleRate = 2000;
+            if (t && t.length > 1) {
+                const dt = t[1] - t[0];
+                if (dt > 0) sampleRate = 1 / dt;
+            }
+            // Send to backend for FFT
+            try {
+                const resp = await fetch('/basic_signals/api/fft', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        signal: sumTrace.y,
+                        sample_rate: sampleRate
+                    })
+                });
+                const result = await resp.json();
+                if (!result.frequencies || !result.magnitude) {
+                    alert('FFT failed: ' + (result.error || 'No data returned'));
+                    return;
+                }
+                // --- Fix: Ensure correct axes orientation ---
+                // If the returned arrays are swapped, auto-detect and swap
+                let freqArr = result.frequencies;
+                let magArr = result.magnitude;
+                // Frequencies should be increasing and start near 0
+                const isFreqArrValid = freqArr[0] <= 1 &&
+                    freqArr[freqArr.length - 1] > freqArr[0] &&
+                    freqArr.every((val, i) => i === 0 || val >= freqArr[i - 1]);
+                if (!isFreqArrValid) {
+                    // Swap if needed
+                    let temp = freqArr;
+                    freqArr = magArr;
+                    magArr = temp;
+                }
+                // Plot FFT below the comparison plot
+                let fftDiv = document.getElementById('comparisonFFTPlot');
+                if (!fftDiv) {
+                    fftDiv = document.createElement('div');
+                    fftDiv.id = 'comparisonFFTPlot';
+                    fftDiv.className = 'plot-container';
+                    fftDiv.style.marginTop = '18px';
+                    comparisonPlot.parentNode.appendChild(fftDiv);
+                }
+                Plotly.newPlot(fftDiv, [{
+                    x: freqArr,
+                    y: magArr,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'FFT (Sum)',
+                    line: { color: '#1f77b4' }
+                }], {
+                    title: 'FFT of Sum Signal',
+                    xaxis: { title: 'Frequency (Hz)' },
+                    yaxis: { title: 'Magnitude' },
+                    margin: { l: 60, r: 30, t: 50, b: 50 },
+                    plot_bgcolor: '#fff',
+                    paper_bgcolor: '#fff'
+                }, { responsive: true });
+            } catch (err) {
+                alert('FFT request failed: ' + err.message);
+            }
+        });
+    }
 });
